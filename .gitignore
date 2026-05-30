@@ -1,0 +1,63 @@
+# Dependencies
+node_modules/
+
+# Build
+anime-site/build/
+anime-site/dist/
+server/dist/
+server/build/
+
+# Coverage
+coverage/
+anime-site/coverage/
+server/coverage/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+anime-site/.env
+anime-site/.env.*
+!anime-site/.env.example
+
+server/.env
+server/.env.*
+!server/.env.example
+
+# TypeScript
+*.tsbuildinfo
+
+# Cache
+.cache/
+.tmp/
+.temp/
+.eslintcache
+
+anime-site/.vite/
+anime-site/.cache/
+anime-site/.parcel-cache/
+
+# Nest / runtime
+server/uploads/
+server/tmp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Misc
+*.swp
+*.swo
