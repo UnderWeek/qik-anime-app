@@ -38,6 +38,13 @@ export const MenuIcon = (p) => (
   </svg>
 )
 
+export const HomeIcon = (p) => (
+  <svg viewBox="0 0 24 24" {...base} {...p}>
+    <path d="M3 10.5 12 3l9 7.5" />
+    <path d="M5 9.5V21h14V9.5" />
+  </svg>
+)
+
 export const CloseIcon = (p) => (
   <svg viewBox="0 0 24 24" {...base} {...p}>
     <path d="M18 6 6 18M6 6l12 12" />

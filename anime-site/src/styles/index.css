@@ -212,13 +212,14 @@ input {
 .header {
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 260;
   height: var(--header-h);
   display: flex;
   align-items: center;
   background: var(--header-bg);
   backdrop-filter: blur(18px);
   border-bottom: 1px solid var(--border);
+  isolation: isolate;
 }
 
 .header-inner {
@@ -321,6 +322,46 @@ input {
   justify-content: center;
   background: var(--surface);
   border: 1px solid var(--border);
+}
+
+/* ---------- mobile bottom navigation ---------- */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 295;
+  height: calc(66px + env(safe-area-inset-bottom));
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  background: var(--header-bg);
+  backdrop-filter: blur(18px);
+  border-top: 1px solid var(--border);
+}
+.mobile-bottom-item {
+  flex: 1;
+  min-width: 0;
+  border-radius: 11px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--text-faint);
+  font-size: 11px;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+.mobile-bottom-item svg {
+  width: 19px;
+  height: 19px;
+}
+.mobile-bottom-item.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.mobile-bottom-item:hover {
+  color: var(--text);
 }
 
 /* ---------- card ---------- */
@@ -488,6 +529,13 @@ input {
   display: flex;
   gap: 12px;
   align-items: center;
+}
+/* detail actions can include 3 controls, so allow wrapping before mobile */
+.detail-info .hero-actions {
+  flex-wrap: wrap;
+}
+.detail-info .hero-actions .btn {
+  max-width: 100%;
 }
 .hero-dots {
   position: absolute;
@@ -1030,15 +1078,76 @@ input {
 
 /* ---------- responsive ---------- */
 @media (max-width: 768px) {
+  .container { padding: 0 14px; }
+  .page { padding-bottom: calc(98px + env(safe-area-inset-bottom)); }
+  .header { height: auto; }
+  .header-inner {
+    min-height: var(--header-h);
+    padding: 10px 14px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .logo { margin-right: auto; }
   .nav { display: none; }
-  .burger { display: flex; }
-  .header-search { flex: 1; }
+  .burger { display: none; }
+  .header-notif,
+  .header-account {
+    display: none;
+  }
+  .theme-toggle,
+  .burger {
+    width: 38px;
+    height: 38px;
+  }
+  .account-btn {
+    padding: 4px 8px 4px 5px;
+    border-radius: 19px;
+  }
+  .account-btn .name { display: none; }
+  .btn.btn-primary {
+    height: 38px;
+    padding: 0 14px;
+    border-radius: 10px;
+  }
+  .header-search {
+    order: 20;
+    margin-left: 0;
+    flex: 1 0 100%;
+  }
+  .header-search input { height: 38px; }
+  .mobile-bottom-nav {
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  .footer {
+    margin-top: 26px;
+    padding: 24px 0 28px;
+  }
+  .footer-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
   .hero { height: 380px; }
   .hero-content { padding: 26px; }
   .hero-title { font-size: 28px; }
   .detail-hero-inner { flex-direction: column; gap: 22px; padding: 22px; }
   .detail-poster { width: 160px; }
   .detail-info h1 { font-size: 26px; }
+  .detail-info .hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .detail-info .hero-actions > * { width: 100%; }
+  .detail-info .hero-actions .btn {
+    width: 100%;
+    justify-content: center;
+    white-space: normal;
+  }
+  .detail-info .hero-actions .bm-control { width: 100%; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 18px 14px; }
 }
 
@@ -1098,7 +1207,7 @@ input {
   border-radius: 14px;
   padding: 8px;
   box-shadow: var(--shadow);
-  z-index: 120;
+  z-index: 280;
   animation: fade 0.16s ease;
 }
 .account-menu .who {
@@ -1152,7 +1261,7 @@ input {
   border: 1px solid var(--border);
   border-radius: 14px;
   box-shadow: var(--shadow);
-  z-index: 130;
+  z-index: 285;
   animation: fade 0.16s ease;
   overflow: hidden;
 }
@@ -2020,7 +2129,7 @@ input {
 .drawer {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: 290;
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
   display: flex;
@@ -2049,7 +2158,27 @@ input {
   font-weight: 500;
   color: var(--text-dim);
 }
+.drawer-panel button:not(.burger) {
+  padding: 13px 14px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-dim);
+  text-align: left;
+}
 .drawer-panel a.active, .drawer-panel a:hover {
   background: var(--surface);
   color: var(--text);
+}
+.drawer-panel button:not(.burger):hover {
+  background: var(--surface);
+  color: var(--text);
+}
+.drawer-close {
+  align-self: flex-end;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 480px) {
+  .drawer-panel { width: 100%; }
 }

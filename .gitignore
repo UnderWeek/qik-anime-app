@@ -1,26 +1,39 @@
+# ========================
 # Dependencies
+# ========================
 node_modules/
 
-# Build
+# ========================
+# Build & Cache
+# ========================
 anime-site/build/
 anime-site/dist/
 server/dist/
 server/build/
 
-# Coverage
-coverage/
-anime-site/coverage/
-server/coverage/
+.cache/
+.tmp/
+.temp/
+.eslintcache
+anime-site/.vite/
+anime-site/.cache/
+anime-site/.parcel-cache/
 
-# Logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
+# ========================
+# Database (SQLite)
+# ========================
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.sqlite-journal
+*.db-wal
+*.db-shm
+server/qik-anime.db
 
+# ========================
 # Environment files
+# ========================
 .env
 .env.*
 !.env.example
@@ -33,31 +46,41 @@ server/.env
 server/.env.*
 !server/.env.example
 
-# TypeScript
-*.tsbuildinfo
+# ========================
+# Logs & Coverage
+# ========================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+coverage/
+anime-site/coverage/
+server/coverage/
 
-# Cache
-.cache/
-.tmp/
-.temp/
-.eslintcache
-
-anime-site/.vite/
-anime-site/.cache/
-anime-site/.parcel-cache/
-
-# Nest / runtime
+# ========================
+# Nest / Runtime (Uploads)
+# ========================
 server/uploads/
 server/tmp/
 
-# OS
+# ========================
+# Vercel
+# ========================
+.vercel/
+
+# ========================
+# TypeScript
+# ========================
+*.tsbuildinfo
+
+# ========================
+# OS & IDE & Misc
+# ========================
 .DS_Store
 Thumbs.db
-
-# IDE
 .vscode/
 .idea/
-
-# Misc
 *.swp
 *.swo
