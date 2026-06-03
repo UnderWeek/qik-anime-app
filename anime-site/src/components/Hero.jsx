@@ -7,6 +7,8 @@ export default function Hero({ items = [] }) {
   const slides = items.slice(0, 6)
   const [i, setI] = useState(0)
   const timer = useRef(null)
+  const startX = useRef(null)
+  const deltaX = useRef(0)
 
   useEffect(() => {
     if (slides.length <= 1) return
@@ -20,10 +22,38 @@ export default function Hero({ items = [] }) {
     timer.current = setInterval(() => setI((p) => (p + 1) % slides.length), 6000)
   }
 
+  function shift(dir) {
+    if (slides.length <= 1) return
+    setI((p) => (p + dir + slides.length) % slides.length)
+    clearInterval(timer.current)
+    timer.current = setInterval(() => setI((p) => (p + 1) % slides.length), 6000)
+  }
+
+  function onTouchStart(e) {
+    if (slides.length <= 1) return
+    startX.current = e.touches[0].clientX
+    deltaX.current = 0
+  }
+
+  function onTouchMove(e) {
+    if (startX.current == null) return
+    deltaX.current = e.touches[0].clientX - startX.current
+  }
+
+  function onTouchEnd() {
+    if (startX.current == null) return
+    if (Math.abs(deltaX.current) > 42) {
+      if (deltaX.current < 0) shift(1)
+      else shift(-1)
+    }
+    startX.current = null
+    deltaX.current = 0
+  }
+
   if (!slides.length) return null
 
   return (
-    <div className="hero">
+    <div className="hero" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
       {slides.map((a, idx) => {
         const url = a.anime_url || a.url
         const bg =

@@ -7,9 +7,9 @@ import Avatar from './Avatar.jsx';
 import NotificationBell from './NotificationBell.jsx';
 
 const links = [
-  { to: '/', label: 'Home', end: true },
-  { to: '/catalog', label: 'Catalog' },
-  { to: '/schedule', label: 'Schedule' },
+  { to: '/', label: 'Главная', end: true },
+  { to: '/catalog', label: 'Каталог' },
+  { to: '/schedule', label: 'Расписание' },
 ];
 
 export default function Header() {
@@ -38,10 +38,10 @@ export default function Header() {
   useEffect(() => setMenu(false), [location.pathname]);
 
   const mobileLinks = [
-    { to: '/', label: 'Home', icon: HomeIcon, end: true },
-    { to: '/catalog', label: 'Catalog', icon: GridIcon },
-    { to: '/schedule', label: 'Schedule', icon: CalendarIcon },
-    { to: '/library', label: 'Library', icon: BookmarkIcon },
+    { to: '/', label: 'Главная', icon: HomeIcon, end: true },
+    { to: '/catalog', label: 'Каталог', icon: GridIcon },
+    { to: '/schedule', label: 'Расписание', icon: CalendarIcon },
+    { to: '/library', label: 'Закладки', icon: BookmarkIcon },
   ];
 
   const profileActive = location.pathname.startsWith('/u/');
@@ -61,16 +61,16 @@ export default function Header() {
             ))}
             {user && (
               <>
-                <NavLink to='/library' className={({ isActive }) => (isActive ? 'active' : '')}>Library</NavLink>
-                <NavLink to='/friends' className={({ isActive }) => (isActive ? 'active' : '')}>Friends</NavLink>
+                <NavLink to='/library' className={({ isActive }) => (isActive ? 'active' : '')}>Закладки</NavLink>
+                <NavLink to='/friends' className={({ isActive }) => (isActive ? 'active' : '')}>Друзья</NavLink>
               </>
             )}
           </nav>
           <form className='header-search' onSubmit={submit}>
             <SearchIcon />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder='Search...' aria-label='Search' />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder='Поиск...' aria-label='Поиск' />
           </form>
-          <button className='theme-toggle' onClick={toggle} aria-label='Toggle Theme' title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}>
+          <button className='theme-toggle header-theme-toggle' onClick={toggle} aria-label='Toggle Theme' title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}>
             {theme === 'dark' ? <SunIcon width={18} height={18} /> : <MoonIcon width={18} height={18} />}
           </button>
           <div className='header-notif'>
@@ -83,21 +83,21 @@ export default function Header() {
                 {menu && (
                   <div className='account-menu'>
                     <div className='who'><b>{user.username}</b><span>{user.email}</span></div>
-                    <Link to={`/u/${user.id}`}><UserIcon width={16} height={16} />My Profile</Link>
-                    <Link to='/library'><BookmarkIcon width={16} height={16} />My Library</Link>
-                    <Link to='/friends'><UsersIcon width={16} height={16} />Friends</Link>
-                    <button onClick={() => { logout(); setMenu(false); }}><LogoutIcon width={16} height={16} />Logout</button>
+                    <Link to={`/u/${user.id}`}><UserIcon width={16} height={16} />Профиль</Link>
+                    <Link to='/library'><BookmarkIcon width={16} height={16} />Закладки</Link>
+                    <Link to='/friends'><UsersIcon width={16} height={16} />Друзья</Link>
+                    <button onClick={() => { logout(); setMenu(false); }}><LogoutIcon width={16} height={16} />Выйти</button>
                   </div>
                 )}
               </div>
             ) : (
-              <button className='btn btn-primary' style={{ flexShrink: 0 }} onClick={() => openAuth('login')}><UserIcon width={16} height={16} />Login</button>
+              <button className='btn btn-primary' style={{ flexShrink: 0 }} onClick={() => openAuth('login')}><UserIcon width={16} height={16} />Войти</button>
             )}
           </div>
         </div>
       </header>
 
-      <nav className='mobile-bottom-nav' aria-label='Mobile Navigation'>
+      <nav className='mobile-bottom-nav' aria-label='Мобильная навигация'>
         {mobileLinks.map((item) => {
           const Icon = item.icon;
           return (
@@ -111,12 +111,12 @@ export default function Header() {
         {user ? (
           <Link to={`/u/${user.id}`} className={`mobile-bottom-item${profileActive ? ' active' : ''}`}>
             <UserIcon width={19} height={19} />
-            <span>Profile</span>
+            <span>Профиль</span>
           </Link>
         ) : (
           <button className='mobile-bottom-item' onClick={() => openAuth('login')}>
             <UserIcon width={19} height={19} />
-            <span>Login</span>
+            <span>Войти</span>
           </button>
         )}
       </nav>

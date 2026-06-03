@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { backend, uploadUrl } from '../api/backend.js'
 import { fixUrl, upgradePoster } from '../api/client.js'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useTheme } from '../context/ThemeContext.jsx'
 import { frameColor } from '../utils/frames.js'
 import Avatar from '../components/Avatar.jsx'
 import Comments from '../components/Comments.jsx'
@@ -17,6 +18,8 @@ import {
   CheckIcon,
   EditIcon,
   CameraIcon,
+  SunIcon,
+  MoonIcon,
 } from '../components/icons.jsx'
 
 const PASTELS = ['#A8D8C9', '#F7C9D9', '#C9D6F0', '#F5E1A4', '#D9C2F0', '#BFE3D0', '#F0C9B8', '#B8A6F0']
@@ -31,6 +34,7 @@ export default function Profile() {
   const { id } = useParams()
   const uid = Number(id)
   const { user, setUser, showToast, openAuth } = useAuth()
+  const { theme, toggle } = useTheme()
   const isSelf = user?.id === uid
 
   const [data, setData] = useState(null)
@@ -175,6 +179,11 @@ export default function Profile() {
 
   return (
     <div className="container page">
+      <button className="btn btn-ghost profile-theme-mobile" onClick={toggle}>
+        {theme === 'dark' ? <SunIcon width={16} height={16} /> : <MoonIcon width={16} height={16} />}
+        {theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}
+      </button>
+
       {/* banner */}
       <div className={`profile-banner ${shownBanner ? 'has-image' : ''}`}>
         {shownBanner && (
@@ -220,7 +229,7 @@ export default function Profile() {
 
           <div className="profile-actions">
             {isSelf ? (
-              <button className="btn btn-ghost btn-sm" onClick={() => setEditing((e) => !e)}>
+              <button className="btn btn-ghost btn-sm profile-edit-btn" onClick={() => setEditing((e) => !e)}>
                 <EditIcon width={15} height={15} /> {editing ? 'Отмена' : 'Редактировать'}
               </button>
             ) : (
@@ -403,7 +412,11 @@ export default function Profile() {
       {tab === 'history' && <WatchHistory uid={uid} />}
       {tab === 'bookmarks' && <UserBookmarks uid={uid} />}
       {tab === 'friends' && <UserFriends uid={uid} />}
-      {tab === 'wall' && <Comments profileUserId={uid} />}
+      {tab === 'wall' && (
+        <div className="profile-wall">
+          <Comments profileUserId={uid} />
+        </div>
+      )}
     </div>
   )
 }

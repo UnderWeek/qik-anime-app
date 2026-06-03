@@ -424,7 +424,7 @@ export default function Catalog() {
 
   return (
     <div className="container page">
-      <div className="section-head" style={{ marginBottom: 22 }}>
+      <div className="section-head catalog-page-head" style={{ marginBottom: 22 }}>
         <h2 className="section-title">Каталог аниме</h2>
         <button className="btn btn-ghost btn-sm catalog-filter-toggle" onClick={() => setMobileOpen(true)}>
           Фильтры{activeCount ? ` (${activeCount})` : ''}
