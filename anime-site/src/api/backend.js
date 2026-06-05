@@ -7,11 +7,12 @@
 //   3. localhost fallback (SSR / no window)
 
 function resolveBase() {
-  const env = import.meta.env.VITE_QIK_API_URL
+  const env = import.meta.env.VITE_QIK_API_URL?.trim()
   if (env) return env
   if (typeof window !== 'undefined' && window.location?.hostname) {
-    const { protocol, hostname } = window.location
-    return `${protocol}//${hostname}:3001/api`
+    const { origin, protocol, hostname } = window.location
+    if (import.meta.env.DEV) return `${protocol}//${hostname}:3001/api`
+    return `${origin}/api`
   }
   return 'http://localhost:3001/api'
 }
