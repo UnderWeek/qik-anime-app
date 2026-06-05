@@ -11,8 +11,7 @@ import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { randomBytes } from 'crypto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-
-export const UPLOAD_DIR = 'uploads';
+import { UPLOAD_DIR_ABSOLUTE } from '../common/runtime-paths';
 
 const ALLOWED = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 
@@ -23,7 +22,7 @@ export class UploadsController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: UPLOAD_DIR,
+        destination: UPLOAD_DIR_ABSOLUTE,
         filename: (_req, file, cb) => {
           const ext = extname(file.originalname).toLowerCase();
           const name = randomBytes(12).toString('hex') + ext;

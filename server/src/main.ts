@@ -2,12 +2,30 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
+function parseCorsOrigins(raw: string | undefined) {
+  if (!raw) return [];
+  return raw
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Allow the Vite frontend (and any origin in dev) to call the API
+  const configuredOrigins = parseCorsOrigins(process.env.CORS_ORIGINS);
+  const isProd = process.env.NODE_ENV === 'production';
+
+  const corsOrigin =
+    configuredOrigins.length > 0
+      ? configuredOrigins
+      : isProd
+        ? ['https://quickik.ru', 'https://www.quickik.ru']
+        : true;
+
+  // Keep dev flexible, but lock prod to the project domains (or CORS_ORIGINS).
   app.enableCors({
-    origin: true,
+    origin: corsOrigin,
     credentials: true,
   });
 

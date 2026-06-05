@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ServeStaticModule } from '@nestjs/serve-static';
-import { join } from 'path';
 
 import { User } from './users/user.entity';
 import { Bookmark } from './bookmarks/bookmark.entity';
@@ -23,21 +22,21 @@ import { FriendsModule } from './friends/friends.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { SuggestionsModule } from './suggestions/suggestions.module';
-import { UPLOAD_DIR } from './uploads/uploads.controller';
+import { DB_PATH, UPLOAD_DIR_ABSOLUTE } from './common/runtime-paths';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     // Serve uploaded images/gifs at /uploads/*
     ServeStaticModule.forRoot({
-      rootPath: join(process.cwd(), UPLOAD_DIR),
+      rootPath: UPLOAD_DIR_ABSOLUTE,
       serveRoot: '/uploads',
     }),
     TypeOrmModule.forRoot({
       // sql.js = SQLite compiled to WebAssembly (pure JS, no native build / no
       // Visual Studio required). Data is persisted to a file via autoSave.
       type: 'sqljs',
-      location: process.env.DB_PATH || join(process.cwd(), 'qik-anime.db'),
+      location: DB_PATH,
       autoSave: true,
       entities: [
         User,
