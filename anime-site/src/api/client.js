@@ -3,6 +3,7 @@
 // Base server: https://api.yani.tv
 
 const BASE_URL = 'https://api.yani.tv'
+const STATIC_URL = 'https://static.yani.tv'
 
 // The X-Application token is required by the docs for production usage.
 // The public endpoints respond without it, but if you have your own token
@@ -52,7 +53,8 @@ async function request(path, { params, ...options } = {}) {
 export function fixUrl(url) {
   if (!url) return ''
   if (url.startsWith('//')) return `https:${url}`
-  if (url.startsWith('/')) return `https://yummyani.me${url}`
+  // Relative poster paths must go to the static CDN, not the website host.
+  if (url.startsWith('/')) return `${STATIC_URL}${url}`
   return url
 }
 
