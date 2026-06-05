@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useApi } from '../hooks/useApi.js'
 import { api, poster } from '../api/client.js'
 import { backend } from '../api/backend.js'
@@ -8,7 +8,8 @@ import { ArrowLeft, CheckIcon, TrashIcon } from '../components/icons.jsx'
 
 export default function Watch() {
   const { url } = useParams()
-  const { user } = useAuth()
+  const navigate = useNavigate()
+  const { user, openAuth, showToast } = useAuth()
   const { data: anime } = useApi(() => api.anime(url), [url])
   const animeId = anime?.anime_id
 
@@ -36,6 +37,7 @@ export default function Watch() {
   const [player, setPlayer] = useState(null)
   const [epIndex, setEpIndex] = useState(null)
   const [watched, setWatched] = useState({}) // episodeNumber -> row
+  const [creatingRoom, setCreatingRoom] = useState(false)
   const savedRef = useRef({})
 
   useEffect(() => {
@@ -137,6 +139,38 @@ export default function Watch() {
     }
   }
 
+  async function createRoomFromEpisode() {
+    if (!user) {
+      openAuth('login')
+      return
+    }
+    if (!current?.iframe_url || !/kodik/i.test(current.iframe_url)) {
+      showToast('Для комнаты нужна серия в Kodik')
+      return
+    }
+
+    setCreatingRoom(true)
+    try {
+      const room = await backend.createWatchRoom({
+        animeId,
+        animeUrl: anime?.anime_url || url,
+        animeTitle: anime?.title,
+        animePoster: poster(anime, 'big') || poster(anime, 'medium') || '',
+        videoId: current.video_id,
+        episodeNumber: String(current.number || ''),
+        dubbing: dub || '',
+        iframeUrl: current.iframe_url,
+        currentTime: 0,
+        isPaused: true,
+      })
+      if (room?.room?.id) navigate(`/rooms/${room.room.id}`)
+    } catch (err) {
+      showToast(err.message || 'Не удалось создать комнату')
+    } finally {
+      setCreatingRoom(false)
+    }
+  }
+
   const currentWatched = current ? watched[String(current.number)] : null
   // videos still loading OR not yet arrived → show loading, never "unavailable"
   const stillLoading = loading || (!error && videos == null)
@@ -185,6 +219,19 @@ export default function Watch() {
             ) : (
               <div className="state">Выберите эпизод</div>
             )}
+          </div>
+
+          <div className="room-entry-row">
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={createRoomFromEpisode}
+              disabled={creatingRoom || !current}
+            >
+              {creatingRoom ? 'Создаем комнату...' : 'Смотреть вместе в комнате'}
+            </button>
+            <Link to="/rooms" className="btn btn-ghost btn-sm">
+              Все комнаты
+            </Link>
           </div>
 
           {user && current && (

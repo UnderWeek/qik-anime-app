@@ -41,6 +41,7 @@ export default function Header() {
     { to: '/', label: 'Главная', icon: HomeIcon, end: true },
     { to: '/catalog', label: 'Каталог', icon: GridIcon },
     { to: '/schedule', label: 'Расписание', icon: CalendarIcon },
+    { to: '/rooms', label: 'Комнаты', icon: UsersIcon },
     { to: '/library', label: 'Закладки', icon: BookmarkIcon },
   ];
 
@@ -63,6 +64,7 @@ export default function Header() {
               <>
                 <NavLink to='/library' className={({ isActive }) => (isActive ? 'active' : '')}>Закладки</NavLink>
                 <NavLink to='/friends' className={({ isActive }) => (isActive ? 'active' : '')}>Друзья</NavLink>
+                <NavLink to='/rooms' className={({ isActive }) => (isActive ? 'active' : '')}>Комнаты</NavLink>
               </>
             )}
           </nav>
@@ -86,6 +88,7 @@ export default function Header() {
                     <Link to={`/u/${user.id}`}><UserIcon width={16} height={16} />Профиль</Link>
                     <Link to='/library'><BookmarkIcon width={16} height={16} />Закладки</Link>
                     <Link to='/friends'><UsersIcon width={16} height={16} />Друзья</Link>
+                    <Link to='/rooms'><UsersIcon width={16} height={16} />Комнаты</Link>
                     <button onClick={() => { logout(); setMenu(false); }}><LogoutIcon width={16} height={16} />Выйти</button>
                   </div>
                 )}

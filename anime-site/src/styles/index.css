@@ -2128,6 +2128,339 @@ input {
   backdrop-filter: blur(6px);
 }
 
+/* ---------- watch rooms ---------- */
+.room-entry-row {
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.room-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.room-join-form {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.room-join-form input,
+.room-search-form input {
+  height: 40px;
+  min-width: 230px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.room-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 12px;
+}
+
+.room-card {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 15px;
+  transition: all 0.16s;
+}
+
+.room-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+}
+
+.room-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.room-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.room-card-sub {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+.room-card-members {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.room-card-meta {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--text-faint);
+  font-size: 12.5px;
+}
+
+.room-card-cta {
+  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.room-topbar {
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.room-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.room-top-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.room-watch-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 18px;
+  align-items: start;
+}
+
+.room-main,
+.room-chat {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.room-main-head h1 {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.room-main-sub {
+  margin-top: 5px;
+  color: var(--text-faint);
+  font-size: 13.5px;
+}
+
+.room-player-controls {
+  margin-top: 14px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.room-sync-tip {
+  margin-left: 6px;
+  color: var(--text-faint);
+  font-size: 12.5px;
+}
+
+.room-picker {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.room-search-form {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.room-search-results {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.room-search-item {
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-size: 13px;
+  padding: 8px 12px;
+  transition: all 0.14s;
+}
+
+.room-search-item:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.room-search-item.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.room-selected-anime {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+}
+
+.room-episode-picker {
+  margin-top: 14px;
+}
+
+.room-members {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.room-members-list {
+  margin-top: 9px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 8px;
+}
+
+.room-member {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  border-radius: 11px;
+  padding: 8px 9px;
+}
+
+.room-member-name {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.room-member-meta {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.room-chat h3 {
+  font-size: 17px;
+  margin-bottom: 12px;
+}
+
+.room-chat-list {
+  max-height: 60vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 2px;
+}
+
+.room-chat-item {
+  display: flex;
+  gap: 10px;
+}
+
+.room-chat-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.room-chat-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-faint);
+  margin-bottom: 4px;
+}
+
+.room-chat-top span:first-child {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.room-chat-form {
+  margin-top: 14px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.room-chat-form textarea {
+  width: 100%;
+  min-height: 96px;
+  max-height: 240px;
+  resize: vertical;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 11px 12px;
+  font-family: inherit;
+}
+
+.room-chat-form textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+@media (max-width: 1080px) {
+  .room-watch-grid {
+    grid-template-columns: 1fr;
+  }
+  .room-chat-list {
+    max-height: 420px;
+  }
+}
+
+@media (max-width: 640px) {
+  .room-main,
+  .room-chat {
+    padding: 12px;
+    border-radius: 14px;
+  }
+  .room-main-head h1 {
+    font-size: 19px;
+  }
+  .room-join-form input,
+  .room-search-form input {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
 /* resume banner on watch page */
 .resume-banner {
   display: flex;

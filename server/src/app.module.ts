@@ -11,6 +11,9 @@ import { CommentLike } from './comments/comment-like.entity';
 import { WatchProgress } from './progress/watch-progress.entity';
 import { Friendship } from './friends/friendship.entity';
 import { Notification } from './notifications/notification.entity';
+import { WatchRoom } from './watch-rooms/watch-room.entity';
+import { WatchRoomParticipant } from './watch-rooms/watch-room-participant.entity';
+import { WatchRoomMessage } from './watch-rooms/watch-room-message.entity';
 
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
@@ -22,6 +25,7 @@ import { FriendsModule } from './friends/friends.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { SuggestionsModule } from './suggestions/suggestions.module';
+import { WatchRoomsModule } from './watch-rooms/watch-rooms.module';
 import { DB_PATH, UPLOAD_DIR_ABSOLUTE } from './common/runtime-paths';
 
 @Module({
@@ -47,6 +51,9 @@ import { DB_PATH, UPLOAD_DIR_ABSOLUTE } from './common/runtime-paths';
         WatchProgress,
         Friendship,
         Notification,
+        WatchRoom,
+        WatchRoomParticipant,
+        WatchRoomMessage,
       ],
       synchronize: true, // dev convenience; auto-creates tables
     }),
@@ -60,6 +67,7 @@ import { DB_PATH, UPLOAD_DIR_ABSOLUTE } from './common/runtime-paths';
     UploadsModule,
     NotificationsModule,
     SuggestionsModule,
+    WatchRoomsModule,
   ],
 })
 export class AppModule {}

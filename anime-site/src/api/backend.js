@@ -174,6 +174,42 @@ export const backend = {
   removeNotification: (id) =>
     request(`/notifications/${id}`, { method: 'DELETE', auth: true }),
 
+  // ---- watch rooms ----
+  listWatchRooms: () => request('/watch-rooms', { auth: true }),
+  createWatchRoom: (payload = {}) =>
+    request('/watch-rooms', { method: 'POST', body: payload, auth: true }),
+  joinWatchRoom: (code) =>
+    request('/watch-rooms/join', {
+      method: 'POST',
+      body: { code },
+      auth: true,
+    }),
+  watchRoom: (id) => request(`/watch-rooms/${id}`, { auth: true }),
+  watchRoomSync: (id, params = {}) => {
+    const qs = new URLSearchParams()
+    if (params.stateVersion != null) qs.set('stateVersion', String(params.stateVersion))
+    if (params.membersVersion != null) qs.set('membersVersion', String(params.membersVersion))
+    if (params.messageId != null) qs.set('messageId', String(params.messageId))
+    const suffix = qs.toString() ? `?${qs.toString()}` : ''
+    return request(`/watch-rooms/${id}/sync${suffix}`, { auth: true })
+  },
+  updateWatchRoomState: (id, payload) =>
+    request(`/watch-rooms/${id}/state`, {
+      method: 'PATCH',
+      body: payload,
+      auth: true,
+    }),
+  sendWatchRoomMessage: (id, payload) =>
+    request(`/watch-rooms/${id}/messages`, {
+      method: 'POST',
+      body: payload,
+      auth: true,
+    }),
+  leaveWatchRoom: (id) =>
+    request(`/watch-rooms/${id}/leave`, { method: 'POST', auth: true }),
+  closeWatchRoom: (id) =>
+    request(`/watch-rooms/${id}`, { method: 'DELETE', auth: true }),
+
   // ---- suggestions ----
   suggestAnime: (payload) =>
     request('/suggestions', { method: 'POST', body: payload, auth: true }),

@@ -13,6 +13,8 @@ import SearchPage from './pages/SearchPage.jsx'
 import Library from './pages/Library.jsx'
 import Profile from './pages/Profile.jsx'
 import Friends from './pages/Friends.jsx'
+import Rooms from './pages/Rooms.jsx'
+import RoomWatch from './pages/RoomWatch.jsx'
 import NotFound from './pages/NotFound.jsx'
 
 function ScrollToTop() {
@@ -36,6 +38,8 @@ export default function App() {
           <Route path="/search" element={<SearchPage />} />
           <Route path="/library" element={<Library />} />
           <Route path="/friends" element={<Friends />} />
+          <Route path="/rooms" element={<Rooms />} />
+          <Route path="/rooms/:id" element={<RoomWatch />} />
           <Route path="/u/:id" element={<Profile />} />
           <Route path="/anime/:url" element={<AnimeDetail />} />
           <Route path="/anime/:url/watch" element={<Watch />} />
