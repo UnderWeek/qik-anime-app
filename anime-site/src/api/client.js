@@ -52,9 +52,13 @@ async function request(path, { params, ...options } = {}) {
 // Normalize protocol-relative poster URLs (//static.yani.tv/...)
 export function fixUrl(url) {
   if (!url) return ''
-  if (url.startsWith('//')) return `https:${url}`
+  if (url.startsWith('//')) url = `https:${url}`
   // Relative poster paths must go to the static CDN, not the website host.
   if (url.startsWith('/')) return `${STATIC_URL}${url}`
+  // imgproxy.yani.tv sometimes returns 500 for poster URLs; static CDN is a safe fallback.
+  if (/^https?:\/\/imgproxy\.yani\.tv\//i.test(url)) {
+    return url.replace(/^https?:\/\/imgproxy\.yani\.tv/i, STATIC_URL)
+  }
   return url
 }
 
