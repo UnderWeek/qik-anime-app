@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsInt,
@@ -30,8 +30,9 @@ export class CreateWatchRoomDto {
   animePoster?: string;
 
   @IsOptional()
+  @Transform(({ value }) => (value == null ? value : String(value)))
   @IsString()
-  @MaxLength(120)
+  @MaxLength(500)
   videoId?: string;
 
   @IsOptional()
@@ -87,8 +88,9 @@ export class UpdateWatchRoomStateDto {
   animePoster?: string;
 
   @IsOptional()
+  @Transform(({ value }) => (value == null ? value : String(value)))
   @IsString()
-  @MaxLength(120)
+  @MaxLength(500)
   videoId?: string;
 
   @IsOptional()

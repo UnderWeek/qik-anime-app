@@ -10,6 +10,7 @@ const links = [
   { to: '/', label: 'Главная', end: true },
   { to: '/catalog', label: 'Каталог' },
   { to: '/schedule', label: 'Расписание' },
+  { to: '/rooms', label: 'Комнаты' },
 ];
 
 export default function Header() {
@@ -64,7 +65,6 @@ export default function Header() {
               <>
                 <NavLink to='/library' className={({ isActive }) => (isActive ? 'active' : '')}>Закладки</NavLink>
                 <NavLink to='/friends' className={({ isActive }) => (isActive ? 'active' : '')}>Друзья</NavLink>
-                <NavLink to='/rooms' className={({ isActive }) => (isActive ? 'active' : '')}>Комнаты</NavLink>
               </>
             )}
           </nav>
