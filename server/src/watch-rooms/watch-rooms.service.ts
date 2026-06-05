@@ -100,10 +100,6 @@ export class WatchRoomsService {
       .replace(/[^A-Z0-9]/g, '');
   }
 
-  private isKodikUrl(url: string) {
-    return /kodik/i.test(url || '');
-  }
-
   private codeCandidate(size = 7) {
     let out = '';
     for (let i = 0; i < size; i += 1) {
@@ -241,10 +237,6 @@ export class WatchRoomsService {
   }
 
   async create(userId: number, dto: CreateWatchRoomDto) {
-    if (dto.iframeUrl && !this.isKodikUrl(dto.iframeUrl)) {
-      throw new BadRequestException('В комнате поддерживается только Kodik');
-    }
-
     const room = this.rooms.create({
       code: await this.generateUniqueCode(),
       owner: { id: userId } as any,
@@ -333,9 +325,6 @@ export class WatchRoomsService {
 
   async updateState(roomId: number, userId: number, dto: UpdateWatchRoomStateDto) {
     const { room } = await this.assertMember(roomId, userId);
-    if (dto.iframeUrl && !this.isKodikUrl(dto.iframeUrl)) {
-      throw new BadRequestException('Разрешен только Kodik iframe');
-    }
 
     let changed = false;
 

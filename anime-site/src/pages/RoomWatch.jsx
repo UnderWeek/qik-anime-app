@@ -7,6 +7,10 @@ import Avatar from '../components/Avatar.jsx'
 import Lightbox from '../components/Lightbox.jsx'
 import { ArrowLeft, CloseIcon, ImageIcon, UsersIcon } from '../components/icons.jsx'
 
+const POLL_MS = 1000
+const HEARTBEAT_MS = 3000
+const RELOAD_DRIFT_SECONDS = 4
+
 function timeAgo(iso) {
   const d = new Date(iso)
   const diff = (Date.now() - d.getTime()) / 1000
@@ -14,6 +18,14 @@ function timeAgo(iso) {
   if (diff < 3600) return `${Math.floor(diff / 60)} мин назад`
   if (diff < 86400) return `${Math.floor(diff / 3600)} ч назад`
   return d.toLocaleDateString('ru-RU')
+}
+
+function getPlayerName(v) {
+  return (v?.data?.player || v?.player || 'Плеер').trim()
+}
+
+function getDubbingName(v) {
+  return (v?.data?.dubbing || 'Озвучка').trim()
 }
 
 function parseMessagePayload(payload) {
@@ -29,18 +41,47 @@ function parseMessagePayload(payload) {
   return null
 }
 
-function withStartFrom(url, seconds = 0, syncTag = '') {
+function parseIsoMs(value) {
+  const ms = Date.parse(value || '')
+  return Number.isFinite(ms) ? ms : 0
+}
+
+function normalizeTime(v) {
+  const n = Number(v)
+  if (!Number.isFinite(n)) return 0
+  return Math.max(0, n)
+}
+
+function expectedRoomTime(nextState) {
+  const base = normalizeTime(nextState?.currentTime)
+  if (!nextState || nextState.isPaused) return base
+  const updatedAt = parseIsoMs(nextState.updatedAt)
+  if (!updatedAt) return base
+  const elapsed = Math.max(0, (Date.now() - updatedAt) / 1000)
+  return base + elapsed
+}
+
+function buildSyncedIframeUrl(url, seconds = 0, isPaused = true, syncTag = '') {
   if (!url) return ''
-  const sec = Math.max(0, Math.floor(Number(seconds) || 0))
+  const sec = Math.floor(normalizeTime(seconds))
   try {
     const u = new URL(url)
     u.searchParams.set('start_from', String(sec))
+    u.searchParams.set('start', String(sec))
+    u.searchParams.set('t', String(sec))
+    u.searchParams.set('time', String(sec))
+    if (!isPaused) {
+      u.searchParams.set('autoplay', '1')
+      u.searchParams.set('autoPlay', 'true')
+      u.searchParams.set('play', '1')
+    }
     if (syncTag) u.searchParams.set('sync', syncTag)
     return u.toString()
   } catch {
     const sep = url.includes('?') ? '&' : '?'
     const sync = syncTag ? `&sync=${encodeURIComponent(syncTag)}` : ''
-    return `${url}${sep}start_from=${sec}${sync}`
+    const auto = isPaused ? '' : '&autoplay=1&play=1&autoPlay=true'
+    return `${url}${sep}start_from=${sec}&start=${sec}&t=${sec}${auto}${sync}`
   }
 }
 
@@ -64,6 +105,7 @@ export default function RoomWatch() {
   const [iframeSrc, setIframeSrc] = useState('')
   const [members, setMembers] = useState([])
   const [messages, setMessages] = useState([])
+  const [clockSeconds, setClockSeconds] = useState(0)
 
   const [searchText, setSearchText] = useState('')
   const [searching, setSearching] = useState(false)
@@ -71,7 +113,8 @@ export default function RoomWatch() {
   const [selectedAnime, setSelectedAnime] = useState(null)
   const [animeVideos, setAnimeVideos] = useState([])
   const [videoLoading, setVideoLoading] = useState(false)
-  const [dub, setDub] = useState(null)
+  const [selectedPlayer, setSelectedPlayer] = useState(null)
+  const [selectedDub, setSelectedDub] = useState(null)
   const [videoId, setVideoId] = useState(null)
 
   const [chatText, setChatText] = useState('')
@@ -86,106 +129,110 @@ export default function RoomWatch() {
   const videoRef = useRef('')
   const localTimeRef = useRef(0)
   const localPausedRef = useRef(true)
+  const localTickAtRef = useRef(Date.now())
   const suppressEventsUntilRef = useRef(0)
   const stateVersionRef = useRef(0)
   const membersVersionRef = useRef(0)
   const messageIdRef = useRef(0)
   const pollingRef = useRef(false)
-  const sendStateRef = useRef(false)
+  const sendingStateRef = useRef(false)
   const lastPushAtRef = useRef(0)
+  const lastHeartbeatRef = useRef(0)
 
   const isOwner = !!user && room?.ownerId === user.id
+  const iAmActor = !!user && state?.lastActorId === user.id
 
-  const kodikVideos = useMemo(
-    () =>
-      (Array.isArray(animeVideos) ? animeVideos : []).filter((v) =>
-        /kodik/i.test(v?.data?.player || v?.player || '')
-      ),
-    [animeVideos]
-  )
+  const players = useMemo(() => {
+    const seen = new Set()
+    const out = []
+    ;(Array.isArray(animeVideos) ? animeVideos : []).forEach((v) => {
+      const playerName = getPlayerName(v)
+      if (seen.has(playerName)) return
+      seen.add(playerName)
+      out.push(playerName)
+    })
+    return out
+  }, [animeVideos])
 
   const dubbings = useMemo(() => {
     const seen = new Set()
-    const list = []
-    kodikVideos.forEach((v) => {
-      const title = v?.data?.dubbing || 'Озвучка'
-      if (seen.has(title)) return
-      seen.add(title)
-      list.push(title)
-    })
-    return list
-  }, [kodikVideos])
+    const out = []
+    ;(Array.isArray(animeVideos) ? animeVideos : [])
+      .filter((v) => getPlayerName(v) === selectedPlayer)
+      .forEach((v) => {
+        const dub = getDubbingName(v)
+        if (seen.has(dub)) return
+        seen.add(dub)
+        out.push(dub)
+      })
+    return out
+  }, [animeVideos, selectedPlayer])
 
   const episodes = useMemo(
     () =>
-      kodikVideos
-        .filter((v) => (v?.data?.dubbing || 'Озвучка') === dub)
+      (Array.isArray(animeVideos) ? animeVideos : [])
+        .filter(
+          (v) =>
+            getPlayerName(v) === selectedPlayer &&
+            getDubbingName(v) === selectedDub
+        )
         .sort((a, b) => (a.index || 0) - (b.index || 0)),
-    [kodikVideos, dub]
+    [animeVideos, selectedDub, selectedPlayer]
   )
 
-  const syncPlayerFromState = useCallback(
-    (nextState, remoteActor = false) => {
-      if (!nextState?.iframeUrl) return
+  const activeEpisode = useMemo(
+    () => episodes.find((ep) => String(ep.video_id) === String(videoId)) || episodes[0] || null,
+    [episodes, videoId]
+  )
 
-      const currentVideoId = nextState.videoId || ''
-      const videoChanged =
-        currentVideoId !== videoRef.current ||
-        nextState.iframeUrl !== iframeBaseRef.current
+  const advanceLocalClock = useCallback(() => {
+    const now = Date.now()
+    if (!localPausedRef.current) {
+      const delta = Math.max(0, (now - localTickAtRef.current) / 1000)
+      localTimeRef.current += delta
+    }
+    localTickAtRef.current = now
+  }, [])
 
-      if (videoChanged) {
+  const reloadIframe = useCallback((url, targetSeconds, isPaused, reason = '') => {
+    if (!url) return
+    const src = buildSyncedIframeUrl(url, targetSeconds, isPaused, `${Date.now()}-${reason}`)
+    setIframeSrc(src)
+    if (iframeRef.current) iframeRef.current.src = src
+  }, [])
+
+  const applyState = useCallback(
+    (nextState, source = 'remote', opts = {}) => {
+      if (!nextState) return
+
+      const targetTime = expectedRoomTime(nextState)
+      const nextPaused = !!nextState.isPaused
+      const nextVideoId = String(nextState.videoId || '')
+      const forceReload = !!opts.forceReload
+      const remoteUpdate = source === 'remote'
+      const sameVideo =
+        nextVideoId === videoRef.current &&
+        nextState.iframeUrl === iframeBaseRef.current
+
+      if (!sameVideo && nextState.iframeUrl) {
         iframeBaseRef.current = nextState.iframeUrl
-        videoRef.current = currentVideoId
-        localTimeRef.current = Number(nextState.currentTime || 0)
-        localPausedRef.current = !!nextState.isPaused
-        suppressEventsUntilRef.current = Date.now() + 1800
-        const url = withStartFrom(
-          nextState.iframeUrl,
-          nextState.currentTime,
-          String(nextState.updatedAt || Date.now())
-        )
-        setIframeSrc(url)
-        if (iframeRef.current) iframeRef.current.src = url
-        return
-      }
-
-      if (!remoteActor) return
-      const targetTime = Number(nextState.currentTime || 0)
-      const delta = Math.abs(localTimeRef.current - targetTime)
-      suppressEventsUntilRef.current = Date.now() + 1200
-
-      const post = (payload) => {
-        const win = iframeRef.current?.contentWindow
-        if (!win) return
-        try {
-          win.postMessage(payload, '*')
-        } catch {
-          /* ignore */
+        videoRef.current = nextVideoId
+        reloadIframe(nextState.iframeUrl, targetTime, nextPaused, 'video')
+      } else if (nextState.iframeUrl) {
+        const drift = Math.abs(localTimeRef.current - targetTime)
+        const pauseChanged = nextPaused !== localPausedRef.current
+        if (forceReload || (remoteUpdate && (pauseChanged || drift > RELOAD_DRIFT_SECONDS))) {
+          reloadIframe(nextState.iframeUrl, targetTime, nextPaused, 'state')
         }
       }
 
-      const command = (method, value) => {
-        const base = { key: 'kodik_player_api', value: { method, value } }
-        post(base)
-        post(JSON.stringify(base))
-      }
-
-      if (delta > 6) {
-        command('seek', targetTime)
-        command('setCurrentTime', targetTime)
-      }
-      if (nextState.isPaused !== localPausedRef.current) {
-        command(nextState.isPaused ? 'pause' : 'play')
-      }
-      if (delta > 18) {
-        const url = withStartFrom(nextState.iframeUrl, nextState.currentTime, String(Date.now()))
-        setIframeSrc(url)
-        if (iframeRef.current) iframeRef.current.src = url
-      }
       localTimeRef.current = targetTime
-      localPausedRef.current = !!nextState.isPaused
+      localPausedRef.current = nextPaused
+      localTickAtRef.current = Date.now()
+      setClockSeconds(Math.floor(targetTime))
+      setState(nextState)
     },
-    []
+    [reloadIframe]
   )
 
   const applySnapshot = useCallback(
@@ -197,41 +244,45 @@ export default function RoomWatch() {
 
       if (snap.room) setRoom(snap.room)
       if (snap.state) {
-        setState(snap.state)
-        const fromRemote = !!user && snap.state.lastActorId != null && snap.state.lastActorId !== user.id
-        syncPlayerFromState(snap.state, fromRemote)
+        const source =
+          user && snap.state.lastActorId != null && snap.state.lastActorId === user.id
+            ? 'self'
+            : 'remote'
+        applyState(snap.state, source)
       }
       if (Array.isArray(snap.members)) setMembers(snap.members)
       if (Array.isArray(snap.messages)) {
         setMessages((prev) => (replaceMessages ? snap.messages : mergeMessages(prev, snap.messages)))
       }
     },
-    [syncPlayerFromState, user]
+    [applyState, user]
   )
 
   const sendState = useCallback(
     async (payload, immediate = false) => {
-      if (!roomId || !user) return
+      if (!roomId || !user) return null
       const now = Date.now()
-      if (!immediate && now - lastPushAtRef.current < 1200) return
-      if (sendStateRef.current && !immediate) return
+      if (!immediate && now - lastPushAtRef.current < 900) return null
+      if (!immediate && sendingStateRef.current) return null
+      sendingStateRef.current = true
       lastPushAtRef.current = now
-      sendStateRef.current = true
+
       try {
         const res = await backend.updateWatchRoomState(roomId, payload)
-        if (res?.stateVersion != null) stateVersionRef.current = res.stateVersion
-        if (res?.state) setState(res.state)
+        if (typeof res?.stateVersion === 'number') stateVersionRef.current = res.stateVersion
+        if (res?.state) applyState(res.state, 'self')
+        return res?.state || null
       } catch (err) {
         if (err.status === 404) {
           showToast('Комната была закрыта')
           navigate('/rooms')
-          return
         }
+        return null
       } finally {
-        sendStateRef.current = false
+        sendingStateRef.current = false
       }
     },
-    [navigate, roomId, showToast, user]
+    [applyState, navigate, roomId, showToast, user]
   )
 
   const loadRoom = useCallback(async () => {
@@ -243,6 +294,7 @@ export default function RoomWatch() {
       navigate('/rooms')
       return
     }
+
     setLoading(true)
     try {
       const snap = await backend.watchRoom(roomId)
@@ -281,10 +333,31 @@ export default function RoomWatch() {
       } finally {
         pollingRef.current = false
       }
-    }, 1500)
+    }, POLL_MS)
 
     return () => window.clearInterval(timer)
   }, [applySnapshot, navigate, roomId, showToast, user])
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      advanceLocalClock()
+      const rounded = Math.floor(localTimeRef.current)
+      setClockSeconds((prev) => (prev === rounded ? prev : rounded))
+
+      if (!user || localPausedRef.current || state?.lastActorId !== user.id) return
+      if (Date.now() - lastHeartbeatRef.current < HEARTBEAT_MS) return
+      lastHeartbeatRef.current = Date.now()
+      sendState(
+        {
+          currentTime: Math.floor(localTimeRef.current),
+          isPaused: false,
+        },
+        false
+      )
+    }, 1000)
+
+    return () => window.clearInterval(timer)
+  }, [advanceLocalClock, sendState, state?.lastActorId, user])
 
   useEffect(() => {
     if (!state?.iframeUrl) {
@@ -292,9 +365,9 @@ export default function RoomWatch() {
       return
     }
     if (!iframeSrc) {
-      setIframeSrc(withStartFrom(state.iframeUrl, state.currentTime, String(state.updatedAt || Date.now())))
+      reloadIframe(state.iframeUrl, expectedRoomTime(state), !!state.isPaused, 'init')
     }
-  }, [iframeSrc, state?.currentTime, state?.iframeUrl, state?.updatedAt])
+  }, [iframeSrc, reloadIframe, state])
 
   useEffect(() => {
     function onMessage(event) {
@@ -312,45 +385,44 @@ export default function RoomWatch() {
         payload.value ??
         payload.currentTime ??
         payload.time
-      const nextTime = Number(rawTime)
+      const maybeTime = Number(rawTime)
 
-      if (key.includes('time') && Number.isFinite(nextTime)) {
-        localTimeRef.current = Math.max(0, nextTime)
-        sendState(
-          {
-            currentTime: localTimeRef.current,
-            isPaused: localPausedRef.current,
-          },
-          false
-        )
+      if (Number.isFinite(maybeTime)) {
+        localTimeRef.current = Math.max(0, maybeTime)
+        localTickAtRef.current = Date.now()
       }
 
       if (key.includes('pause')) {
         localPausedRef.current = true
-        sendState(
-          {
-            currentTime: localTimeRef.current,
-            isPaused: true,
-          },
-          true
-        )
+        if (iAmActor) {
+          sendState(
+            {
+              currentTime: Math.floor(localTimeRef.current),
+              isPaused: true,
+            },
+            true
+          )
+        }
       }
 
       if (key.includes('play')) {
         localPausedRef.current = false
-        sendState(
-          {
-            currentTime: localTimeRef.current,
-            isPaused: false,
-          },
-          true
-        )
+        localTickAtRef.current = Date.now()
+        if (iAmActor) {
+          sendState(
+            {
+              currentTime: Math.floor(localTimeRef.current),
+              isPaused: false,
+            },
+            true
+          )
+        }
       }
     }
 
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [sendState, state?.iframeUrl])
+  }, [iAmActor, sendState, state?.iframeUrl])
 
   useEffect(
     () => () => {
@@ -360,13 +432,23 @@ export default function RoomWatch() {
   )
 
   useEffect(() => {
-    if (dubbings.length && !dub) setDub(dubbings[0])
-  }, [dub, dubbings])
+    if (players.length && !selectedPlayer) setSelectedPlayer(players[0])
+  }, [players, selectedPlayer])
+
+  useEffect(() => {
+    if (dubbings.length) {
+      setSelectedDub((prev) => (dubbings.includes(prev) ? prev : dubbings[0]))
+    } else {
+      setSelectedDub(null)
+    }
+  }, [dubbings])
 
   useEffect(() => {
     if (episodes.length) {
       setVideoId((prev) =>
-        episodes.some((v) => v.video_id === prev) ? prev : episodes[0].video_id
+        episodes.some((ep) => String(ep.video_id) === String(prev))
+          ? prev
+          : String(episodes[0].video_id)
       )
     } else {
       setVideoId(null)
@@ -392,14 +474,12 @@ export default function RoomWatch() {
   async function pickAnime(anime) {
     setSelectedAnime(anime)
     setVideoLoading(true)
+    setAnimeVideos([])
     try {
       const raw = await api.videos(anime.anime_id)
-      const list = Array.isArray(raw) ? raw : []
-      const kodikOnly = list.filter((v) =>
-        /kodik/i.test(v?.data?.player || v?.player || '')
-      )
-      setAnimeVideos(kodikOnly)
-      if (!kodikOnly.length) showToast('Для этого аниме нет серий в Kodik')
+      const list = Array.isArray(raw) ? raw.filter((v) => !!v?.iframe_url) : []
+      setAnimeVideos(list)
+      if (!list.length) showToast('Для этого аниме нет доступных плееров')
     } catch {
       setAnimeVideos([])
       showToast('Не удалось загрузить серии')
@@ -409,30 +489,32 @@ export default function RoomWatch() {
   }
 
   async function pushAnimeToRoom() {
-    if (!selectedAnime) return
-    const episode = episodes.find((v) => v.video_id === videoId) || episodes[0]
-    if (!episode?.iframe_url) {
-      showToast('Выберите доступную серию Kodik')
+    if (!selectedAnime || !activeEpisode?.iframe_url) {
+      showToast('Выберите серию для комнаты')
       return
     }
+
+    const playerName = getPlayerName(activeEpisode)
+    const dubName = getDubbingName(activeEpisode)
+
     const payload = {
       animeId: selectedAnime.anime_id,
       animeUrl: selectedAnime.anime_url,
       animeTitle: selectedAnime.title,
       animePoster: poster(selectedAnime, 'big') || poster(selectedAnime, 'medium') || '',
-      videoId: episode.video_id,
-      episodeNumber: String(episode.number || episode.index || ''),
-      dubbing: dub || episode?.data?.dubbing || '',
-      iframeUrl: episode.iframe_url,
+      videoId: String(activeEpisode.video_id || ''),
+      episodeNumber: String(activeEpisode.number || activeEpisode.index || ''),
+      dubbing: `${playerName}${dubName ? ` · ${dubName}` : ''}`,
+      iframeUrl: activeEpisode.iframe_url,
       currentTime: 0,
       isPaused: true,
     }
+
     try {
       const res = await backend.updateWatchRoomState(roomId, payload)
       if (res?.state) {
         stateVersionRef.current = res.stateVersion || stateVersionRef.current
-        setState(res.state)
-        syncPlayerFromState(res.state, false)
+        applyState(res.state, 'self', { forceReload: true })
       }
       showToast('Плеер комнаты обновлен')
     } catch (err) {
@@ -440,38 +522,37 @@ export default function RoomWatch() {
     }
   }
 
-  function callKodik(method, value) {
-    const win = iframeRef.current?.contentWindow
-    if (!win) return
-    const payload = { key: 'kodik_player_api', value: { method, value } }
-    try {
-      win.postMessage(payload, '*')
-      win.postMessage(JSON.stringify(payload), '*')
-    } catch {
-      /* ignore */
-    }
-  }
-
   async function pauseToggle() {
     if (!state?.iframeUrl) return
-    const paused = !localPausedRef.current
-    localPausedRef.current = paused
+
+    advanceLocalClock()
+    const nextPaused = !localPausedRef.current
+    const syncTime = Math.floor(localTimeRef.current)
+    localPausedRef.current = nextPaused
+    localTickAtRef.current = Date.now()
     suppressEventsUntilRef.current = Date.now() + 1000
-    callKodik(paused ? 'pause' : 'play')
-    const time = localTimeRef.current || state.currentTime || 0
-    await sendState({ currentTime: time, isPaused: paused }, true)
-    setState((prev) => (prev ? { ...prev, currentTime: time, isPaused: paused } : prev))
+
+    const nextState = {
+      ...state,
+      currentTime: syncTime,
+      isPaused: nextPaused,
+      lastActorId: user?.id ?? state.lastActorId,
+      updatedAt: new Date().toISOString(),
+    }
+    applyState(nextState, 'self', { forceReload: true })
+    await sendState(
+      {
+        currentTime: syncTime,
+        isPaused: nextPaused,
+      },
+      true
+    )
   }
 
-  async function shiftTime(delta) {
+  async function syncNow() {
     if (!state?.iframeUrl) return
-    const next = Math.max(0, Math.floor((localTimeRef.current || state.currentTime || 0) + delta))
-    localTimeRef.current = next
-    suppressEventsUntilRef.current = Date.now() + 1000
-    callKodik('seek', next)
-    callKodik('setCurrentTime', next)
-    await sendState({ currentTime: next, isPaused: localPausedRef.current }, true)
-    setState((prev) => (prev ? { ...prev, currentTime: next } : prev))
+    advanceLocalClock()
+    reloadIframe(state.iframeUrl, localTimeRef.current, localPausedRef.current, 'manual')
   }
 
   async function copyCode() {
@@ -605,12 +686,12 @@ export default function RoomWatch() {
             </div>
           </div>
 
-          <div className="player-wrap">
+          <div className="room-player-wrap player-wrap">
             {state?.iframeUrl ? (
               <iframe
                 ref={iframeRef}
                 src={iframeSrc}
-                title="Kodik room player"
+                title="Room player"
                 allowFullScreen
                 allow="autoplay; fullscreen; encrypted-media"
               />
@@ -622,22 +703,19 @@ export default function RoomWatch() {
           </div>
 
           <div className="room-player-controls">
-            <button className="btn btn-ghost btn-sm" onClick={() => shiftTime(-10)} disabled={!state?.iframeUrl}>
-              -10 сек
-            </button>
             <button className="btn btn-primary btn-sm" onClick={pauseToggle} disabled={!state?.iframeUrl}>
-              {localPausedRef.current ? 'Play' : 'Pause'}
+              {localPausedRef.current ? 'Play в комнате' : 'Pause в комнате'}
             </button>
-            <button className="btn btn-ghost btn-sm" onClick={() => shiftTime(10)} disabled={!state?.iframeUrl}>
-              +10 сек
+            <button className="btn btn-ghost btn-sm" onClick={syncNow} disabled={!state?.iframeUrl}>
+              Синхронизировать сейчас
             </button>
             <span className="room-sync-tip">
-              Синхронизация идет по времени и паузам через состояние комнаты.
+              Время комнаты: {clockSeconds} сек. Синхронизация работает для любых плееров, при расхождении плеер может перезагружаться.
             </span>
           </div>
 
           <div className="room-picker">
-            <div className="control-label">Подобрать аниме (Kodik)</div>
+            <div className="control-label">Подобрать аниме (любой плеер)</div>
             <form className="room-search-form" onSubmit={runSearch}>
               <input
                 value={searchText}
@@ -670,21 +748,34 @@ export default function RoomWatch() {
                   <b>{selectedAnime.title}</b>
                   <div style={{ color: 'var(--text-faint)', fontSize: 13 }}>
                     {videoLoading
-                      ? 'Загружаем Kodik серии...'
-                      : kodikVideos.length
-                        ? `Найдено серий: ${kodikVideos.length}`
-                        : 'Серии в Kodik не найдены'}
+                      ? 'Загружаем серии...'
+                      : animeVideos.length
+                        ? `Найдено серий: ${animeVideos.length}`
+                        : 'Серии не найдены'}
                   </div>
                 </div>
               </div>
             )}
 
-            {kodikVideos.length > 0 && (
+            {animeVideos.length > 0 && (
               <div className="room-episode-picker">
+                {players.length > 1 && (
+                  <div className="control-group" style={{ maxWidth: 280 }}>
+                    <div className="control-label">Плеер</div>
+                    <select className="select" value={selectedPlayer || ''} onChange={(e) => setSelectedPlayer(e.target.value)}>
+                      {players.map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 {dubbings.length > 1 && (
                   <div className="control-group" style={{ maxWidth: 280 }}>
                     <div className="control-label">Озвучка</div>
-                    <select className="select" value={dub || ''} onChange={(e) => setDub(e.target.value)}>
+                    <select className="select" value={selectedDub || ''} onChange={(e) => setSelectedDub(e.target.value)}>
                       {dubbings.map((d) => (
                         <option key={d} value={d}>
                           {d}
@@ -699,10 +790,10 @@ export default function RoomWatch() {
                   <div className="episode-grid">
                     {episodes.map((ep) => (
                       <button
-                        key={ep.video_id}
-                        className={`ep-btn ${videoId === ep.video_id ? 'active' : ''}`}
+                        key={String(ep.video_id)}
+                        className={`ep-btn ${String(videoId) === String(ep.video_id) ? 'active' : ''}`}
                         type="button"
-                        onClick={() => setVideoId(ep.video_id)}
+                        onClick={() => setVideoId(String(ep.video_id))}
                       >
                         {ep.number}
                       </button>
@@ -710,7 +801,7 @@ export default function RoomWatch() {
                   </div>
                 </div>
 
-                <button className="btn btn-primary" type="button" onClick={pushAnimeToRoom}>
+                <button className="btn btn-primary room-set-btn" type="button" onClick={pushAnimeToRoom}>
                   Поставить в комнату
                 </button>
               </div>

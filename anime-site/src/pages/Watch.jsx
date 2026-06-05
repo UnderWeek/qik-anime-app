@@ -144,8 +144,8 @@ export default function Watch() {
       openAuth('login')
       return
     }
-    if (!current?.iframe_url || !/kodik/i.test(current.iframe_url)) {
-      showToast('Для комнаты нужна серия в Kodik')
+    if (!current?.iframe_url) {
+      showToast('Нет доступного плеера для этой серии')
       return
     }
 

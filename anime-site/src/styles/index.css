@@ -2274,6 +2274,10 @@ input {
   font-size: 13.5px;
 }
 
+.room-player-wrap {
+  margin-top: 14px;
+}
+
 .room-player-controls {
   margin-top: 14px;
   display: flex;
@@ -2337,6 +2341,10 @@ input {
 }
 
 .room-episode-picker {
+  margin-top: 14px;
+}
+
+.room-set-btn {
   margin-top: 14px;
 }
 
