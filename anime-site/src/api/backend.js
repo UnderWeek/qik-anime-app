@@ -184,6 +184,8 @@ export const backend = {
       body: { code },
       auth: true,
     }),
+  joinWatchRoomById: (id) =>
+    request(`/watch-rooms/${id}/join`, { method: 'POST', auth: true }),
   watchRoom: (id) => request(`/watch-rooms/${id}`, { auth: true }),
   watchRoomSync: (id, params = {}) => {
     const qs = new URLSearchParams()
@@ -207,6 +209,8 @@ export const backend = {
     }),
   leaveWatchRoom: (id) =>
     request(`/watch-rooms/${id}/leave`, { method: 'POST', auth: true }),
+  inviteToRoom: (id, targetId) =>
+    request(`/watch-rooms/${id}/invite`, { method: 'POST', body: { targetId }, auth: true }),
   closeWatchRoom: (id) =>
     request(`/watch-rooms/${id}`, { method: 'DELETE', auth: true }),
 

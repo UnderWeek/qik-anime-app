@@ -144,8 +144,14 @@ export default function Watch() {
       openAuth('login')
       return
     }
-    if (!current?.iframe_url) {
-      showToast('Нет доступного плеера для этой серии')
+
+    // Для комнат только Kodik — ищем Kodik-эпизод с тем же номером
+    const kodikEp = /kodik/i.test(current?.iframe_url || '')
+      ? current
+      : episodes.find((ep) => String(ep.number) === String(current?.number) && /kodik/i.test(ep.iframe_url || ''))
+
+    if (!kodikEp?.iframe_url) {
+      showToast('Для комнат нужен плеер Kodik — переключитесь на Kodik в селекторе плеера')
       return
     }
 
@@ -156,10 +162,10 @@ export default function Watch() {
         animeUrl: anime?.anime_url || url,
         animeTitle: anime?.title,
         animePoster: poster(anime, 'big') || poster(anime, 'medium') || '',
-        videoId: current.video_id,
-        episodeNumber: String(current.number || ''),
+        videoId: kodikEp.video_id,
+        episodeNumber: String(kodikEp.number || ''),
         dubbing: dub || '',
-        iframeUrl: current.iframe_url,
+        iframeUrl: kodikEp.iframe_url,
         currentTime: 0,
         isPaused: true,
       })

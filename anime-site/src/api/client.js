@@ -8,7 +8,11 @@ const STATIC_URL = 'https://static.yani.tv'
 // The X-Application token is required by the docs for production usage.
 // The public endpoints respond without it, but if you have your own token
 // (https://yummyani.me/dev/applications) put it here to be safe.
-const APP_TOKEN = import.meta.env.VITE_YUMMY_APP_TOKEN || ''
+// Private token gives higher rate limits; falls back to public.
+const APP_TOKEN =
+  import.meta.env.VITE_YUMMY_PRIVATE_TOKEN ||
+  import.meta.env.VITE_YUMMY_APP_TOKEN ||
+  ''
 
 function buildHeaders(extra = {}) {
   const headers = {

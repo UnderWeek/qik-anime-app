@@ -7,6 +7,7 @@ export const STATUSES: BookmarkStatus[] = [
   'completed',
   'on_hold',
   'dropped',
+  'rewatching',
   'favorite',
 ];
 

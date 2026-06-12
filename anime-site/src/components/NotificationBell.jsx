@@ -124,8 +124,11 @@ export default function NotificationBell() {
                   </>
                 )
                 // anime suggestions / replies link to anime; friend events link to actor profile
+                // room_invite links to the room
                 const to =
-                  n.type === 'anime_suggestion' && (n.animeUrl || n.animeId)
+                  n.type === 'room_invite' && n.roomId
+                    ? `/rooms/${n.roomId}`
+                    : n.type === 'anime_suggestion' && (n.animeUrl || n.animeId)
                     ? `/anime/${n.animeUrl || n.animeId}`
                     : n.type === 'friend_request' || n.type === 'friend_accept'
                     ? n.actor

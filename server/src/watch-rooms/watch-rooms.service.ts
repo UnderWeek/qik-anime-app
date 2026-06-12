@@ -10,8 +10,10 @@ import { basename, isAbsolute, relative, resolve } from 'path';
 import { Repository } from 'typeorm';
 import { UPLOAD_DIR_ABSOLUTE } from '../common/runtime-paths';
 import { User } from '../users/user.entity';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   CreateWatchRoomDto,
+  InviteToRoomDto,
   JoinWatchRoomDto,
   SendWatchRoomMessageDto,
   UpdateWatchRoomStateDto,
@@ -32,6 +34,9 @@ export class WatchRoomsService {
     private readonly participants: Repository<WatchRoomParticipant>,
     @InjectRepository(WatchRoomMessage)
     private readonly messages: Repository<WatchRoomMessage>,
+    @InjectRepository(User)
+    private readonly users: Repository<User>,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private toUser(u: User) {
@@ -202,6 +207,18 @@ export class WatchRoomsService {
     };
   }
 
+  async isMember(roomId: number, userId: number) {
+    const member = await this.participants.findOne({
+      where: { room: { id: roomId }, user: { id: userId } },
+    });
+    return !!member;
+  }
+
+  async snapshotForRoom(roomId: number) {
+    const room = await this.roomOrThrow(roomId);
+    return this.buildSnapshot(room);
+  }
+
   async list(userId: number) {
     const rows = await this.participants
       .createQueryBuilder('p')
@@ -274,6 +291,26 @@ export class WatchRoomsService {
     const room = await this.rooms.findOne({ where: { code } });
     if (!room) throw new NotFoundException('Комната не найдена');
 
+    const exists = await this.participants.findOne({
+      where: { room: { id: room.id }, user: { id: userId } },
+    });
+
+    if (!exists) {
+      await this.participants.save(
+        this.participants.create({
+          room: { id: room.id } as any,
+          user: { id: userId } as any,
+        }),
+      );
+      room.membersVersion += 1;
+      await this.rooms.save(room);
+    }
+
+    return this.buildSnapshot(room);
+  }
+
+  async joinById(roomId: number, userId: number) {
+    const room = await this.roomOrThrow(roomId);
     const exists = await this.participants.findOne({
       where: { room: { id: room.id }, user: { id: userId } },
     });
@@ -400,7 +437,10 @@ export class WatchRoomsService {
     await this.rooms.save(room);
 
     const full = await this.messages.findOne({ where: { id: saved.id } });
-    return this.messageView(full);
+    return {
+      message: this.messageView(full),
+      lastMessageId: room.lastMessageId,
+    };
   }
 
   async leave(roomId: number, userId: number) {
@@ -429,6 +469,30 @@ export class WatchRoomsService {
     await this.rooms.save(room);
 
     return { ok: true, roomClosed: false, newOwnerId: nextOwner.user.id };
+  }
+
+  async invite(roomId: number, userId: number, dto: InviteToRoomDto) {
+    const { room } = await this.assertMember(roomId, userId);
+    const target = await this.users.findOne({ where: { id: dto.targetId } });
+    if (!target) throw new NotFoundException('Пользователь не найден');
+
+    // Check if target is already a member
+    const already = await this.participants.findOne({
+      where: { room: { id: roomId }, user: { id: dto.targetId } },
+    });
+    if (already) throw new BadRequestException('Пользователь уже в комнате');
+
+    const actor = await this.users.findOne({ where: { id: userId } });
+    await this.notifications.create({
+      recipientId: dto.targetId,
+      actorId: userId,
+      type: 'room_invite',
+      message: `${actor?.username || 'Пользователь'} приглашает вас в комнату «${room.animeTitle || 'без названия'}»`,
+      roomId: room.id,
+      roomCode: room.code,
+    });
+
+    return { ok: true };
   }
 
   async close(roomId: number, userId: number) {

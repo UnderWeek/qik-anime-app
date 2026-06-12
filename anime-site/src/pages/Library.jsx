@@ -14,6 +14,7 @@ const TABS = [
   { value: 'completed', label: 'Просмотрено' },
   { value: 'on_hold', label: 'Отложено' },
   { value: 'dropped', label: 'Брошено' },
+  { value: 'rewatching', label: 'Пересматриваю' },
   { value: 'favorite', label: 'Любимое' },
 ]
 

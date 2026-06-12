@@ -20,6 +20,8 @@ export class NotificationsService {
     animeUrl?: string;
     animeTitle?: string;
     animePoster?: string;
+    roomId?: number;
+    roomCode?: string;
   }) {
     if (params.actorId && params.actorId === params.recipientId) return null;
     const n = this.repo.create({
@@ -31,6 +33,8 @@ export class NotificationsService {
       animeUrl: params.animeUrl,
       animeTitle: params.animeTitle,
       animePoster: params.animePoster,
+      roomId: params.roomId ?? null,
+      roomCode: params.roomCode ?? null,
     });
     return this.repo.save(n);
   }
@@ -46,6 +50,8 @@ export class NotificationsService {
       animeUrl: n.animeUrl,
       animeTitle: n.animeTitle,
       animePoster: n.animePoster,
+      roomId: n.roomId,
+      roomCode: n.roomCode,
       actor: n.actor
         ? {
             id: n.actor.id,

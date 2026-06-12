@@ -16,6 +16,7 @@ export type BookmarkStatus =
   | 'completed'
   | 'on_hold'
   | 'dropped'
+  | 'rewatching'
   | 'favorite';
 
 @Entity('bookmarks')

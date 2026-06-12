@@ -13,6 +13,7 @@ export type NotificationType =
   | 'friend_accept'
   | 'anime_suggestion'
   | 'comment_reply'
+  | 'room_invite'
   | 'system';
 
 @Entity('notifications')
@@ -47,6 +48,12 @@ export class Notification {
 
   @Column({ nullable: true, type: 'text' })
   animePoster: string;
+
+  @Column({ nullable: true, type: 'integer' })
+  roomId: number | null;
+
+  @Column({ nullable: true, type: 'text' })
+  roomCode: string;
 
   @Column({ type: 'boolean', default: false })
   read: boolean;

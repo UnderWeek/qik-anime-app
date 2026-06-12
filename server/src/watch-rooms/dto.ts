@@ -130,6 +130,12 @@ export class SendWatchRoomMessageDto {
   imageUrl?: string;
 }
 
+export class InviteToRoomDto {
+  @Type(() => Number)
+  @IsInt()
+  targetId: number;
+}
+
 export class WatchRoomSyncQueryDto {
   @IsOptional()
   @Type(() => Number)

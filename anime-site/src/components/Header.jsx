@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
-import { SearchIcon, BookmarkIcon, LogoutIcon, UserIcon, ChevronDown, UsersIcon, SunIcon, MoonIcon, HomeIcon, GridIcon, CalendarIcon } from './icons.jsx';
+import { SearchIcon, BookmarkIcon, LogoutIcon, UserIcon, ChevronDown, UsersIcon, SunIcon, MoonIcon, GridIcon, CalendarIcon } from './icons.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
 import Avatar from './Avatar.jsx';
 import NotificationBell from './NotificationBell.jsx';
 
 const links = [
-  { to: '/', label: 'Главная', end: true },
   { to: '/catalog', label: 'Каталог' },
   { to: '/schedule', label: 'Расписание' },
   { to: '/rooms', label: 'Комнаты' },
@@ -39,7 +38,6 @@ export default function Header() {
   useEffect(() => setMenu(false), [location.pathname]);
 
   const mobileLinks = [
-    { to: '/', label: 'Главная', icon: HomeIcon, end: true },
     { to: '/catalog', label: 'Каталог', icon: GridIcon },
     { to: '/schedule', label: 'Расписание', icon: CalendarIcon },
     { to: '/rooms', label: 'Комнаты', icon: UsersIcon },
