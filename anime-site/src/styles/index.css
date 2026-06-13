@@ -1672,7 +1672,8 @@ input {
 /* ---------- comment image attachment ---------- */
 .comment-image {
   margin-top: 10px;
-  max-width: 320px;
+  max-width: 100%;
+  height: auto;
   border-radius: 12px;
   border: 1px solid var(--border);
   cursor: zoom-in;
@@ -2403,6 +2404,8 @@ input {
 .room-chat-body {
   min-width: 0;
   flex: 1;
+  overflow: hidden;
+  word-break: break-word;
 }
 
 .room-chat-top {

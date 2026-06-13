@@ -113,7 +113,7 @@ export default function RoomWatch() {
   const lastPushAtRef = useRef(0)
   const lastHeartbeatRef = useRef(0)
   const lastPlaySignalRef = useRef(0)
-  const kodikReadyRef = useRef(false)
+  const kodikReadyTimerRef = useRef(null)
 
   const isOwner = !!user && room?.ownerId === user.id
 
@@ -165,6 +165,20 @@ export default function RoomWatch() {
     } catch { /* ignore */ }
   }
 
+  function onIframeLoad() {
+    if (kodikReadyTimerRef.current) clearTimeout(kodikReadyTimerRef.current)
+    kodikReadyTimerRef.current = setTimeout(() => {
+      advanceLocalClock()
+      const t = Math.floor(localTimeRef.current)
+      if (t > 0) sendKodikCommand('seek', t)
+      if (localPausedRef.current) {
+        sendKodikCommand('pause')
+      } else {
+        sendKodikCommand('play')
+      }
+    }, 1200)
+  }
+
   const applyState = useCallback(
     (nextState, source = 'remote', opts = {}) => {
       if (!nextState) return
@@ -179,10 +193,9 @@ export default function RoomWatch() {
         nextState.iframeUrl === iframeBaseRef.current
 
       if (!sameVideo && nextState.iframeUrl) {
-        // New video — set the Kodik iframe
+        // New video — set the Kodik iframe (onLoad will seek+play/pause)
         iframeBaseRef.current = nextState.iframeUrl
         videoRef.current = nextVideoId
-        kodikReadyRef.current = false
         const url = nextState.iframeUrl
         setIframeSrc(url)
         if (iframeRef.current) iframeRef.current.src = url
@@ -191,33 +204,25 @@ export default function RoomWatch() {
         const pauseChanged = nextPaused !== localPausedRef.current
 
         if (forceReload) {
+          // Force reload — onLoad will handle seek+play/pause
           const url = nextState.iframeUrl
-          kodikReadyRef.current = false
           setIframeSrc(url)
           if (iframeRef.current) iframeRef.current.src = url
-        } else if (remoteUpdate && kodikReadyRef.current) {
-          // Use Kodik postMessage API for seek/play/pause
+        } else if (remoteUpdate) {
+          // Fire-and-forget via Kodik postMessage API
           suppressEventsUntilRef.current = Date.now() + 900
           if (drift > 2) {
             sendKodikCommand('seek', Math.floor(targetTime))
-            sendKodikCommand('setCurrentTime', Math.floor(targetTime))
           }
           if (pauseChanged) {
             sendKodikCommand(nextPaused ? 'pause' : 'play')
           }
-          // Big drift — reload to guarantee sync
+          // Big drift or no pause change but big time gap — reload
           if (drift > BIG_DRIFT_SECONDS) {
-            kodikReadyRef.current = false
             const url = nextState.iframeUrl
             setIframeSrc(url)
             if (iframeRef.current) iframeRef.current.src = url
           }
-        } else if (remoteUpdate && (pauseChanged || drift > 4)) {
-          // Kodik not ready yet or big drift — reload
-          kodikReadyRef.current = false
-          const url = nextState.iframeUrl
-          setIframeSrc(url)
-          if (iframeRef.current) iframeRef.current.src = url
         }
       }
 
@@ -416,7 +421,6 @@ export default function RoomWatch() {
   useEffect(() => {
     if (!state?.iframeUrl) { setIframeSrc(''); return }
     if (!iframeSrc) {
-      kodikReadyRef.current = false
       const url = state.iframeUrl
       iframeBaseRef.current = url
       setIframeSrc(url)
@@ -424,33 +428,18 @@ export default function RoomWatch() {
     }
   }, [iframeSrc, state])
 
-  // Listen for Kodik postMessage events
+  // Listen for Kodik postMessage events (time updates for owner only)
   useEffect(() => {
     function onMessage(event) {
       const frame = iframeRef.current
       if (!frame?.contentWindow || event.source !== frame.contentWindow) return
       if (!state?.iframeUrl) return
+      if (Date.now() < suppressEventsUntilRef.current) return
 
       const payload = parseMessagePayload(event.data)
       if (!payload) return
 
-      // Detect Kodik player ready
       const key = String(payload.key || payload.type || payload.event || '').toLowerCase()
-      if (key.includes('ready') || key.includes('init')) {
-        kodikReadyRef.current = true
-        // Apply current state to newly loaded player
-        if (localTimeRef.current > 0) {
-          sendKodikCommand('seek', Math.floor(localTimeRef.current))
-        }
-        if (localPausedRef.current) {
-          sendKodikCommand('pause')
-        } else {
-          sendKodikCommand('play')
-        }
-        return
-      }
-
-      if (Date.now() < suppressEventsUntilRef.current) return
 
       // Time update from Kodik
       const rawTime =
@@ -465,7 +454,7 @@ export default function RoomWatch() {
         localTickAtRef.current = Date.now()
       }
 
-      // Pause event
+      // Pause/Play events — only owner pushes to server
       if (key.includes('pause')) {
         localPausedRef.current = true
         if (isOwner) {
@@ -473,7 +462,6 @@ export default function RoomWatch() {
         }
       }
 
-      // Play event
       if (key.includes('play') && !key.includes('isplaying')) {
         localPausedRef.current = false
         localTickAtRef.current = Date.now()
@@ -602,11 +590,10 @@ export default function RoomWatch() {
   async function syncNow() {
     if (!state?.iframeUrl) return
     advanceLocalClock()
-    // Reload Kodik iframe fresh — seek to current time when ready
-    kodikReadyRef.current = false
-    const url = state.iframeUrl
-    setIframeSrc(url)
-    if (iframeRef.current) iframeRef.current.src = url
+    const t = Math.floor(localTimeRef.current)
+    sendKodikCommand('seek', t)
+    sendKodikCommand(localPausedRef.current ? 'pause' : 'play')
+    showToast('Синхронизировано')
   }
 
   async function copyCode() {
@@ -801,6 +788,7 @@ export default function RoomWatch() {
                 title="Room player — Kodik"
                 allowFullScreen
                 allow="autoplay; fullscreen; encrypted-media"
+                onLoad={onIframeLoad}
               />
             ) : (
               <div className="state" style={{ padding: 20 }}>
