@@ -4,13 +4,13 @@ import { io } from 'socket.io-client'
 import { api, poster } from '../api/client.js'
 import { BACKEND_ORIGIN, backend, getToken, uploadUrl } from '../api/backend.js'
 import { useAuth } from '../context/AuthContext.jsx'
+import { sendKodikCommand, subscribeKodikEvents } from '../utils/kodikPlayer.js'
 import Avatar from '../components/Avatar.jsx'
 import Lightbox from '../components/Lightbox.jsx'
-import { ArrowLeft, CloseIcon, ImageIcon, UsersIcon, UserPlusIcon, PlayIcon } from '../components/icons.jsx'
+import { ArrowLeft, CloseIcon, ImageIcon, UsersIcon, UserPlusIcon, PlayIcon, StarIcon } from '../components/icons.jsx'
 
-const POLL_MS = 1000
-const HEARTBEAT_MS = 3000
-const BIG_DRIFT_SECONDS = 25
+const CLOCK_TICK_MS = 250
+const DRIFT_THRESHOLD = 1
 
 function timeAgo(iso) {
   const d = new Date(iso)
@@ -21,41 +21,11 @@ function timeAgo(iso) {
   return d.toLocaleDateString('ru-RU')
 }
 
-function parseMessagePayload(payload) {
-  if (!payload) return null
-  if (typeof payload === 'string') {
-    try { return JSON.parse(payload) } catch { return null }
-  }
-  if (typeof payload === 'object') return payload
-  return null
-}
-
-function parseIsoMs(value) {
-  const ms = Date.parse(value || '')
-  return Number.isFinite(ms) ? ms : 0
-}
-
-function normalizeTime(v) {
-  const n = Number(v)
-  if (!Number.isFinite(n)) return 0
-  return Math.max(0, n)
-}
-
-function expectedRoomTime(nextState) {
-  const base = normalizeTime(nextState?.currentTime)
-  if (!nextState || nextState.isPaused) return base
-  const updatedAt = parseIsoMs(nextState.updatedAt)
-  if (!updatedAt) return base
-  const elapsed = Math.max(0, (Date.now() - updatedAt) / 1000)
-  return base + elapsed
-}
-
-function mergeMessages(prev, next) {
-  if (!next?.length) return prev
-  const map = new Map()
-  prev.forEach((m) => map.set(m.id, m))
-  next.forEach((m) => map.set(m.id, m))
-  return [...map.values()].sort((a, b) => a.id - b.id)
+function formatClock(seconds) {
+  const s = Math.max(0, Math.floor(seconds))
+  const m = Math.floor(s / 60)
+  const sec = s % 60
+  return `${m}:${String(sec).padStart(2, '0')}`
 }
 
 function animePosterUrl(anime) {
@@ -74,7 +44,10 @@ export default function RoomWatch() {
   const [iframeSrc, setIframeSrc] = useState('')
   const [members, setMembers] = useState([])
   const [messages, setMessages] = useState([])
+
   const [clockSeconds, setClockSeconds] = useState(0)
+  const [localPaused, setLocalPaused] = useState(true)
+  const [isHost, setIsHost] = useState(false)
 
   const [searchText, setSearchText] = useState('')
   const [searching, setSearching] = useState(false)
@@ -84,6 +57,7 @@ export default function RoomWatch() {
   const [videoLoading, setVideoLoading] = useState(false)
   const [selectedDub, setSelectedDub] = useState(null)
   const [videoId, setVideoId] = useState(null)
+  const [pushingVideo, setPushingVideo] = useState(false)
 
   const [chatText, setChatText] = useState('')
   const [attach, setAttach] = useState(null)
@@ -97,25 +71,46 @@ export default function RoomWatch() {
   const fileRef = useRef(null)
 
   const iframeRef = useRef(null)
-  const iframeBaseRef = useRef('')
-  const videoRef = useRef('')
+  const socketRef = useRef(null)
+
+  // Playback refs
   const localTimeRef = useRef(0)
   const localPausedRef = useRef(true)
   const localTickAtRef = useRef(Date.now())
-  const suppressEventsUntilRef = useRef(0)
-  const stateVersionRef = useRef(0)
-  const membersVersionRef = useRef(0)
-  const messageIdRef = useRef(0)
-  const pollingRef = useRef(false)
-  const socketConnectedRef = useRef(false)
-  const socketRef = useRef(null)
-  const sendingStateRef = useRef(false)
-  const lastPushAtRef = useRef(0)
-  const lastHeartbeatRef = useRef(0)
-  const lastPlaySignalRef = useRef(0)
-  const kodikReadyTimerRef = useRef(null)
+  const suppressUntilRef = useRef(0)
+  const heartbeatRef = useRef(null)
+  const clockTimerRef = useRef(null)
+  const kodikUnsubRef = useRef(null)
+  const sendingRef = useRef(false)
+  const lastSendRef = useRef(0)
+  const isHostRef = useRef(false)
+  const lastLoadedUrlRef = useRef('')
+  const stateRef = useRef(null)
 
-  const isOwner = !!user && room?.ownerId === user.id
+  // Keep refs in sync
+  useEffect(() => { isHostRef.current = isHost }, [isHost])
+  useEffect(() => { localPausedRef.current = localPaused }, [localPaused])
+  useEffect(() => { stateRef.current = state }, [state])
+
+  // Advance local clock (simulated between Kodik time events)
+  const advanceLocalClock = useCallback(() => {
+    const now = Date.now()
+    if (!localPausedRef.current) {
+      const delta = Math.max(0, (now - localTickAtRef.current) / 1000)
+      localTimeRef.current += delta
+    }
+    localTickAtRef.current = now
+  }, [])
+
+  // Local clock tick — updates display every CLOCK_TICK_MS
+  useEffect(() => {
+    if (!state?.iframeUrl) return undefined
+    clockTimerRef.current = setInterval(() => {
+      advanceLocalClock()
+      setClockSeconds(Math.floor(localTimeRef.current))
+    }, CLOCK_TICK_MS)
+    return () => clearInterval(clockTimerRef.current)
+  }, [advanceLocalClock, state?.iframeUrl])
 
   // Filter to Kodik-only episodes
   const kodikEpisodes = useMemo(() => {
@@ -146,145 +141,138 @@ export default function RoomWatch() {
     [episodes, videoId]
   )
 
-  const advanceLocalClock = useCallback(() => {
-    const now = Date.now()
-    if (!localPausedRef.current) {
-      const delta = Math.max(0, (now - localTickAtRef.current) / 1000)
-      localTimeRef.current += delta
+  function loadIframeUrl(url) {
+    if (!url) {
+      setIframeSrc('')
+      lastLoadedUrlRef.current = ''
+      return
     }
-    localTickAtRef.current = now
+    lastLoadedUrlRef.current = url
+    setIframeSrc(url)
+    if (iframeRef.current) iframeRef.current.src = url
+  }
+
+  // ---- sendState (host only) ----
+  const sendState = useCallback(async (payload, opts = {}) => {
+    if (!isHostRef.current) return
+    if (sendingRef.current) return
+    if (!opts.force) {
+      const now = Date.now()
+      if (now - lastSendRef.current < 250) return
+    }
+    sendingRef.current = true
+    lastSendRef.current = Date.now()
+    try {
+      await backend.updateWatchRoomState(roomId, payload)
+    } catch (err) {
+      if (err.status === 404 || err.status === 403) {
+        showToast('Комната была закрыта')
+        navigate('/rooms')
+      }
+    } finally {
+      sendingRef.current = false
+    }
+  }, [navigate, roomId, showToast])
+
+  const iframeLoadTimerRef = useRef(null)
+
+  // ---- onIframeLoad — apply room state after iframe is ready ----
+  function onIframeLoad() {
+    const snapState = stateRef.current
+    if (!snapState?.iframeUrl) return
+    // Clear any previous pending timer (Kodik may trigger onLoad repeatedly)
+    if (iframeLoadTimerRef.current) {
+      clearTimeout(iframeLoadTimerRef.current)
+      iframeLoadTimerRef.current = null
+    }
+    iframeLoadTimerRef.current = setTimeout(() => {
+      iframeLoadTimerRef.current = null
+      if (!iframeRef.current) return
+      const targetTime = snapState.currentTime || 0
+      const targetPaused = !!snapState.isPaused
+      suppressUntilRef.current = Date.now() + 2000
+      if (targetTime > 0) {
+        sendKodikCommand(iframeRef, 'seek', Math.floor(targetTime))
+      }
+      if (!targetPaused) {
+        sendKodikCommand(iframeRef, 'play')
+      }
+      localTimeRef.current = targetTime
+      localPausedRef.current = targetPaused
+      localTickAtRef.current = Date.now()
+      setLocalPaused(targetPaused)
+      setClockSeconds(Math.floor(targetTime))
+    }, 1500)
+  }
+
+  // ---- applyRemoteState (viewer only) ----
+  const applyRemoteState = useCallback((remoteState) => {
+    if (isHostRef.current) return
+    if (!iframeRef.current || !remoteState) return
+
+    const targetTime = remoteState.currentTime || 0
+    const targetPaused = !!remoteState.isPaused
+    const drift = Math.abs(localTimeRef.current - targetTime)
+    const pauseChanged = targetPaused !== localPausedRef.current
+
+    if (drift > DRIFT_THRESHOLD) {
+      suppressUntilRef.current = Date.now() + 1500
+      sendKodikCommand(iframeRef, 'seek', Math.floor(targetTime))
+    }
+
+    if (pauseChanged) {
+      suppressUntilRef.current = Date.now() + 1500
+      sendKodikCommand(iframeRef, targetPaused ? 'pause' : 'play')
+      localPausedRef.current = targetPaused
+      localTickAtRef.current = Date.now()
+      setLocalPaused(targetPaused)
+    }
+
+    localTimeRef.current = targetTime
+    localTickAtRef.current = Date.now()
+    setClockSeconds(Math.floor(targetTime))
   }, [])
 
-  function sendKodikCommand(method, value) {
-    const win = iframeRef.current?.contentWindow
-    if (!win) return
-    const payload = { key: 'kodik_player_api', value: { method, value } }
-    try {
-      win.postMessage(payload, '*')
-      win.postMessage(JSON.stringify(payload), '*')
-    } catch { /* ignore */ }
-  }
-
-  function onIframeLoad() {
-    if (kodikReadyTimerRef.current) clearTimeout(kodikReadyTimerRef.current)
-    kodikReadyTimerRef.current = setTimeout(() => {
-      advanceLocalClock()
-      const t = Math.floor(localTimeRef.current)
-      if (t > 0) sendKodikCommand('seek', t)
-      if (localPausedRef.current) {
-        sendKodikCommand('pause')
-      } else {
-        sendKodikCommand('play')
+  // ---- applySnapshot ----
+  const applySnapshot = useCallback((snap) => {
+    if (!snap) return
+    if (snap.room) {
+      setRoom(snap.room)
+      if (user && snap.room.hostId !== undefined) {
+        const host = snap.room.hostId === user.id
+        setIsHost(host)
       }
-    }, 1200)
-  }
-
-  const applyState = useCallback(
-    (nextState, source = 'remote', opts = {}) => {
-      if (!nextState) return
-
-      const targetTime = expectedRoomTime(nextState)
-      const nextPaused = !!nextState.isPaused
-      const nextVideoId = String(nextState.videoId || '')
-      const forceReload = !!opts.forceReload
-      const remoteUpdate = source === 'remote'
-      const sameVideo =
-        nextVideoId === videoRef.current &&
-        nextState.iframeUrl === iframeBaseRef.current
-
-      if (!sameVideo && nextState.iframeUrl) {
-        // New video — set the Kodik iframe (onLoad will seek+play/pause)
-        iframeBaseRef.current = nextState.iframeUrl
-        videoRef.current = nextVideoId
-        const url = nextState.iframeUrl
-        setIframeSrc(url)
-        if (iframeRef.current) iframeRef.current.src = url
-      } else if (nextState.iframeUrl) {
-        const drift = Math.abs(localTimeRef.current - targetTime)
-        const pauseChanged = nextPaused !== localPausedRef.current
-
-        if (forceReload) {
-          // Force reload — onLoad will handle seek+play/pause
-          const url = nextState.iframeUrl
-          setIframeSrc(url)
-          if (iframeRef.current) iframeRef.current.src = url
-        } else if (remoteUpdate) {
-          // Fire-and-forget via Kodik postMessage API
-          suppressEventsUntilRef.current = Date.now() + 900
-          if (drift > 2) {
-            sendKodikCommand('seek', Math.floor(targetTime))
-          }
-          if (pauseChanged) {
-            sendKodikCommand(nextPaused ? 'pause' : 'play')
-          }
-          // Big drift or no pause change but big time gap — reload
-          if (drift > BIG_DRIFT_SECONDS) {
-            const url = nextState.iframeUrl
-            setIframeSrc(url)
-            if (iframeRef.current) iframeRef.current.src = url
-          }
-        }
+    }
+    if (snap.state) {
+      setState(snap.state)
+      const targetTime = snap.state.currentTime || 0
+      const targetPaused = !!snap.state.isPaused
+      if (snap.state.iframeUrl && snap.state.iframeUrl !== lastLoadedUrlRef.current) {
+        loadIframeUrl(snap.state.iframeUrl)
+      } else if (snap.state.iframeUrl && iframeRef.current?.contentWindow) {
+        // Same URL (e.g. host restarted video) — seek existing player
+        suppressUntilRef.current = Date.now() + 1500
+        sendKodikCommand(iframeRef, 'seek', Math.floor(targetTime))
+        sendKodikCommand(iframeRef, targetPaused ? 'pause' : 'play')
       }
-
       localTimeRef.current = targetTime
-      localPausedRef.current = nextPaused
+      localPausedRef.current = targetPaused
       localTickAtRef.current = Date.now()
+      setLocalPaused(targetPaused)
       setClockSeconds(Math.floor(targetTime))
-      setState(nextState)
-    },
-    []
-  )
+    }
+    if (Array.isArray(snap.members)) setMembers(snap.members)
+    if (Array.isArray(snap.messages)) {
+      const map = new Map()
+      snap.messages.forEach((m) => map.set(m.id, m))
+      setMessages((prev) => {
+        prev.forEach((m) => map.set(m.id, m))
+        return [...map.values()].sort((a, b) => a.id - b.id)
+      })
+    }
+  }, [user])
 
-  const applySnapshot = useCallback(
-    (snap, replaceMessages = false) => {
-      if (!snap) return
-      if (typeof snap.stateVersion === 'number') stateVersionRef.current = snap.stateVersion
-      if (typeof snap.membersVersion === 'number') membersVersionRef.current = snap.membersVersion
-      if (typeof snap.lastMessageId === 'number') messageIdRef.current = snap.lastMessageId
-
-      if (snap.room) setRoom(snap.room)
-      if (snap.state) {
-        const source =
-          user && snap.state.lastActorId != null && snap.state.lastActorId === user.id
-            ? 'self'
-            : 'remote'
-        applyState(snap.state, source)
-      }
-      if (Array.isArray(snap.members)) setMembers(snap.members)
-      if (Array.isArray(snap.messages)) {
-        setMessages((prev) => (replaceMessages ? snap.messages : mergeMessages(prev, snap.messages)))
-      }
-    },
-    [applyState, user]
-  )
-
-  const sendState = useCallback(
-    async (payload, immediate = false) => {
-      if (!roomId || !user) return null
-      const now = Date.now()
-      if (!immediate && now - lastPushAtRef.current < 900) return null
-      if (!immediate && sendingStateRef.current) return null
-      sendingStateRef.current = true
-      lastPushAtRef.current = now
-
-      try {
-        const res = await backend.updateWatchRoomState(roomId, payload)
-        if (typeof res?.stateVersion === 'number') stateVersionRef.current = res.stateVersion
-        if (res?.state) applyState(res.state, 'self')
-        return res?.state || null
-      } catch (err) {
-        if (err.status === 404) {
-          showToast('Комната была закрыта')
-          navigate('/rooms')
-        }
-        return null
-      } finally {
-        sendingStateRef.current = false
-      }
-    },
-    [applyState, navigate, roomId, showToast, user]
-  )
-
+  // ---- loadRoom (initial data) ----
   const loadRoom = useCallback(async () => {
     if (!user) { setLoading(false); return }
     if (!Number.isFinite(roomId)) { navigate('/rooms'); return }
@@ -292,13 +280,12 @@ export default function RoomWatch() {
     setLoading(true)
     try {
       const snap = await backend.watchRoom(roomId)
-      applySnapshot(snap, true)
+      applySnapshot(snap)
     } catch (err) {
       if (err.status === 403) {
-        // Try auto-join (invite link)
         try {
           const snap = await backend.joinWatchRoomById(roomId)
-          applySnapshot(snap, true)
+          applySnapshot(snap)
           showToast('Вы присоединились к комнате по приглашению')
           setLoading(false)
           return
@@ -315,7 +302,7 @@ export default function RoomWatch() {
 
   useEffect(() => { loadRoom() }, [loadRoom])
 
-  // Socket.IO connection
+  // ---- Socket.IO ----
   useEffect(() => {
     if (!roomId || !user) return undefined
     const token = getToken()
@@ -332,32 +319,28 @@ export default function RoomWatch() {
     socketRef.current = socket
 
     socket.on('connect', () => {
-      socketConnectedRef.current = true
       socket.emit('room:join', { roomId })
     })
 
-    socket.on('disconnect', () => { socketConnectedRef.current = false })
-
-    socket.on('room:snapshot', (snap) => { applySnapshot(snap, false) })
+    socket.on('room:snapshot', (snap) => { applySnapshot(snap) })
 
     socket.on('room:state', (payload) => {
-      if (typeof payload?.stateVersion === 'number') stateVersionRef.current = payload.stateVersion
-      if (payload?.state) {
-        const source =
-          user && payload.state.lastActorId != null && payload.state.lastActorId === user.id
-            ? 'self' : 'remote'
-        applyState(payload.state, source)
-      }
+      if (!isHostRef.current && payload) applyRemoteState(payload)
     })
 
     socket.on('room:members', (payload) => {
-      if (typeof payload?.membersVersion === 'number') membersVersionRef.current = payload.membersVersion
       if (Array.isArray(payload?.members)) setMembers(payload.members)
     })
 
     socket.on('room:message', (payload) => {
-      if (typeof payload?.lastMessageId === 'number') messageIdRef.current = payload.lastMessageId
-      if (payload?.message) setMessages((prev) => mergeMessages(prev, [payload.message]))
+      if (payload) {
+        setMessages((prev) => {
+          const map = new Map()
+          prev.forEach((m) => map.set(m.id, m))
+          map.set(payload.id, payload)
+          return [...map.values()].sort((a, b) => a.id - b.id)
+        })
+      }
     })
 
     socket.on('room:closed', () => {
@@ -366,119 +349,71 @@ export default function RoomWatch() {
     })
 
     return () => {
-      socketConnectedRef.current = false
       try { socket.emit('room:leave', { roomId }) } catch { /* ignore */ }
       socket.disconnect()
       socketRef.current = null
     }
-  }, [applySnapshot, applyState, navigate, roomId, showToast, user])
+  }, [applySnapshot, applyRemoteState, navigate, roomId, showToast, user])
 
-  // HTTP polling fallback
+  // ---- Kodik event subscription ----
   useEffect(() => {
-    if (!roomId || !user) return undefined
-    const timer = window.setInterval(async () => {
-      if (socketConnectedRef.current) return
-      if (pollingRef.current) return
-      pollingRef.current = true
-      try {
-        const delta = await backend.watchRoomSync(roomId, {
-          stateVersion: stateVersionRef.current,
-          membersVersion: membersVersionRef.current,
-          messageId: messageIdRef.current,
-        })
-        applySnapshot(delta, false)
-      } catch (err) {
-        if (err.status === 404) {
-          showToast('Комната была закрыта')
-          navigate('/rooms')
+    if (!state?.iframeUrl || !iframeRef.current) return undefined
+
+    const unsub = subscribeKodikEvents(iframeRef, (event) => {
+      if (Date.now() < suppressUntilRef.current) return
+
+      if (event.type === 'time') {
+        advanceLocalClock()
+        // Use Kodik's reported time as authoritative correction
+        localTimeRef.current = event.time
+        localTickAtRef.current = Date.now()
+        setClockSeconds(Math.floor(event.time))
+      } else if (event.type === 'play') {
+        localPausedRef.current = false
+        localTickAtRef.current = Date.now()
+        setLocalPaused(false)
+        if (isHostRef.current) {
+          sendState({ currentTime: Math.floor(localTimeRef.current), isPaused: false }, { force: true })
         }
-      } finally {
-        pollingRef.current = false
+      } else if (event.type === 'pause') {
+        localPausedRef.current = true
+        setLocalPaused(true)
+        if (isHostRef.current) {
+          sendState({ currentTime: Math.floor(localTimeRef.current), isPaused: true }, { force: true })
+        }
       }
-    }, POLL_MS)
+    })
 
-    return () => window.clearInterval(timer)
-  }, [applySnapshot, navigate, roomId, showToast, user])
+    kodikUnsubRef.current = unsub
+    return () => { unsub(); kodikUnsubRef.current = null }
+  }, [advanceLocalClock, sendState, state?.iframeUrl])
 
-  // Heartbeat: periodically push local time to server while playing
+  // ---- Host heartbeat (1s while playing) ----
   useEffect(() => {
-    if (!isOwner) return undefined
-    const timer = window.setInterval(() => {
-      advanceLocalClock()
-      const rounded = Math.floor(localTimeRef.current)
-      setClockSeconds((prev) => (prev === rounded ? prev : rounded))
-
+    if (!isHost || !state?.iframeUrl) return undefined
+    heartbeatRef.current = setInterval(() => {
       if (localPausedRef.current) return
-      if (Date.now() - lastHeartbeatRef.current < HEARTBEAT_MS) return
-      lastHeartbeatRef.current = Date.now()
-      sendState({ currentTime: Math.floor(localTimeRef.current), isPaused: false }, false)
+      advanceLocalClock()
+      sendState({ currentTime: Math.floor(localTimeRef.current), isPaused: false })
     }, 1000)
+    return () => clearInterval(heartbeatRef.current)
+  }, [advanceLocalClock, isHost, sendState, state?.iframeUrl])
 
-    return () => window.clearInterval(timer)
-  }, [advanceLocalClock, isOwner, sendState])
-
-  // Init iframe when state has a URL
+  // ---- Init iframe when state.iframeUrl appears ----
   useEffect(() => {
-    if (!state?.iframeUrl) { setIframeSrc(''); return }
-    if (!iframeSrc) {
-      const url = state.iframeUrl
-      iframeBaseRef.current = url
-      setIframeSrc(url)
-      if (iframeRef.current) iframeRef.current.src = url
+    if (state?.iframeUrl && !iframeSrc) {
+      loadIframeUrl(state.iframeUrl)
     }
   }, [iframeSrc, state])
 
-  // Listen for Kodik postMessage events (time updates for owner only)
-  useEffect(() => {
-    function onMessage(event) {
-      const frame = iframeRef.current
-      if (!frame?.contentWindow || event.source !== frame.contentWindow) return
-      if (!state?.iframeUrl) return
-      if (Date.now() < suppressEventsUntilRef.current) return
-
-      const payload = parseMessagePayload(event.data)
-      if (!payload) return
-
-      const key = String(payload.key || payload.type || payload.event || '').toLowerCase()
-
-      // Time update from Kodik
-      const rawTime =
-        payload.value?.time ??
-        payload.value?.currentTime ??
-        payload.value ??
-        payload.currentTime ??
-        payload.time
-      const maybeTime = Number(rawTime)
-      if (Number.isFinite(maybeTime)) {
-        localTimeRef.current = Math.max(0, maybeTime)
-        localTickAtRef.current = Date.now()
-      }
-
-      // Pause/Play events — only owner pushes to server
-      if (key.includes('pause')) {
-        localPausedRef.current = true
-        if (isOwner) {
-          sendState({ currentTime: Math.floor(localTimeRef.current), isPaused: true }, true)
-        }
-      }
-
-      if (key.includes('play') && !key.includes('isplaying')) {
-        localPausedRef.current = false
-        localTickAtRef.current = Date.now()
-        if (isOwner) {
-          sendState({ currentTime: Math.floor(localTimeRef.current), isPaused: false }, true)
-        }
-      }
-    }
-
-    window.addEventListener('message', onMessage)
-    return () => window.removeEventListener('message', onMessage)
-  }, [isOwner, sendState, state?.iframeUrl])
-
+  // ---- Cleanup ----
   useEffect(
     () => () => { if (attach?.preview) URL.revokeObjectURL(attach.preview) },
     [attach]
   )
+  useEffect(() => () => {
+    if (iframeLoadTimerRef.current) clearTimeout(iframeLoadTimerRef.current)
+  }, [])
 
   useEffect(() => {
     if (dubbings.length) {
@@ -500,6 +435,41 @@ export default function RoomWatch() {
     }
   }, [episodes])
 
+  // Auto-load episodes for the current room anime
+  useEffect(() => {
+    const aid = state?.animeId
+    if (!aid) return
+    // Don't overwrite if user manually searched for a different anime
+    if (selectedAnime && selectedAnime.anime_id !== aid) return
+    // Already loaded
+    if (selectedAnime?.anime_id === aid && animeVideos.length > 0) return
+
+    let cancelled = false
+    async function load() {
+      setVideoLoading(true)
+      try {
+        const raw = await api.videos(aid)
+        if (cancelled) return
+        const list = Array.isArray(raw) ? raw.filter((v) => !!v?.iframe_url) : []
+        setAnimeVideos(list)
+        setSelectedAnime({
+          anime_id: aid,
+          anime_url: state.animeUrl,
+          title: state.animeTitle,
+          poster: { medium: state.animePoster },
+        })
+        if (state.videoId) setVideoId(String(state.videoId))
+      } catch {
+        if (!cancelled) setAnimeVideos([])
+      } finally {
+        if (!cancelled) setVideoLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [state?.animeId])
+
+  // ---- Actions ----
   async function runSearch(e) {
     e.preventDefault()
     const q = searchText.trim()
@@ -534,66 +504,66 @@ export default function RoomWatch() {
     }
   }
 
-  async function pushAnimeToRoom() {
-    if (!selectedAnime || !activeEpisode?.iframe_url) {
+  async function pushEpisode(episode) {
+    if (!isHost) {
+      showToast('Управление плеером доступно только ведущему')
+      return
+    }
+    if (!selectedAnime || !episode?.iframe_url) {
       showToast('Выберите серию для комнаты')
       return
     }
 
-    const dubName = activeEpisode.data?.dubbing || 'Озвучка'
+    const dubName = episode.data?.dubbing || 'Озвучка'
 
     const payload = {
       animeId: selectedAnime.anime_id,
       animeUrl: selectedAnime.anime_url,
       animeTitle: selectedAnime.title,
-      animePoster: animePosterUrl(selectedAnime),
-      videoId: String(activeEpisode.video_id || ''),
-      episodeNumber: String(activeEpisode.number || activeEpisode.index || ''),
+      animePoster: animePosterUrl(selectedAnime) || state?.animePoster || '',
+      videoId: String(episode.video_id || ''),
+      episodeNumber: String(episode.number || episode.index || ''),
       dubbing: dubName,
-      iframeUrl: activeEpisode.iframe_url,
-      currentTime: 0,
-      isPaused: true,
+      iframeUrl: episode.iframe_url,
     }
 
+    setPushingVideo(true)
     try {
-      const res = await backend.updateWatchRoomState(roomId, payload)
-      if (res?.state) {
-        stateVersionRef.current = res.stateVersion || stateVersionRef.current
-        applyState(res.state, 'self', { forceReload: true })
-      }
+      await backend.setWatchRoomVideo(roomId, payload)
+      setVideoId(String(episode.video_id))
       showToast('Плеер комнаты обновлён')
     } catch (err) {
       showToast(err.message || 'Не удалось обновить плеер')
+    } finally {
+      setPushingVideo(false)
     }
   }
 
+  async function pushVideoToRoom() {
+    await pushEpisode(activeEpisode)
+  }
+
   async function pauseToggle() {
-    if (!state?.iframeUrl) return
+    if (!isHost) {
+      showToast('Управление плеером доступно только ведущему')
+      return
+    }
+    if (!iframeRef.current) return
 
     advanceLocalClock()
     const nextPaused = !localPausedRef.current
     const syncTime = Math.floor(localTimeRef.current)
+
+    // Suppress Kodik event echo for 1.5s
+    suppressUntilRef.current = Date.now() + 1500
+    sendKodikCommand(iframeRef, nextPaused ? 'pause' : 'play')
+
     localPausedRef.current = nextPaused
     localTickAtRef.current = Date.now()
-    suppressEventsUntilRef.current = Date.now() + 1000
+    setLocalPaused(nextPaused)
 
-    // Send command to Kodik player
-    sendKodikCommand(nextPaused ? 'pause' : 'play')
-
-    // Update local UI immediately
-    setState((prev) => (prev ? { ...prev, currentTime: syncTime, isPaused: nextPaused, updatedAt: new Date().toISOString() } : prev))
-
-    // Update server
-    await sendState({ currentTime: syncTime, isPaused: nextPaused }, true)
-  }
-
-  async function syncNow() {
-    if (!state?.iframeUrl) return
-    advanceLocalClock()
-    const t = Math.floor(localTimeRef.current)
-    sendKodikCommand('seek', t)
-    sendKodikCommand(localPausedRef.current ? 'pause' : 'play')
-    showToast('Синхронизировано')
+    // Force immediate send (bypass debounce)
+    await sendState({ currentTime: syncTime, isPaused: nextPaused }, { force: true })
   }
 
   async function copyCode() {
@@ -630,7 +600,6 @@ export default function RoomWatch() {
     }
   }
 
-  // Close invite on outside click
   useEffect(() => {
     if (!inviteOpen) return
     function onClick(e) {
@@ -667,8 +636,12 @@ export default function RoomWatch() {
         imageUrl = up?.url
       }
       const msg = await backend.sendWatchRoomMessage(roomId, { body, imageUrl })
-      setMessages((prev) => mergeMessages(prev, [msg]))
-      if (msg?.id) messageIdRef.current = Math.max(messageIdRef.current, msg.id)
+      setMessages((prev) => {
+        const map = new Map()
+        prev.forEach((m) => map.set(m.id, m))
+        map.set(msg.id, msg)
+        return [...map.values()].sort((a, b) => a.id - b.id)
+      })
       setChatText('')
       clearAttach()
     } catch (err) {
@@ -695,6 +668,7 @@ export default function RoomWatch() {
     }
   }
 
+  // ---- Render ----
   if (!user) {
     return (
       <div className="container page">
@@ -762,7 +736,7 @@ export default function RoomWatch() {
               </div>
             )}
           </div>
-          {isOwner ? (
+          {room?.ownerId === user.id ? (
             <button className="btn btn-danger btn-sm" onClick={closeRoom}>Закрыть комнату</button>
           ) : (
             <button className="btn btn-ghost btn-sm" onClick={leaveRoom}>Выйти</button>
@@ -798,23 +772,34 @@ export default function RoomWatch() {
           </div>
 
           <div className="room-player-controls">
-            <button className="btn btn-primary btn-sm" onClick={pauseToggle} disabled={!state?.iframeUrl}>
-              {state?.isPaused ? (
-                <><PlayIcon width={14} height={14} /> Play в комнате</>
+            <div className="room-sync-info">
+              {isHost ? (
+                <span className="room-host-badge">Вы ведущий</span>
               ) : (
-                'Pause в комнате'
+                <span className="room-viewer-badge">
+                  Ведущий: {members.find((m) => m.isHost)?.user?.username || '—'}
+                </span>
+              )}
+              <span className="room-clock">Время: {formatClock(clockSeconds)}</span>
+            </div>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={pauseToggle}
+              disabled={!state?.iframeUrl}
+            >
+              {localPaused ? (
+                <><PlayIcon width={14} height={14} /> {isHost ? 'Play' : 'Ожидание'}</>
+              ) : (
+                isHost ? 'Pause' : 'Смотрю'
               )}
             </button>
-            <button className="btn btn-ghost btn-sm" onClick={syncNow} disabled={!state?.iframeUrl}>
-              Синхронизировать сейчас
-            </button>
-            <span className="room-sync-tip">
-              Время комнаты: {clockSeconds} сек. Синхронизация через Kodik API — управление плеером без перезагрузки.
-            </span>
           </div>
 
           <div className="room-picker">
             <div className="control-label">Подобрать аниме (только Kodik)</div>
+            {!isHost && (
+              <div className="room-viewer-hint">Управление плеером доступно только ведущему</div>
+            )}
             <form className="room-search-form" onSubmit={runSearch}>
               <input
                 value={searchText}
@@ -828,16 +813,33 @@ export default function RoomWatch() {
 
             {!!searchResults.length && (
               <div className="room-search-results">
-                {searchResults.map((a) => (
-                  <button
-                    key={a.anime_id || a.anime_url}
-                    className={`room-search-item ${selectedAnime?.anime_id === a.anime_id ? 'active' : ''}`}
-                    onClick={() => pickAnime(a)}
-                    type="button"
-                  >
-                    {a.title}
-                  </button>
-                ))}
+                {searchResults.map((a) => {
+                  const img = poster(a, 'big') || poster(a, 'medium') || poster(a, 'small')
+                  const rate = a.rating?.average
+                  return (
+                    <button
+                      key={a.anime_id || a.anime_url}
+                      className={`room-search-item ${selectedAnime?.anime_id === a.anime_id ? 'active' : ''}`}
+                      onClick={() => pickAnime(a)}
+                      type="button"
+                    >
+                      <div className="room-search-poster">
+                        {img ? <img src={img} alt="" /> : <div className="room-search-no-poster" />}
+                      </div>
+                      <div className="room-search-info">
+                        <div className="room-search-title">{a.title}</div>
+                        <div className="room-search-meta">
+                          {a.year && <span>{a.year}</span>}
+                          {rate > 0 && (
+                            <span className="room-search-rate">
+                              <StarIcon width={11} height={11} /> {rate.toFixed(1)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
               </div>
             )}
 
@@ -885,8 +887,13 @@ export default function RoomWatch() {
                   </div>
                 </div>
 
-                <button className="btn btn-primary room-set-btn" type="button" onClick={pushAnimeToRoom}>
-                  Поставить в комнату
+                <button
+                  className="btn btn-primary room-set-btn"
+                  type="button"
+                  onClick={pushVideoToRoom}
+                  disabled={pushingVideo || !isHost}
+                >
+                  {pushingVideo ? 'Отправка...' : 'Поставить в комнату'}
                 </button>
               </div>
             )}
@@ -903,7 +910,7 @@ export default function RoomWatch() {
                   <div>
                     <div className="room-member-name">
                       {m.user?.username || 'Пользователь'}
-                      {m.isOwner ? ' (владелец)' : ''}
+                      {m.isHost ? ' (ведущий)' : m.isOwner ? ' (владелец)' : ''}
                     </div>
                     <div className="room-member-meta">{timeAgo(m.joinedAt)}</div>
                   </div>

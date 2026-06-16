@@ -14,6 +14,7 @@ export type NotificationType =
   | 'anime_suggestion'
   | 'comment_reply'
   | 'room_invite'
+  | 'chat_message'
   | 'system';
 
 @Entity('notifications')
@@ -54,6 +55,9 @@ export class Notification {
 
   @Column({ nullable: true, type: 'text' })
   roomCode: string;
+
+  @Column({ nullable: true, type: 'integer' })
+  chatId: number | null;
 
   @Column({ type: 'boolean', default: false })
   read: boolean;

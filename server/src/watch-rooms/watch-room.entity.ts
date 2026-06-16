@@ -21,14 +21,14 @@ export class WatchRoom {
   @ManyToOne(() => User, { eager: true, onDelete: 'CASCADE' })
   owner: User;
 
-  @Column({ type: 'integer', default: 1 })
-  stateVersion: number;
+  @Column({ nullable: true, type: 'integer' })
+  hostId: number | null;
 
-  @Column({ type: 'integer', default: 1 })
-  membersVersion: number;
+  @Column({ type: 'float', default: 0 })
+  currentTime: number;
 
-  @Column({ type: 'integer', default: 0 })
-  lastMessageId: number;
+  @Column({ type: 'boolean', default: true })
+  isPaused: boolean;
 
   @Column({ nullable: true, type: 'integer' })
   animeId: number | null;
@@ -53,15 +53,6 @@ export class WatchRoom {
 
   @Column({ nullable: true, type: 'text' })
   iframeUrl: string | null;
-
-  @Column({ type: 'float', default: 0 })
-  currentTime: number;
-
-  @Column({ type: 'boolean', default: true })
-  isPaused: boolean;
-
-  @Column({ nullable: true, type: 'integer' })
-  lastActorId: number | null;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -5,12 +5,13 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Post,
   Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
 import { BookmarksService } from './bookmarks.service';
-import { UpsertBookmarkDto } from './dto';
+import { ImportAnixartDto, UpsertBookmarkDto } from './dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser, AuthUser } from '../common/current-user.decorator';
 
@@ -43,5 +44,13 @@ export class BookmarksController {
     @Param('animeId', ParseIntPipe) animeId: number,
   ) {
     return this.service.remove(user.id, animeId);
+  }
+
+  @Post('import/anixart')
+  importAnixart(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: ImportAnixartDto,
+  ) {
+    return this.service.importAnixart(user.id, dto);
   }
 }

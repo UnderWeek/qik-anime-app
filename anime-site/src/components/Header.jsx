@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
-import { SearchIcon, BookmarkIcon, LogoutIcon, UserIcon, ChevronDown, UsersIcon, SunIcon, MoonIcon, GridIcon, CalendarIcon } from './icons.jsx';
+import { SearchIcon, BookmarkIcon, LogoutIcon, UserIcon, ChevronDown, UsersIcon, GridIcon, CalendarIcon } from './icons.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
-import { useTheme } from '../context/ThemeContext.jsx';
 import Avatar from './Avatar.jsx';
 import NotificationBell from './NotificationBell.jsx';
 
@@ -12,13 +11,35 @@ const links = [
   { to: '/rooms', label: 'Комнаты' },
 ];
 
+const TAB_DEFS = {
+  catalog: { to: '/catalog', label: 'Каталог', icon: GridIcon },
+  schedule: { to: '/schedule', label: 'Расписание', icon: CalendarIcon },
+  rooms: { to: '/rooms', label: 'Комнаты', icon: UsersIcon },
+  library: { to: '/library', label: 'Закладки', icon: BookmarkIcon },
+  friends: { to: '/friends', label: 'Друзья', icon: UsersIcon, auth: true },
+  chats: { to: '/chats', label: 'Чаты', icon: UsersIcon, auth: true },
+};
+
+const DEFAULT_MOBILE_ORDER = ['catalog', 'rooms', 'library', 'friends'];
+
+function readMobileOrder() {
+  try {
+    const raw = localStorage.getItem('qik_mobile_tabs');
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr) && arr.length > 0) return arr.filter((k) => TAB_DEFS[k]);
+    }
+  } catch { /* ignore */ }
+  return [...DEFAULT_MOBILE_ORDER];
+}
+
 export default function Header() {
   const [q, setQ] = useState('');
   const [menu, setMenu] = useState(false);
+  const [mobileOrder, setMobileOrder] = useState(readMobileOrder);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, openAuth, logout } = useAuth();
-  const { theme, toggle } = useTheme();
   const menuRef = useRef(null);
 
   function submit(e) {
@@ -37,12 +58,15 @@ export default function Header() {
 
   useEffect(() => setMenu(false), [location.pathname]);
 
-  const mobileLinks = [
-    { to: '/catalog', label: 'Каталог', icon: GridIcon },
-    { to: '/schedule', label: 'Расписание', icon: CalendarIcon },
-    { to: '/rooms', label: 'Комнаты', icon: UsersIcon },
-    { to: '/library', label: 'Закладки', icon: BookmarkIcon },
-  ];
+  // Re-read mobile order when settings may have changed (pathname change)
+  useEffect(() => {
+    setMobileOrder(readMobileOrder());
+  }, [location.pathname]);
+
+  const mobileLinks = mobileOrder
+    .map((key) => TAB_DEFS[key])
+    .filter(Boolean)
+    .filter((l) => !l.auth || user);
 
   const profileActive = location.pathname.startsWith('/u/');
 
@@ -63,6 +87,7 @@ export default function Header() {
               <>
                 <NavLink to='/library' className={({ isActive }) => (isActive ? 'active' : '')}>Закладки</NavLink>
                 <NavLink to='/friends' className={({ isActive }) => (isActive ? 'active' : '')}>Друзья</NavLink>
+                <NavLink to='/chats' className={({ isActive }) => (isActive ? 'active' : '')}>Чаты</NavLink>
               </>
             )}
           </nav>
@@ -70,9 +95,6 @@ export default function Header() {
             <SearchIcon />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder='Поиск...' aria-label='Поиск' />
           </form>
-          <button className='theme-toggle header-theme-toggle' onClick={toggle} aria-label='Toggle Theme' title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}>
-            {theme === 'dark' ? <SunIcon width={18} height={18} /> : <MoonIcon width={18} height={18} />}
-          </button>
           <div className='header-notif'>
             <NotificationBell />
           </div>
@@ -85,8 +107,11 @@ export default function Header() {
                     <div className='who'><b>{user.username}</b><span>{user.email}</span></div>
                     <Link to={`/u/${user.id}`}><UserIcon width={16} height={16} />Профиль</Link>
                     <Link to='/library'><BookmarkIcon width={16} height={16} />Закладки</Link>
+                    <Link to='/schedule'><CalendarIcon width={16} height={16} />Расписание</Link>
                     <Link to='/friends'><UsersIcon width={16} height={16} />Друзья</Link>
+                    <Link to='/chats'><UsersIcon width={16} height={16} />Чаты</Link>
                     <Link to='/rooms'><UsersIcon width={16} height={16} />Комнаты</Link>
+                    <Link to='/settings'><span style={{ display: 'inline-flex', width: 16, height: 16, alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>⚙</span>Настройки</Link>
                     <button onClick={() => { logout(); setMenu(false); }}><LogoutIcon width={16} height={16} />Выйти</button>
                   </div>
                 )}

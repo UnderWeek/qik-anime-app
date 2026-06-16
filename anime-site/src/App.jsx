@@ -11,8 +11,10 @@ import Watch from './pages/Watch.jsx'
 import Schedule from './pages/Schedule.jsx'
 import SearchPage from './pages/SearchPage.jsx'
 import Library from './pages/Library.jsx'
+import Settings from './pages/Settings.jsx'
 import Profile from './pages/Profile.jsx'
 import Friends from './pages/Friends.jsx'
+import Chats from './pages/Chats.jsx'
 import Rooms from './pages/Rooms.jsx'
 import RoomWatch from './pages/RoomWatch.jsx'
 import NotFound from './pages/NotFound.jsx'
@@ -37,7 +39,9 @@ export default function App() {
           <Route path="/schedule" element={<Schedule />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/library" element={<Library />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="/friends" element={<Friends />} />
+          <Route path="/chats" element={<Chats />} />
           <Route path="/rooms" element={<Rooms />} />
           <Route path="/rooms/:id" element={<RoomWatch />} />
           <Route path="/u/:id" element={<Profile />} />

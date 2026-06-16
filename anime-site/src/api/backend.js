@@ -179,34 +179,16 @@ export const backend = {
   createWatchRoom: (payload = {}) =>
     request('/watch-rooms', { method: 'POST', body: payload, auth: true }),
   joinWatchRoom: (code) =>
-    request('/watch-rooms/join', {
-      method: 'POST',
-      body: { code },
-      auth: true,
-    }),
+    request('/watch-rooms/join', { method: 'POST', body: { code }, auth: true }),
   joinWatchRoomById: (id) =>
     request(`/watch-rooms/${id}/join`, { method: 'POST', auth: true }),
   watchRoom: (id) => request(`/watch-rooms/${id}`, { auth: true }),
-  watchRoomSync: (id, params = {}) => {
-    const qs = new URLSearchParams()
-    if (params.stateVersion != null) qs.set('stateVersion', String(params.stateVersion))
-    if (params.membersVersion != null) qs.set('membersVersion', String(params.membersVersion))
-    if (params.messageId != null) qs.set('messageId', String(params.messageId))
-    const suffix = qs.toString() ? `?${qs.toString()}` : ''
-    return request(`/watch-rooms/${id}/sync${suffix}`, { auth: true })
-  },
   updateWatchRoomState: (id, payload) =>
-    request(`/watch-rooms/${id}/state`, {
-      method: 'PATCH',
-      body: payload,
-      auth: true,
-    }),
+    request(`/watch-rooms/${id}/state`, { method: 'PATCH', body: payload, auth: true }),
+  setWatchRoomVideo: (id, payload) =>
+    request(`/watch-rooms/${id}/video`, { method: 'POST', body: payload, auth: true }),
   sendWatchRoomMessage: (id, payload) =>
-    request(`/watch-rooms/${id}/messages`, {
-      method: 'POST',
-      body: payload,
-      auth: true,
-    }),
+    request(`/watch-rooms/${id}/messages`, { method: 'POST', body: payload, auth: true }),
   leaveWatchRoom: (id) =>
     request(`/watch-rooms/${id}/leave`, { method: 'POST', auth: true }),
   inviteToRoom: (id, targetId) =>
@@ -217,6 +199,17 @@ export const backend = {
   // ---- suggestions ----
   suggestAnime: (payload) =>
     request('/suggestions', { method: 'POST', body: payload, auth: true }),
+
+  // ---- import ----
+  importAnixartBookmarks: (entries) =>
+    request('/bookmarks/import/anixart', { method: 'POST', body: { entries }, auth: true }),
+
+  // ---- chats ----
+  listChats: () => request('/chats', { auth: true }),
+  startChat: (friendId) => request('/chats/start', { method: 'POST', body: { friendId }, auth: true }),
+  chatMessages: (chatId) => request(`/chats/${chatId}/messages`, { auth: true }),
+  sendChatMessage: (chatId, payload) =>
+    request(`/chats/${chatId}/messages`, { method: 'POST', body: payload, auth: true }),
 }
 
 export default backend

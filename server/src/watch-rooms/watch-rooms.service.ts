@@ -16,8 +16,8 @@ import {
   InviteToRoomDto,
   JoinWatchRoomDto,
   SendWatchRoomMessageDto,
+  SetWatchRoomVideoDto,
   UpdateWatchRoomStateDto,
-  WatchRoomSyncQueryDto,
 } from './dto';
 import { WatchRoomMessage } from './watch-room-message.entity';
 import { WatchRoomParticipant } from './watch-room-participant.entity';
@@ -57,6 +57,7 @@ export class WatchRoomsService {
       code: room.code,
       ownerId: room.owner?.id,
       owner: this.toUser(room.owner),
+      hostId: room.hostId,
       createdAt: room.createdAt,
       updatedAt: room.updatedAt,
     };
@@ -74,16 +75,16 @@ export class WatchRoomsService {
       iframeUrl: room.iframeUrl,
       currentTime: room.currentTime || 0,
       isPaused: !!room.isPaused,
-      lastActorId: room.lastActorId,
-      updatedAt: room.updatedAt,
+      hostId: room.hostId,
     };
   }
 
-  private memberView(p: WatchRoomParticipant, ownerId: number) {
+  private memberView(p: WatchRoomParticipant, ownerId: number, hostId: number) {
     return {
       id: p.user?.id,
       joinedAt: p.joinedAt,
       isOwner: p.user?.id === ownerId,
+      isHost: p.user?.id === hostId,
       user: this.toUser(p.user),
     };
   }
@@ -144,17 +145,6 @@ export class WatchRoomsService {
       .getMany();
   }
 
-  private async messagesAfter(roomId: number, messageId: number, limit = 200) {
-    return this.messages
-      .createQueryBuilder('m')
-      .leftJoinAndSelect('m.user', 'user')
-      .where('m.roomId = :roomId', { roomId })
-      .andWhere('m.id > :messageId', { messageId })
-      .orderBy('m.id', 'ASC')
-      .limit(limit)
-      .getMany();
-  }
-
   private async latestMessages(roomId: number, limit = 120) {
     const rows = await this.messages
       .createQueryBuilder('m')
@@ -198,11 +188,8 @@ export class WatchRoomsService {
     const messages = await this.latestMessages(room.id);
     return {
       room: this.roomBase(room),
-      stateVersion: room.stateVersion,
-      membersVersion: room.membersVersion,
-      lastMessageId: room.lastMessageId,
       state: this.roomState(room),
-      members: members.map((m) => this.memberView(m, room.owner.id)),
+      members: members.map((m) => this.memberView(m, room.owner.id, room.hostId)),
       messages: messages.map((m) => this.messageView(m)),
     };
   }
@@ -257,6 +244,9 @@ export class WatchRoomsService {
     const room = this.rooms.create({
       code: await this.generateUniqueCode(),
       owner: { id: userId } as any,
+      hostId: userId,
+      currentTime: 0,
+      isPaused: true,
       animeId: dto.animeId ?? null,
       animeUrl: this.normalizeText(dto.animeUrl),
       animeTitle: this.normalizeText(dto.animeTitle),
@@ -265,12 +255,6 @@ export class WatchRoomsService {
       episodeNumber: this.normalizeText(dto.episodeNumber),
       dubbing: this.normalizeText(dto.dubbing),
       iframeUrl: this.normalizeText(dto.iframeUrl),
-      currentTime: dto.currentTime ?? 0,
-      isPaused: dto.isPaused ?? true,
-      stateVersion: 1,
-      membersVersion: 1,
-      lastMessageId: 0,
-      lastActorId: userId,
     });
     const saved = await this.rooms.save(room);
     await this.participants.save(
@@ -302,7 +286,6 @@ export class WatchRoomsService {
           user: { id: userId } as any,
         }),
       );
-      room.membersVersion += 1;
       await this.rooms.save(room);
     }
 
@@ -322,7 +305,6 @@ export class WatchRoomsService {
           user: { id: userId } as any,
         }),
       );
-      room.membersVersion += 1;
       await this.rooms.save(room);
     }
 
@@ -334,50 +316,18 @@ export class WatchRoomsService {
     return this.buildSnapshot(room);
   }
 
-  async sync(roomId: number, userId: number, q: WatchRoomSyncQueryDto) {
+  async setVideo(roomId: number, userId: number, dto: SetWatchRoomVideoDto) {
     const { room } = await this.assertMember(roomId, userId);
-    const stateVersion = q.stateVersion ?? 0;
-    const membersVersion = q.membersVersion ?? 0;
-    const messageId = q.messageId ?? 0;
-
-    const stateChanged = stateVersion !== room.stateVersion;
-    const membersChanged = membersVersion !== room.membersVersion;
-    const hasNewMessages = messageId < room.lastMessageId;
-
-    const members = membersChanged ? await this.membersForRoom(room.id) : [];
-    const messages = hasNewMessages ? await this.messagesAfter(room.id, messageId) : [];
-
-    return {
-      room: this.roomBase(room),
-      stateVersion: room.stateVersion,
-      membersVersion: room.membersVersion,
-      lastMessageId: room.lastMessageId,
-      state: stateChanged ? this.roomState(room) : null,
-      members: membersChanged
-        ? members.map((m) => this.memberView(m, room.owner.id))
-        : null,
-      messages: messages.map((m) => this.messageView(m)),
-    };
-  }
-
-  async updateState(roomId: number, userId: number, dto: UpdateWatchRoomStateDto) {
-    const { room } = await this.assertMember(roomId, userId);
-
-    let changed = false;
+    if (room.hostId !== userId) {
+      throw new ForbiddenException('Управлять плеером может только ведущий');
+    }
 
     const setTextField = (key: string, value?: string) => {
       if (value === undefined) return;
-      const normalized = this.normalizeText(value);
-      if ((room as any)[key] !== normalized) {
-        (room as any)[key] = normalized;
-        changed = true;
-      }
+      (room as any)[key] = this.normalizeText(value);
     };
 
-    if (dto.animeId !== undefined && room.animeId !== dto.animeId) {
-      room.animeId = dto.animeId;
-      changed = true;
-    }
+    if (dto.animeId !== undefined) room.animeId = dto.animeId;
     setTextField('animeUrl', dto.animeUrl);
     setTextField('animeTitle', dto.animeTitle);
     setTextField('animePoster', dto.animePoster);
@@ -385,32 +335,30 @@ export class WatchRoomsService {
     setTextField('episodeNumber', dto.episodeNumber);
     setTextField('dubbing', dto.dubbing);
     setTextField('iframeUrl', dto.iframeUrl);
+    room.currentTime = 0;
+    room.isPaused = true;
 
-    if (dto.currentTime !== undefined) {
-      const nextTime = Number.isFinite(dto.currentTime)
-        ? Math.max(0, dto.currentTime)
-        : 0;
-      if (room.currentTime !== nextTime) {
-        room.currentTime = nextTime;
-        changed = true;
-      }
+    await this.rooms.save(room);
+
+    return this.roomState(room);
+  }
+
+  async updateState(roomId: number, userId: number, dto: UpdateWatchRoomStateDto) {
+    const { room } = await this.assertMember(roomId, userId);
+    if (room.hostId !== userId) {
+      throw new ForbiddenException('Управлять плеером может только ведущий');
     }
 
-    if (dto.isPaused !== undefined && room.isPaused !== dto.isPaused) {
+    if (dto.currentTime !== undefined && Number.isFinite(dto.currentTime)) {
+      room.currentTime = Math.max(0, dto.currentTime);
+    }
+    if (dto.isPaused !== undefined) {
       room.isPaused = dto.isPaused;
-      changed = true;
     }
 
-    if (changed) {
-      room.stateVersion += 1;
-      room.lastActorId = userId;
-      await this.rooms.save(room);
-    }
+    await this.rooms.save(room);
 
-    return {
-      stateVersion: room.stateVersion,
-      state: this.roomState(room),
-    };
+    return this.roomState(room);
   }
 
   async sendMessage(roomId: number, userId: number, dto: SendWatchRoomMessageDto) {
@@ -433,23 +381,21 @@ export class WatchRoomsService {
     });
     const saved = await this.messages.save(row);
 
-    room.lastMessageId = saved.id;
-    await this.rooms.save(room);
-
-    const full = await this.messages.findOne({ where: { id: saved.id } });
-    return {
-      message: this.messageView(full),
-      lastMessageId: room.lastMessageId,
-    };
+    const full = await this.messages.findOne({ where: { id: saved.id }, relations: ['user'] });
+    return this.messageView(full);
   }
 
   async leave(roomId: number, userId: number) {
     const { room, member } = await this.assertMember(roomId, userId);
     const iAmOwner = room.owner.id === userId;
+    const iAmHost = room.hostId === userId;
 
     if (!iAmOwner) {
       await this.participants.remove(member);
-      room.membersVersion += 1;
+      // If the leaver was host, transfer host to owner
+      if (iAmHost) {
+        room.hostId = room.owner.id;
+      }
       await this.rooms.save(room);
       return { ok: true, roomClosed: false };
     }
@@ -463,9 +409,8 @@ export class WatchRoomsService {
     const nextOwner = members.find((m) => m.user?.id !== userId);
     await this.participants.remove(member);
     room.owner = { id: nextOwner.user.id } as any;
-    room.membersVersion += 1;
-    room.stateVersion += 1;
-    room.lastActorId = userId;
+    // Transfer host to new owner
+    room.hostId = nextOwner.user.id;
     await this.rooms.save(room);
 
     return { ok: true, roomClosed: false, newOwnerId: nextOwner.user.id };
@@ -476,7 +421,6 @@ export class WatchRoomsService {
     const target = await this.users.findOne({ where: { id: dto.targetId } });
     if (!target) throw new NotFoundException('Пользователь не найден');
 
-    // Check if target is already a member
     const already = await this.participants.findOne({
       where: { room: { id: roomId }, user: { id: dto.targetId } },
     });

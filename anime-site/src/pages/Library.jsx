@@ -83,7 +83,7 @@ export default function Library() {
         </div>
       )}
 
-      <div className="day-tabs">
+      <div className="day-tabs" style={{ flexWrap: 'wrap', gap: 8 }}>
         {TABS.map((t) => (
           <button
             key={t.value}

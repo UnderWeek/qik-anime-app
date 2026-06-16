@@ -1,4 +1,5 @@
-import { IsIn, IsInt, IsOptional, IsString } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 import { BookmarkStatus } from './bookmark.entity';
 
 export const STATUSES: BookmarkStatus[] = [
@@ -29,4 +30,22 @@ export class UpsertBookmarkDto {
 
   @IsIn(STATUSES)
   status: BookmarkStatus;
+}
+
+export class ImportAnixartEntryDto {
+  @IsString()
+  titleRu: string;
+
+  @IsOptional()
+  @IsString()
+  titleOrig?: string;
+
+  @IsString()
+  status: string;
+}
+
+export class ImportAnixartDto {
+  @ValidateNested({ each: true })
+  @Type(() => ImportAnixartEntryDto)
+  entries: ImportAnixartEntryDto[];
 }

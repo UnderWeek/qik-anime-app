@@ -49,15 +49,6 @@ export class CreateWatchRoomDto {
   @IsString()
   @MaxLength(2000)
   iframeUrl?: string;
-
-  @IsOptional()
-  @Type(() => Number)
-  @Min(0)
-  currentTime?: number;
-
-  @IsOptional()
-  @IsBoolean()
-  isPaused?: boolean;
 }
 
 export class JoinWatchRoomDto {
@@ -66,7 +57,7 @@ export class JoinWatchRoomDto {
   code: string;
 }
 
-export class UpdateWatchRoomStateDto {
+export class SetWatchRoomVideoDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -107,15 +98,6 @@ export class UpdateWatchRoomStateDto {
   @IsString()
   @MaxLength(2000)
   iframeUrl?: string;
-
-  @IsOptional()
-  @Type(() => Number)
-  @Min(0)
-  currentTime?: number;
-
-  @IsOptional()
-  @IsBoolean()
-  isPaused?: boolean;
 }
 
 export class SendWatchRoomMessageDto {
@@ -130,28 +112,19 @@ export class SendWatchRoomMessageDto {
   imageUrl?: string;
 }
 
+export class UpdateWatchRoomStateDto {
+  @IsOptional()
+  @Type(() => Number)
+  @Min(0)
+  currentTime?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isPaused?: boolean;
+}
+
 export class InviteToRoomDto {
   @Type(() => Number)
   @IsInt()
   targetId: number;
-}
-
-export class WatchRoomSyncQueryDto {
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  stateVersion?: number;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  membersVersion?: number;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  messageId?: number;
 }

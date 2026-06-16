@@ -22,6 +22,7 @@ export class NotificationsService {
     animePoster?: string;
     roomId?: number;
     roomCode?: string;
+    chatId?: number;
   }) {
     if (params.actorId && params.actorId === params.recipientId) return null;
     const n = this.repo.create({
@@ -35,6 +36,7 @@ export class NotificationsService {
       animePoster: params.animePoster,
       roomId: params.roomId ?? null,
       roomCode: params.roomCode ?? null,
+      chatId: params.chatId ?? null,
     });
     return this.repo.save(n);
   }

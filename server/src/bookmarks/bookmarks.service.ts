@@ -2,7 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Bookmark } from './bookmark.entity';
-import { UpsertBookmarkDto } from './dto';
+import { ImportAnixartDto, UpsertBookmarkDto } from './dto';
+import { yummyAnime } from '../common/yummyanime.client';
 
 @Injectable()
 export class BookmarksService {
@@ -56,5 +57,58 @@ export class BookmarksService {
     if (!bm) throw new NotFoundException('Закладка не найдена');
     await this.repo.remove(bm);
     return { ok: true };
+  }
+
+  async importAnixart(userId: number, dto: ImportAnixartDto) {
+    const statusMap: Record<string, string> = {
+      'Просмотрено': 'completed',
+      'Смотрю': 'watching',
+      'В планах': 'planned',
+      'Отложено': 'on_hold',
+      'Брошено': 'dropped',
+    };
+
+    let imported = 0;
+    let failed = 0;
+    const failures: string[] = [];
+
+    // Process with limited concurrency (3 parallel searches, 150ms apart)
+    const CONCURRENCY = 3;
+    const DELAY_MS = 150;
+
+    const queue = dto.entries.filter((e) => statusMap[e.status]);
+
+    async function processOne(entry: typeof queue[0]) {
+      const bookmarkStatus = statusMap[entry.status];
+      const info = await yummyAnime.findAnime(entry.titleRu, entry.titleOrig);
+      if (!info) {
+        failed++;
+        if (failures.length < 10) failures.push(entry.titleRu);
+        return;
+      }
+      await this.upsert(userId, {
+        animeId: info.anime_id,
+        status: bookmarkStatus as any,
+        animeUrl: info.anime_url,
+        animeTitle: info.title,
+        animePoster: yummyAnime.posterUrl(info, 'medium'),
+      });
+      imported++;
+    }
+
+    for (let i = 0; i < queue.length; i += CONCURRENCY) {
+      const batch = queue.slice(i, i + CONCURRENCY);
+      await Promise.all(batch.map((e) => processOne.call(this, e)));
+      if (i + CONCURRENCY < queue.length) {
+        await new Promise((r) => setTimeout(r, DELAY_MS));
+      }
+    }
+
+    return {
+      imported,
+      failed,
+      total: dto.entries.length,
+      sampleFailures: failures,
+    };
   }
 }

@@ -7,7 +7,6 @@ import {
   ParseIntPipe,
   Patch,
   Post,
-  Query,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -17,8 +16,8 @@ import {
   InviteToRoomDto,
   JoinWatchRoomDto,
   SendWatchRoomMessageDto,
+  SetWatchRoomVideoDto,
   UpdateWatchRoomStateDto,
-  WatchRoomSyncQueryDto,
 } from './dto';
 import { WatchRoomsGateway } from './watch-rooms.gateway';
 import { WatchRoomsService } from './watch-rooms.service';
@@ -45,10 +44,7 @@ export class WatchRoomsController {
   async join(@CurrentUser() user: AuthUser, @Body() dto: JoinWatchRoomDto) {
     const snap = await this.service.join(user.id, dto);
     if (snap?.room?.id) {
-      this.gateway.emitMembers(snap.room.id, {
-        membersVersion: snap.membersVersion,
-        members: snap.members,
-      });
+      this.gateway.emitSnapshot(snap.room.id, snap);
     }
     return snap;
   }
@@ -61,27 +57,26 @@ export class WatchRoomsController {
     return this.service.get(roomId, user.id);
   }
 
-  @Get(':id/sync')
-  sync(
-    @CurrentUser() user: AuthUser,
-    @Param('id', ParseIntPipe) roomId: number,
-    @Query() query: WatchRoomSyncQueryDto,
-  ) {
-    return this.service.sync(roomId, user.id, query);
-  }
-
   @Patch(':id/state')
   async updateState(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseIntPipe) roomId: number,
     @Body() dto: UpdateWatchRoomStateDto,
   ) {
-    const res = await this.service.updateState(roomId, user.id, dto);
-    this.gateway.emitState(roomId, {
-      stateVersion: res.stateVersion,
-      state: res.state,
-    });
-    return res;
+    const state = await this.service.updateState(roomId, user.id, dto);
+    this.gateway.emitState(roomId, state);
+    return state;
+  }
+
+  @Post(':id/video')
+  async setVideo(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIntPipe) roomId: number,
+    @Body() dto: SetWatchRoomVideoDto,
+  ) {
+    const state = await this.service.setVideo(roomId, user.id, dto);
+    this.gateway.emitSnapshot(roomId, await this.service.snapshotForRoom(roomId));
+    return state;
   }
 
   @Post(':id/messages')
@@ -90,9 +85,9 @@ export class WatchRoomsController {
     @Param('id', ParseIntPipe) roomId: number,
     @Body() dto: SendWatchRoomMessageDto,
   ) {
-    const res = await this.service.sendMessage(roomId, user.id, dto);
-    this.gateway.emitMessage(roomId, res);
-    return res.message;
+    const msg = await this.service.sendMessage(roomId, user.id, dto);
+    this.gateway.emitMessage(roomId, msg);
+    return msg;
   }
 
   @Post(':id/leave')

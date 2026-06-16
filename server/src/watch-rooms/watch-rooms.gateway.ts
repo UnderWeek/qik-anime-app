@@ -92,6 +92,11 @@ export class WatchRoomsGateway
     if (!canJoin) return { ok: false, message: 'forbidden' };
 
     await client.join(roomChannel(roomId));
+
+    // Broadcast updated member list to everyone in the room
+    const snap = await this.rooms.snapshotForRoom(roomId);
+    this.emitSnapshot(roomId, snap);
+
     return { ok: true };
   }
 

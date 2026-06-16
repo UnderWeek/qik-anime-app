@@ -1,16 +1,26 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { backend } from '../api/backend.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import Avatar from '../components/Avatar.jsx'
-import { SearchIcon, UserPlusIcon, CheckIcon, TrashIcon, CloseIcon } from '../components/icons.jsx'
+import { SearchIcon, UserPlusIcon, CheckIcon, TrashIcon, CloseIcon, UserIcon } from '../components/icons.jsx'
 
 export default function Friends() {
   const { user, ready, openAuth, showToast } = useAuth()
+  const navigate = useNavigate()
   const [friends, setFriends] = useState([])
   const [pending, setPending] = useState({ incoming: [], outgoing: [] })
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('friends')
+
+  async function startChat(friendId) {
+    try {
+      await backend.startChat(friendId)
+      navigate('/chats')
+    } catch (err) {
+      showToast(err.message || 'Не удалось открыть чат')
+    }
+  }
 
   // search
   const [q, setQ] = useState('')
@@ -73,6 +83,7 @@ export default function Friends() {
   }
 
   async function removeFriend(id) {
+    if (!window.confirm('Удалить из друзей?')) return
     try {
       await backend.removeFriend(id)
       showToast('Удалено')
@@ -136,9 +147,14 @@ export default function Friends() {
                   <span className="fr-name">{f.username}</span>
                 </Link>
                 <div className="fr-actions">
-                  <Link to={`/u/${f.id}`} className="btn btn-ghost btn-sm">Профиль</Link>
-                  <button className="btn btn-danger btn-sm" onClick={() => removeFriend(f.id)} title="Удалить">
-                    <TrashIcon width={15} height={15} />
+                  <button className="btn btn-ghost btn-sm btn-icon" onClick={() => startChat(f.id)} title="Написать">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  </button>
+                  <Link to={`/u/${f.id}`} className="btn btn-ghost btn-sm btn-icon" title="Профиль">
+                    <UserIcon width={20} height={20} />
+                  </Link>
+                  <button className="btn btn-danger btn-sm btn-icon" onClick={() => removeFriend(f.id)} title="Удалить">
+                    <TrashIcon width={18} height={18} />
                   </button>
                 </div>
               </div>
