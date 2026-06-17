@@ -204,6 +204,16 @@ export const backend = {
   importAnixartBookmarks: (entries) =>
     request('/bookmarks/import/anixart', { method: 'POST', body: { entries }, auth: true }),
 
+  // ---- admin ----
+  adminStats: () => request('/admin/stats', { auth: true }),
+  adminUsers: (params = {}) => {
+    const clean = Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== ''))
+    const qs = new URLSearchParams(clean).toString()
+    return request(`/admin/users${qs ? '?' + qs : ''}`, { auth: true })
+  },
+  adminDeleteUser: (id) =>
+    request(`/admin/users/${id}`, { method: 'DELETE', auth: true }),
+
   // ---- chats ----
   listChats: () => request('/chats', { auth: true }),
   startChat: (friendId) => request('/chats/start', { method: 'POST', body: { friendId }, auth: true }),

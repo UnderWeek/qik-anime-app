@@ -2,16 +2,17 @@ import { useState, useRef } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme, ACCENT_PRESETS } from '../context/ThemeContext.jsx'
 import { backend } from '../api/backend.js'
-import { GridIcon, CalendarIcon, UsersIcon, BookmarkIcon, SunIcon, MoonIcon } from '../components/icons.jsx'
+import { GridIcon, CalendarIcon, UsersIcon, BookmarkIcon, SunIcon, MoonIcon, MessageIcon, RoomIcon } from '../components/icons.jsx'
 
 const MOBILE_KEY = 'qik_mobile_tabs'
 
 const ALL_MOBILE_TABS = [
   { key: 'catalog', label: 'Каталог', icon: GridIcon },
   { key: 'schedule', label: 'Расписание', icon: CalendarIcon },
-  { key: 'rooms', label: 'Комнаты', icon: UsersIcon },
+  { key: 'rooms', label: 'Комнаты', icon: RoomIcon },
   { key: 'library', label: 'Закладки', icon: BookmarkIcon },
   { key: 'friends', label: 'Друзья', icon: UsersIcon },
+  { key: 'chats', label: 'Чаты', icon: MessageIcon },
 ]
 
 const DEFAULT_TABS = ['catalog', 'rooms', 'library', 'friends']
@@ -31,7 +32,6 @@ function saveMobileTabs(tabs) {
   localStorage.setItem(MOBILE_KEY, JSON.stringify(tabs))
 }
 
-// Simple CSV parser for Anixart
 const ANIXART_STATUS_MAP = {
   'Просмотрено': 'completed',
   'Смотрю': 'watching',
@@ -40,26 +40,59 @@ const ANIXART_STATUS_MAP = {
   'Брошено': 'dropped',
 }
 
+// Column name aliases for flexible header matching
+const COLUMN_ALIASES = {
+  titleRu: ['русское название', 'название', 'title', 'name', 'рус'],
+  titleOrig: ['оригинальное название', 'original title', 'оригинал', 'original', 'английское название', 'english title'],
+  status: ['статус просмотра', 'статус', 'status', 'состояние'],
+}
+
+function parseCsvLine(line) {
+  const fields = []
+  let cur = ''
+  let quoted = false
+  for (let j = 0; j < line.length; j++) {
+    const ch = line[j]
+    if (ch === '"') { quoted = !quoted }
+    else if (ch === ',' && !quoted) { fields.push(cur.trim()); cur = '' }
+    else { cur += ch }
+  }
+  fields.push(cur.trim())
+  return fields
+}
+
+function detectColumns(headerFields) {
+  const map = {}
+  for (let i = 0; i < headerFields.length; i++) {
+    const name = headerFields[i].toLowerCase().replace(/^"|"$/g, '')
+    for (const [key, aliases] of Object.entries(COLUMN_ALIASES)) {
+      if (aliases.some((a) => name === a || name.includes(a))) {
+        if (!map[key]) map[key] = i
+      }
+    }
+  }
+  return map
+}
+
 function parseCSV(text) {
   const lines = text.trim().split(/\r?\n/)
   if (lines.length < 2) return []
+  const headerFields = parseCsvLine(lines[0])
+  const col = detectColumns(headerFields)
+  if (!col.titleRu || !col.status) return [] // minimum required columns
   const entries = []
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim()
     if (!line) continue
-    const fields = []
-    let cur = ''
-    let quoted = false
-    for (let j = 0; j < line.length; j++) {
-      const ch = line[j]
-      if (ch === '"') { quoted = !quoted }
-      else if (ch === ',' && !quoted) { fields.push(cur); cur = '' }
-      else { cur += ch }
-    }
-    fields.push(cur)
-    if (fields.length >= 5 && ANIXART_STATUS_MAP[fields[4]]) {
-      entries.push({ titleRu: fields[1], titleOrig: fields[2], status: fields[4] })
-    }
+    const fields = parseCsvLine(line)
+    const titleRu = fields[col.titleRu]
+    const statusRaw = fields[col.status]
+    if (!titleRu || !ANIXART_STATUS_MAP[statusRaw]) continue
+    entries.push({
+      titleRu,
+      titleOrig: col.titleOrig !== undefined ? fields[col.titleOrig] || undefined : undefined,
+      status: statusRaw,
+    })
   }
   return entries
 }
@@ -86,7 +119,10 @@ export default function Settings() {
     const reader = new FileReader()
     reader.onload = async () => {
       const entries = parseCSV(reader.result)
-      if (!entries.length) return
+      if (!entries.length) {
+        setImportResult({ error: 'Не удалось распознать закладки в файле. Проверьте формат.' })
+        return
+      }
       setImporting(true)
       setImportResult(null)
       const BATCH = 60
@@ -224,8 +260,12 @@ export default function Settings() {
         </button>
         {importResult && (
           <div style={{ marginTop: 14, fontSize: 14, color: 'var(--text-dim)' }}>
-            Импортировано: <b>{importResult.imported}</b> из {importResult.total}.
-            {importResult.failed > 0 && <> Не найдено: <b>{importResult.failed}</b>.</>}
+            {importResult.error ? (
+              <span style={{ color: 'var(--danger)' }}>{importResult.error}</span>
+            ) : (
+              <>Импортировано: <b>{importResult.imported}</b> из {importResult.total}.
+              {importResult.failed > 0 && <> Не найдено: <b>{importResult.failed}</b>.</>}</>
+            )}
           </div>
         )}
       </section>

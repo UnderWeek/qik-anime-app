@@ -24,6 +24,7 @@ async function request<T = any>(path: string, params: Record<string, any> = {}):
 }
 
 const searchCache = new Map<string, YummySearchResult[]>();
+const animeCache = new Map<number, { episodes: number; genres: string[] }>();
 
 export const yummyAnime = {
   search(q: string, limit = 5): Promise<YummySearchResult[]> {
@@ -57,6 +58,25 @@ export const yummyAnime = {
       }
     }
     return null;
+  },
+
+  async getAnime(id: number): Promise<{ episodes: number; genres: string[] } | null> {
+    const cached = animeCache.get(id);
+    if (cached) return cached;
+
+    try {
+      const data = await request<any>(`/anime/${id}`);
+      const epObj = data.episodes;
+      const episodes = (epObj?.count || epObj?.aired) || (data.duration ? 1 : 0);
+      const genres: string[] = Array.isArray(data.genres)
+        ? data.genres.map((g: any) => (typeof g === 'string' ? g : g.title || g.name || '')).filter(Boolean)
+        : [];
+      const result = { episodes, genres };
+      animeCache.set(id, result);
+      return result;
+    } catch {
+      return null;
+    }
   },
 
   posterUrl(info: YummyAnimeInfo, size: 'medium' | 'big' | 'small' = 'medium'): string {

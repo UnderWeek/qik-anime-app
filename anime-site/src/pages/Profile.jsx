@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { backend, uploadUrl } from '../api/backend.js'
 import { fixUrl, upgradePoster } from '../api/client.js'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -13,11 +13,14 @@ import {
   ClockIcon,
   EyeIcon,
   StarIcon,
+  BookmarkIcon,
+  MessageIcon,
   UsersIcon,
   UserPlusIcon,
   CheckIcon,
   EditIcon,
   CameraIcon,
+  TrashIcon,
   SunIcon,
   MoonIcon,
 } from '../components/icons.jsx'
@@ -33,6 +36,7 @@ function fmtHours(seconds) {
 export default function Profile() {
   const { id } = useParams()
   const uid = Number(id)
+  const navigate = useNavigate()
   const { user, setUser, showToast, openAuth } = useAuth()
   const { theme, toggle } = useTheme()
   const isSelf = user?.id === uid
@@ -145,6 +149,16 @@ export default function Profile() {
     }
   }
 
+  async function sendMessage() {
+    if (!user) return openAuth('login')
+    try {
+      await backend.startChat(uid)
+      navigate('/chats')
+    } catch (e) {
+      showToast(e.message || 'Ошибка')
+    }
+  }
+
   if (loading) {
     return (
       <div className="container page">
@@ -234,6 +248,9 @@ export default function Profile() {
               </button>
             ) : (
               <>
+                <button className="btn btn-primary btn-sm" onClick={sendMessage}>
+                  <MessageIcon width={15} height={15} /> Написать
+                </button>
                 {friendStatus === 'friends' && (
                   <button className="btn btn-danger btn-sm" onClick={removeFriend}>
                     <CheckIcon width={15} height={15} /> В друзьях
@@ -384,6 +401,11 @@ export default function Profile() {
           <div className="v">{achievementsUnlocked}/{achievements.length}</div>
           <div className="l">достижений</div>
         </div>
+        <div className="stat-card">
+          <BookmarkIcon className="ic" width={20} height={20} style={{ color: 'var(--accent)' }} />
+          <div className="v">{stats.bookmarks}</div>
+          <div className="l">в закладках</div>
+        </div>
       </div>
 
       {/* genre breakdown pie chart */}
@@ -447,39 +469,100 @@ function AchievementsGrid({ achievements }) {
   )
 }
 
+const BOOKMARK_FILTERS = [
+  { key: '', label: 'Все' },
+  { key: 'watching', label: 'Смотрю' },
+  { key: 'completed', label: 'Просмотрено' },
+  { key: 'planned', label: 'В планах' },
+  { key: 'on_hold', label: 'Отложено' },
+  { key: 'dropped', label: 'Брошено' },
+  { key: 'rewatching', label: 'Пересматриваю' },
+  { key: 'favorite', label: 'Любимые' },
+]
+
 function UserBookmarks({ uid }) {
   const [items, setItems] = useState(null)
+  const [filter, setFilter] = useState('')
+
   useEffect(() => {
-    backend.userBookmarks(uid).then((r) => setItems(Array.isArray(r) ? r : [])).catch(() => setItems([]))
-  }, [uid])
+    backend.userBookmarks(uid, filter || undefined)
+      .then((r) => setItems(Array.isArray(r) ? r : []))
+      .catch(() => setItems([]))
+  }, [uid, filter])
 
   if (!items) return <div className="comment-empty">Загрузка…</div>
-  if (items.length === 0) return <div className="comment-empty">Закладок пока нет.</div>
 
   return (
-    <div className="grid">
-      {items.map((b) => (
-        <Link key={b.animeId} to={`/anime/${b.animeUrl || b.animeId}`} className="card">
-          <div className="card-poster">
-            {b.animePoster ? (
-              <img src={fixUrl(b.animePoster)} alt={b.animeTitle} loading="lazy" />
-            ) : (
-              <div className="skel" style={{ width: '100%', height: '100%' }} />
-            )}
-            <div className="card-badge">{statusLabel(b.status)}</div>
-          </div>
-          <div className="card-title">{b.animeTitle || `Аниме #${b.animeId}`}</div>
-        </Link>
-      ))}
-    </div>
+    <>
+      <div className="chips" style={{ marginBottom: 18 }}>
+        {BOOKMARK_FILTERS.map((f) => (
+          <button
+            key={f.key}
+            className={`chip ${filter === f.key ? 'active' : ''}`}
+            onClick={() => setFilter(f.key)}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+      {items.length === 0 ? (
+        <div className="comment-empty">{filter ? 'Нет закладок с этим статусом.' : 'Закладок пока нет.'}</div>
+      ) : (
+      <div className="grid">
+        {items.map((b) => (
+          <Link key={b.animeId} to={`/anime/${b.animeUrl || b.animeId}`} className="card">
+            <div className="card-poster">
+              {b.animePoster ? (
+                <img src={fixUrl(b.animePoster)} alt={b.animeTitle} loading="lazy" />
+              ) : (
+                <div className="skel" style={{ width: '100%', height: '100%' }} />
+              )}
+              <div className="card-badge">{statusLabel(b.status)}</div>
+            </div>
+            <div className="card-title">{b.animeTitle || `Аниме #${b.animeId}`}</div>
+          </Link>
+        ))}
+      </div>
+      )}
+    </>
   )
 }
 
 function UserFriends({ uid }) {
+  const navigate = useNavigate()
+  const { user, showToast, openAuth } = useAuth()
   const [items, setItems] = useState(null)
+  const [friends, setFriends] = useState(new Set())
+
   useEffect(() => {
     backend.userFriends(uid).then((r) => setItems(Array.isArray(r) ? r : [])).catch(() => setItems([]))
   }, [uid])
+
+  // Load current user's friend IDs so we know who's already a friend
+  useEffect(() => {
+    if (!user) { setFriends(new Set()); return }
+    backend.listFriends().then((r) => {
+      setFriends(new Set((Array.isArray(r) ? r : []).map((f) => f.id)))
+    }).catch(() => {})
+  }, [user])
+
+  async function addFriend(targetId) {
+    if (!user) return openAuth('login')
+    try {
+      await backend.requestFriend(targetId)
+      showToast('Заявка отправлена')
+    } catch (e) { showToast(e.message || 'Ошибка') }
+  }
+
+  async function writeMessage(targetId) {
+    if (!user) return openAuth('login')
+    try {
+      await backend.startChat(targetId)
+      navigate('/chats')
+    } catch (e) { showToast(e.message || 'Ошибка') }
+  }
+
+  const isSelf = user?.id === uid
 
   if (!items) return <div className="comment-empty">Загрузка…</div>
   if (items.length === 0) return <div className="comment-empty">Список друзей пуст.</div>
@@ -487,10 +570,28 @@ function UserFriends({ uid }) {
   return (
     <div className="friend-list">
       {items.map((f) => (
-        <Link key={f.id} to={`/u/${f.id}`} className="friend-row">
+        <div key={f.id} className="friend-row">
           <Avatar user={f} size={42} />
-          <span className="fr-name">{f.username}</span>
-        </Link>
+          <Link to={`/u/${f.id}`} className="fr-name">{f.username}</Link>
+          {user && user.id !== f.id && (
+            <div className="fr-actions">
+              <button className="btn btn-ghost btn-sm" onClick={() => writeMessage(f.id)} title="Написать">
+                <MessageIcon width={13} height={13} />
+              </button>
+              {isSelf ? (
+                <button className="btn btn-ghost btn-sm" onClick={async () => {
+                  try { await backend.removeFriend(f.id); showToast('Удалён из друзей'); setFriends((s) => { const n = new Set(s); n.delete(f.id); return n }) } catch (e) { showToast(e.message || 'Ошибка') }
+                }} title="Удалить из друзей">
+                  <TrashIcon width={13} height={13} />
+                </button>
+              ) : !friends.has(f.id) && (
+                <button className="btn btn-ghost btn-sm" onClick={() => addFriend(f.id)} title="Добавить в друзья">
+                  <UserPlusIcon width={13} height={13} />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       ))}
     </div>
   )
@@ -537,8 +638,8 @@ function GenreChart({ uid }) {
           style={{ background: `conic-gradient(${stops.join(', ')})` }}
         >
           <div className="pie-hole">
-            <b>{data.total}</b>
-            <span>серий</span>
+            <b>{data.items[0]?.name || '—'}</b>
+            <span>{data.items[0]?.percent || 0}%</span>
           </div>
         </div>
         <div className="genre-legend">

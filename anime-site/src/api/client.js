@@ -66,10 +66,17 @@ export function fixUrl(url) {
   return url
 }
 
+const POSTER_SIZES = ['mega', 'huge', 'fullsize', 'big', 'medium', 'small']
+
 export function poster(obj, size = 'medium') {
   if (!obj || !obj.poster) return ''
   const p = obj.poster
-  return fixUrl(p[size] || p.medium || p.small || p.big || p.fullsize || '')
+  // Try requested size first, then chain from largest to smallest
+  if (p[size]) return fixUrl(p[size])
+  for (const s of POSTER_SIZES) {
+    if (p[s]) return fixUrl(p[s])
+  }
+  return ''
 }
 
 // Upgrade a stored YummyAnime poster URL to a higher-quality size by swapping

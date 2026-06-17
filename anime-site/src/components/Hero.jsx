@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { poster } from '../api/client.js'
-import { PlayIcon, StarIcon, FireIcon } from './icons.jsx'
+import { PlayIcon, StarIcon, FireIcon, ChevronDown } from './icons.jsx'
 
 export default function Hero({ items = [] }) {
   const slides = items.slice(0, 6)
@@ -56,11 +56,7 @@ export default function Hero({ items = [] }) {
     <div className="hero" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
       {slides.map((a, idx) => {
         const url = a.anime_url || a.url
-        const bg =
-          poster(a, 'mega') ||
-          poster(a, 'huge') ||
-          poster(a, 'fullsize') ||
-          poster(a, 'big')
+        const bg = poster(a, 'mega')
         return (
           <div className={`hero-slide ${idx === i ? 'active' : ''}`} key={url || idx}>
             <img className="hero-bg" src={bg} alt="" aria-hidden />
@@ -89,6 +85,16 @@ export default function Hero({ items = [] }) {
           </div>
         )
       })}
+      {slides.length > 1 && (
+        <>
+          <button className="hero-arrow left" onClick={() => shift(-1)} aria-label="Предыдущий слайд">
+            <ChevronDown width={22} height={22} style={{ transform: 'rotate(90deg)' }} />
+          </button>
+          <button className="hero-arrow right" onClick={() => shift(1)} aria-label="Следующий слайд">
+            <ChevronDown width={22} height={22} style={{ transform: 'rotate(-90deg)' }} />
+          </button>
+        </>
+      )}
       <div className="hero-dots">
         {slides.map((_, idx) => (
           <button

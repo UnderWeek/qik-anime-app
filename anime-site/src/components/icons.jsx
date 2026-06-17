@@ -201,3 +201,16 @@ export const HeartIcon = (p) => (
     <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" />
   </svg>
 )
+
+export const MessageIcon = (p) => (
+  <svg viewBox="0 0 24 24" {...base} {...p}>
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+)
+
+export const RoomIcon = (p) => (
+  <svg viewBox="0 0 24 24" {...base} {...p}>
+    <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+    <path d="M8 21h8M12 17v4" />
+  </svg>
+)

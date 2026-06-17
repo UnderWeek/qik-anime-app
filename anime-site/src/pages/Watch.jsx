@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useApi } from '../hooks/useApi.js'
 import { api, poster } from '../api/client.js'
 import { backend } from '../api/backend.js'
@@ -8,6 +8,8 @@ import { ArrowLeft, CheckIcon, TrashIcon } from '../components/icons.jsx'
 
 export default function Watch() {
   const { url } = useParams()
+  const [searchParams] = useSearchParams()
+  const resumeEp = searchParams.get('ep') // episode number from "continue watching"
   const navigate = useNavigate()
   const { user, openAuth, showToast } = useAuth()
   const { data: anime } = useApi(() => api.anime(url), [url])
@@ -91,11 +93,17 @@ export default function Watch() {
 
   useEffect(() => {
     if (episodes.length) {
-      setEpIndex((prev) => (episodes.some((e) => e.video_id === prev) ? prev : episodes[0].video_id))
+      // Prefer the episode from "continue watching" query param
+      const target = resumeEp && episodes.find((e) => String(e.number) === resumeEp)
+      if (target) {
+        setEpIndex(target.video_id)
+      } else {
+        setEpIndex((prev) => (episodes.some((e) => e.video_id === prev) ? prev : episodes[0].video_id))
+      }
     } else {
       setEpIndex(null)
     }
-  }, [episodes])
+  }, [episodes, resumeEp])
 
   const current = episodes.find((e) => e.video_id === epIndex) || episodes[0]
 

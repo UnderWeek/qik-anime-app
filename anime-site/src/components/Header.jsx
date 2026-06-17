@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
-import { SearchIcon, BookmarkIcon, LogoutIcon, UserIcon, ChevronDown, UsersIcon, GridIcon, CalendarIcon } from './icons.jsx';
+import { SearchIcon, BookmarkIcon, LogoutIcon, UserIcon, ChevronDown, UsersIcon, GridIcon, CalendarIcon, MessageIcon, RoomIcon, CloseIcon } from './icons.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import Avatar from './Avatar.jsx';
 import NotificationBell from './NotificationBell.jsx';
@@ -14,10 +14,10 @@ const links = [
 const TAB_DEFS = {
   catalog: { to: '/catalog', label: 'Каталог', icon: GridIcon },
   schedule: { to: '/schedule', label: 'Расписание', icon: CalendarIcon },
-  rooms: { to: '/rooms', label: 'Комнаты', icon: UsersIcon },
+  rooms: { to: '/rooms', label: 'Комнаты', icon: RoomIcon },
   library: { to: '/library', label: 'Закладки', icon: BookmarkIcon },
   friends: { to: '/friends', label: 'Друзья', icon: UsersIcon, auth: true },
-  chats: { to: '/chats', label: 'Чаты', icon: UsersIcon, auth: true },
+  chats: { to: '/chats', label: 'Чаты', icon: MessageIcon, auth: true },
 };
 
 const DEFAULT_MOBILE_ORDER = ['catalog', 'rooms', 'library', 'friends'];
@@ -94,6 +94,11 @@ export default function Header() {
           <form className='header-search' onSubmit={submit}>
             <SearchIcon />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder='Поиск...' aria-label='Поиск' />
+            {q && (
+              <button type="button" className="search-clear" onClick={() => setQ('')} aria-label="Очистить">
+                <CloseIcon width={14} height={14} />
+              </button>
+            )}
           </form>
           <div className='header-notif'>
             <NotificationBell />
@@ -109,8 +114,11 @@ export default function Header() {
                     <Link to='/library'><BookmarkIcon width={16} height={16} />Закладки</Link>
                     <Link to='/schedule'><CalendarIcon width={16} height={16} />Расписание</Link>
                     <Link to='/friends'><UsersIcon width={16} height={16} />Друзья</Link>
-                    <Link to='/chats'><UsersIcon width={16} height={16} />Чаты</Link>
-                    <Link to='/rooms'><UsersIcon width={16} height={16} />Комнаты</Link>
+                    <Link to='/chats'><MessageIcon width={16} height={16} />Чаты</Link>
+                    <Link to='/rooms'><RoomIcon width={16} height={16} />Комнаты</Link>
+                    {user.isAdmin && (
+                      <Link to='/admin'><span style={{ display: 'inline-flex', width: 16, height: 16, alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>⚙</span>Админка</Link>
+                    )}
                     <Link to='/settings'><span style={{ display: 'inline-flex', width: 16, height: 16, alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>⚙</span>Настройки</Link>
                     <button onClick={() => { logout(); setMenu(false); }}><LogoutIcon width={16} height={16} />Выйти</button>
                   </div>

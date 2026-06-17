@@ -30,6 +30,14 @@ export class UpsertBookmarkDto {
 
   @IsIn(STATUSES)
   status: BookmarkStatus;
+
+  @IsOptional()
+  @IsInt()
+  episodeCount?: number;
+
+  @IsOptional()
+  @IsString()
+  genres?: string;
 }
 
 export class ImportAnixartEntryDto {

@@ -53,6 +53,9 @@ export class User {
   @Column({ type: 'boolean', default: false })
   reZeroS4: boolean;
 
+  @Column({ type: 'boolean', default: false })
+  isAdmin: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

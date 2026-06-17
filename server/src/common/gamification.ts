@@ -9,16 +9,35 @@ export interface ActivityStats {
   bookmarks: number;
   friends: number;
   reZeroS4?: boolean;
+  bookmarkCounts?: Record<string, number>; // status → count
 }
 
-// XP weights per activity
+// XP weights per bookmark status
+const BOOKMARK_XP: Record<string, number> = {
+  completed: 8,
+  watching: 5,
+  rewatching: 5,
+  planned: 2,
+  on_hold: 2,
+  dropped: 0,
+  favorite: 3, // additional, on top of the base status
+};
+
 export function computeXp(s: ActivityStats): number {
+  let bookmarkXp = 0;
+  if (s.bookmarkCounts) {
+    for (const [status, count] of Object.entries(s.bookmarkCounts)) {
+      const weight = BOOKMARK_XP[status] ?? 0;
+      bookmarkXp += count * weight;
+    }
+  }
+
   return (
     s.watchedEpisodes * 10 +
     Math.floor(s.watchedSeconds / 60) * 1 + // 1 xp per watched minute
     s.ratings * 5 +
     s.comments * 8 +
-    s.bookmarks * 3 +
+    bookmarkXp +
     s.friends * 15
   );
 }

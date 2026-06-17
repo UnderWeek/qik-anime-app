@@ -32,12 +32,25 @@ export class BookmarksService {
       where: { user: { id: userId }, animeId: dto.animeId },
     });
 
+    const meta = { episodeCount: dto.episodeCount, genres: dto.genres };
+
     if (bm) {
       bm.status = dto.status;
       if (dto.animeUrl) bm.animeUrl = dto.animeUrl;
       if (dto.animeTitle) bm.animeTitle = dto.animeTitle;
       if (dto.animePoster) bm.animePoster = dto.animePoster;
+      if (meta.episodeCount != null) bm.episodeCount = meta.episodeCount;
+      if (meta.genres != null) bm.genres = meta.genres;
     } else {
+      // Auto-fetch metadata from YummyAnime if not provided
+      if (meta.episodeCount == null && meta.genres == null) {
+        const info = await yummyAnime.getAnime(dto.animeId);
+        if (info) {
+          meta.episodeCount = info.episodes;
+          meta.genres = info.genres.join(',');
+        }
+      }
+
       bm = this.repo.create({
         user: { id: userId } as any,
         animeId: dto.animeId,
@@ -45,6 +58,8 @@ export class BookmarksService {
         animeTitle: dto.animeTitle,
         animePoster: dto.animePoster,
         status: dto.status,
+        episodeCount: meta.episodeCount || null,
+        genres: meta.genres || null,
       });
     }
     return this.repo.save(bm);
@@ -86,12 +101,16 @@ export class BookmarksService {
         if (failures.length < 10) failures.push(entry.titleRu);
         return;
       }
+      // Fetch full metadata (episodes, genres) for statistics
+      const meta = await yummyAnime.getAnime(info.anime_id);
       await this.upsert(userId, {
         animeId: info.anime_id,
         status: bookmarkStatus as any,
         animeUrl: info.anime_url,
         animeTitle: info.title,
         animePoster: yummyAnime.posterUrl(info, 'medium'),
+        episodeCount: meta?.episodes,
+        genres: meta?.genres.join(','),
       });
       imported++;
     }

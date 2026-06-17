@@ -29,7 +29,7 @@ export default function ContinueWatching() {
         {items.map((it) => {
           const pct = it.duration ? Math.min(100, Math.round((it.seconds / it.duration) * 100)) : 0
           return (
-            <Link key={it.id} to={`/anime/${it.animeUrl || it.animeId}/watch`} className="card">
+            <Link key={it.id} to={`/anime/${it.animeUrl || it.animeId}/watch?ep=${encodeURIComponent(it.episodeNumber)}`} className="card">
               <div className="card-poster">
                 {it.animePoster ? (
                   <img src={upgradePoster(it.animePoster, 'big')} alt={it.animeTitle} loading="lazy" />

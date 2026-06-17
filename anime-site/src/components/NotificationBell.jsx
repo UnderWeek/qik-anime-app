@@ -127,7 +127,7 @@ export default function NotificationBell() {
                 // room_invite links to the room
                 const to =
                   n.type === 'chat_message' && n.chatId
-                    ? `/chats`
+                    ? `/chats?chat=${n.chatId}`
                     : n.type === 'room_invite' && n.roomId
                     ? `/rooms/${n.roomId}`
                     : n.type === 'anime_suggestion' && (n.animeUrl || n.animeId)

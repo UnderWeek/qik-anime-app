@@ -45,6 +45,12 @@ export class Bookmark {
   @Column({ default: 'planned', type: 'text' })
   status: BookmarkStatus;
 
+  @Column({ nullable: true, type: 'integer' })
+  episodeCount: number;
+
+  @Column({ nullable: true, type: 'text' })
+  genres: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

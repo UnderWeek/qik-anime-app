@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { io } from 'socket.io-client'
 import { BACKEND_ORIGIN, backend, getToken, uploadUrl } from '../api/backend.js'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -18,8 +18,11 @@ function timeAgo(iso) {
 
 export default function Chats() {
   const { user, ready, openAuth, showToast } = useAuth()
+  const [searchParams] = useSearchParams()
+  const openChatId = searchParams.get('chat')
   const [chats, setChats] = useState([])
   const [loading, setLoading] = useState(true)
+  const autoOpenedRef = useRef(false)
   const [activeChat, setActiveChat] = useState(null)
   const [messages, setMessages] = useState([])
   const [msgsLoading, setMsgsLoading] = useState(false)
@@ -41,6 +44,25 @@ export default function Chats() {
   }, [])
 
   useEffect(() => { if (user) { setLoading(true); loadChats() } else setLoading(false) }, [user, loadChats])
+
+  // Auto-open chat from notification link
+  useEffect(() => {
+    if (!openChatId || !chats.length || autoOpenedRef.current) return
+    const target = chats.find((c) => String(c.id) === openChatId)
+    if (target) {
+      autoOpenedRef.current = true
+      setActiveChat(target)
+      setMessages([])
+      setMsgsLoading(true)
+      backend.chatMessages(target.id).then((msgs) => {
+        setMessages(Array.isArray(msgs) ? msgs : [])
+        setMsgsLoading(false)
+      }).catch(() => {
+        setMessages([])
+        setMsgsLoading(false)
+      })
+    }
+  }, [chats, openChatId])
 
   // Scroll to bottom when messages change
   useEffect(() => { msgEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])

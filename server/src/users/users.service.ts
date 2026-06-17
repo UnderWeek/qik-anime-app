@@ -6,6 +6,7 @@ import { Bookmark } from '../bookmarks/bookmark.entity';
 import { Rating } from '../ratings/rating.entity';
 import { Comment } from '../comments/comment.entity';
 import { Friendship } from '../friends/friendship.entity';
+import { WatchProgress } from '../progress/watch-progress.entity';
 import {
   ActivityStats,
   buildAchievements,
@@ -28,6 +29,8 @@ export class UsersService {
     private readonly comments: Repository<Comment>,
     @InjectRepository(Friendship)
     private readonly friendships: Repository<Friendship>,
+    @InjectRepository(WatchProgress)
+    private readonly progress: Repository<WatchProgress>,
   ) {}
 
   findById(id: number) {
@@ -101,6 +104,7 @@ export class UsersService {
       bannerUrl: user.bannerUrl || null,
       avatarFrame: user.avatarFrame || null,
       bio: user.bio || '',
+      isAdmin: !!user.isAdmin,
       createdAt: user.createdAt,
     };
   }
@@ -127,8 +131,15 @@ export class UsersService {
   // Gather activity counters for gamification
   async activityStats(userId: number): Promise<ActivityStats> {
     const user = await this.findById(userId);
-    const [bookmarks, ratings, comments, friends] = await Promise.all([
-      this.bookmarks.count({ where: { user: { id: userId } } }),
+    if (!user) {
+      return {
+        watchedEpisodes: 0, watchedSeconds: 0,
+        ratings: 0, comments: 0, bookmarks: 0, friends: 0,
+      };
+    }
+
+    const [allBookmarks, ratings, comments, friends, watchedAnimeIds] = await Promise.all([
+      this.bookmarks.find({ where: { user: { id: userId } } }),
       this.ratings.count({ where: { user: { id: userId } } }),
       this.comments.count({ where: { user: { id: userId } } }),
       this.friendships
@@ -138,15 +149,46 @@ export class UsersService {
           id: userId,
         })
         .getCount(),
+      this.progress
+        .createQueryBuilder('p')
+        .select('DISTINCT p.animeId')
+        .where('p.userId = :uid', { uid: userId })
+        .getRawMany(),
     ]);
+
+    const watchedAnimeSet = new Set(watchedAnimeIds.map((r: any) => r.animeId));
+
+    const AVG_EP_SECONDS = 1440; // 24 min per episode
+    let extraEpisodes = 0;
+    let extraSeconds = 0;
+    const bookmarkCounts: Record<string, number> = {};
+    let totalBookmarks = 0;
+
+    for (const bm of allBookmarks) {
+      totalBookmarks++;
+      bookmarkCounts[bm.status] = (bookmarkCounts[bm.status] || 0) + 1;
+
+      // Count episodes from completed/watching bookmarks (dedup against actual watch progress)
+      if ((bm.status === 'completed' || bm.status === 'watching' || bm.status === 'rewatching') && bm.episodeCount) {
+        if (!watchedAnimeSet.has(bm.animeId)) {
+          const episodes = bm.status === 'watching'
+            ? Math.max(1, Math.floor(bm.episodeCount * 0.5))
+            : bm.episodeCount;
+          extraEpisodes += episodes;
+          extraSeconds += episodes * AVG_EP_SECONDS;
+        }
+      }
+    }
+
     return {
-      watchedEpisodes: user?.watchedEpisodes || 0,
-      watchedSeconds: user?.watchedSeconds || 0,
+      watchedEpisodes: user.watchedEpisodes + extraEpisodes,
+      watchedSeconds: user.watchedSeconds + extraSeconds,
       ratings,
       comments,
-      bookmarks,
+      bookmarks: totalBookmarks,
       friends,
-      reZeroS4: !!user?.reZeroS4,
+      reZeroS4: !!user.reZeroS4,
+      bookmarkCounts,
     };
   }
 
@@ -170,6 +212,7 @@ export class UsersService {
         comments: stats.comments,
         bookmarks: stats.bookmarks,
         friends: stats.friends,
+        bookmarkCounts: stats.bookmarkCounts || {},
       },
       xp,
       level,

@@ -1,7 +1,6 @@
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
 import Header from './components/Header.jsx'
-import Footer from './components/Footer.jsx'
 import AuthModal from './components/AuthModal.jsx'
 import Toast from './components/Toast.jsx'
 import Home from './pages/Home.jsx'
@@ -17,6 +16,7 @@ import Friends from './pages/Friends.jsx'
 import Chats from './pages/Chats.jsx'
 import Rooms from './pages/Rooms.jsx'
 import RoomWatch from './pages/RoomWatch.jsx'
+import Admin from './pages/Admin.jsx'
 import NotFound from './pages/NotFound.jsx'
 
 function ScrollToTop() {
@@ -47,10 +47,11 @@ export default function App() {
           <Route path="/u/:id" element={<Profile />} />
           <Route path="/anime/:url" element={<AnimeDetail />} />
           <Route path="/anime/:url/watch" element={<Watch />} />
+          <Route path="/admin" element={<Admin />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-      <Footer />
+
       <AuthModal />
       <Toast />
     </>

@@ -5,7 +5,7 @@ import { StarIcon } from './icons.jsx'
 export default function AnimeCard({ anime }) {
   if (!anime) return null
   const url = anime.anime_url || anime.url
-  const img = poster(anime, 'medium')
+  const img = poster(anime, 'mega')
   const rate = anime.rating?.average
   const type = anime.type?.shortname || anime.type?.name
   const year = anime.year
