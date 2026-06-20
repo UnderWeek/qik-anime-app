@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useApi } from '../hooks/useApi.js'
 import { api } from '../api/client.js'
 import Hero from '../components/Hero.jsx'
@@ -27,6 +28,14 @@ function GridSkeleton({ count = 12 }) {
 }
 
 function ResetBanner() {
+  const [hidden, setHidden] = useState(() => localStorage.getItem('qik_reset_banner_hidden') === '1')
+  if (hidden) return null
+
+  function dismiss() {
+    localStorage.setItem('qik_reset_banner_hidden', '1')
+    setHidden(true)
+  }
+
   return (
     <div style={{
       background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
@@ -35,18 +44,22 @@ function ResetBanner() {
       padding: '18px 22px',
       marginBottom: 20,
       display: 'flex',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       gap: 14,
       fontSize: 14.5,
       lineHeight: 1.55,
       color: 'var(--text-secondary)',
     }}>
       <span style={{ fontSize: 28, flexShrink: 0 }}>😔</span>
-      <div>
+      <div style={{ flex: 1 }}>
         <strong style={{ color: 'var(--text-primary)' }}>База данных была сброшена</strong><br />
-        Из-за ошибки при деплое 20 июня все аккаунты и закладки были утеряны. Мы очень извиняемся.<br />
-        Придётся создать новый аккаунт. Мы уже исправили CI/CD, чтобы такое не повторилось.
+        При деплое 20 июня я допустил ошибку — CI/CD затёр базу. Бэкапов не было, и все аккаунты с закладками потеряны. Мне очень жаль.<br />
+        Придётся создать новый аккаунт. Я настроил ежедневные бэкапы, и такого больше не случится.
       </div>
+      <button onClick={dismiss} style={{
+        background: 'none', border: 'none', color: 'var(--text-faint)',
+        cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '0 2px', flexShrink: 0,
+      }}>✕</button>
     </div>
   )
 }

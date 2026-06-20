@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import Header from './components/Header.jsx'
 import AuthModal from './components/AuthModal.jsx'
 import Toast from './components/Toast.jsx'
+import Footer from './components/Footer.jsx'
 import Home from './pages/Home.jsx'
 import Catalog from './pages/Catalog.jsx'
 import AnimeDetail from './pages/AnimeDetail.jsx'
@@ -54,6 +55,7 @@ export default function App() {
 
       <AuthModal />
       <Toast />
+      <Footer />
     </>
   )
 }
