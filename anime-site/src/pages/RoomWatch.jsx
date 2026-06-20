@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import Avatar from '../components/Avatar.jsx'
 import Lightbox from '../components/Lightbox.jsx'
 import { ArrowLeft, CloseIcon, ImageIcon, UsersIcon, UserPlusIcon, StarIcon, PlayIcon } from '../components/icons.jsx'
-import { sendKodikCommand, subscribeKodikEvents } from '../utils/kodikPlayer.js'
+import { playPause, subscribeKodikEvents } from '../utils/kodikPlayer.js'
 
 function timeAgo(iso) {
   const d = new Date(iso)
@@ -36,6 +36,7 @@ export default function RoomWatch() {
   const [messages, setMessages] = useState([])
   const [isHost, setIsHost] = useState(false)
   const [localPaused, setLocalPaused] = useState(true)
+  const [currentPos, setCurrentPos] = useState(0)
 
   const [searchText, setSearchText] = useState('')
   const [searching, setSearching] = useState(false)
@@ -200,20 +201,21 @@ export default function RoomWatch() {
     }
   }, [applySnapshot, navigate, roomId, showToast, user])
 
-  // ---- Kodik events (local play/pause tracking) ----
+  // ---- Kodik events (time tracking + play/pause state) ----
   useEffect(() => {
     setLocalPaused(true)
+    setCurrentPos(0)
     const unsub = subscribeKodikEvents(iframeRef, (event) => {
-      if (event.type === 'play') setLocalPaused(false)
-      else if (event.type === 'pause') setLocalPaused(true)
+      if (event.type === 'time') setCurrentPos(event.time)
     })
     return () => unsub()
   }, [iframeSrc])
 
   function togglePlayPause() {
-    if (!iframeRef.current) return
-    setLocalPaused((prev) => !prev)
-    sendKodikCommand(iframeRef, 'playPause')
+    const iframeEl = iframeRef.current
+    if (!iframeEl || !iframeSrc) return
+    const playing = playPause(iframeRef, iframeSrc, currentPos)
+    setLocalPaused(!playing)
   }
 
   // ---- Cleanup ----
