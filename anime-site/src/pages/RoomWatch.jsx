@@ -212,10 +212,8 @@ export default function RoomWatch() {
   }, [iframeSrc])
 
   function togglePlayPause() {
-    const iframeEl = iframeRef.current
-    if (!iframeEl || !iframeSrc) return
-    const playing = playPause(iframeRef, iframeSrc, currentPos)
-    setLocalPaused(!playing)
+    const ok = playPause(iframeRef)
+    if (ok) setLocalPaused((prev) => !prev)
   }
 
   // ---- Cleanup ----
