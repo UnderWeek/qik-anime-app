@@ -1,5 +1,6 @@
-// Kodik iframe postMessage API helpers
-// Sends { method } and listens for { event, time? }
+// Kodik iframe postMessage API
+// Docs: postMessage from player → { key: 'kodik_player_time_update', value: seconds }
+//       postMessage to player → { method: 'playPause' } (undocumented, may not work)
 
 export function sendKodikCommand(iframeRef, method) {
   const cw = iframeRef.current?.contentWindow
@@ -15,12 +16,9 @@ export function subscribeKodikEvents(iframeRef, callback) {
     }
     if (!msg || typeof msg !== 'object') return
 
-    if (msg.event === 'time' || msg.event === 'timeupdate') {
-      callback({ type: 'time', time: Number(msg.time) || 0 })
-    } else if (msg.event === 'play' || msg.event === 'started' || msg.event === 'resume') {
-      callback({ type: 'play' })
-    } else if (msg.event === 'pause' || msg.event === 'paused') {
-      callback({ type: 'pause' })
+    // Documented: { key: 'kodik_player_time_update', value: seconds }
+    if (msg.key === 'kodik_player_time_update' && typeof msg.value === 'number') {
+      callback({ type: 'time', time: msg.value })
     }
   }
 
