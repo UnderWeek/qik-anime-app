@@ -1,0 +1,73 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            anime-site/package-lock.json
+            server/package-lock.json
+
+      - name: Build frontend
+        working-directory: anime-site
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build backend
+        working-directory: server
+        run: |
+          npm ci
+          npm run build
+
+      - name: Prepare artifact
+        run: |
+          mkdir -p artifact/anime-site
+          mkdir -p artifact/server
+          cp -r anime-site/dist artifact/anime-site/
+          cp -r server/dist artifact/server/
+          cp server/package.json server/package-lock.json artifact/server/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deploy
+          path: artifact/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: deploy
+          path: artifact/
+
+      - name: Deploy via rsync
+        uses: easingthemes/ssh-deploy@v5
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_KEY }}
+          ARGS: -rlgoDzvc --delete
+          SOURCE: artifact/
+          REMOTE_HOST: ${{ secrets.SSH_HOST }}
+          REMOTE_USER: ${{ secrets.SSH_USER }}
+          REMOTE_PORT: ${{ secrets.SSH_PORT }}
+          TARGET: /root/qik-anime/
+          SCRIPT_AFTER: |
+            cp -r /root/qik-anime/anime-site/dist/* /var/www/quickik.ru/
+            cd /root/qik-anime/server
+            npm ci --omit=dev
+            pm2 reload anime-api
+            echo "ok"
