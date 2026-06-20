@@ -17,7 +17,6 @@ const TAB_DEFS = {
   rooms: { to: '/rooms', label: 'Комнаты', icon: RoomIcon },
   library: { to: '/library', label: 'Закладки', icon: BookmarkIcon },
   friends: { to: '/friends', label: 'Друзья', icon: UsersIcon, auth: true },
-  chats: { to: '/chats', label: 'Чаты', icon: MessageIcon, auth: true },
 };
 
 const DEFAULT_MOBILE_ORDER = ['catalog', 'rooms', 'library', 'friends'];
@@ -87,7 +86,6 @@ export default function Header() {
               <>
                 <NavLink to='/library' className={({ isActive }) => (isActive ? 'active' : '')}>Закладки</NavLink>
                 <NavLink to='/friends' className={({ isActive }) => (isActive ? 'active' : '')}>Друзья</NavLink>
-                <NavLink to='/chats' className={({ isActive }) => (isActive ? 'active' : '')}>Чаты</NavLink>
               </>
             )}
           </nav>
@@ -114,7 +112,6 @@ export default function Header() {
                     <Link to='/library'><BookmarkIcon width={16} height={16} />Закладки</Link>
                     <Link to='/schedule'><CalendarIcon width={16} height={16} />Расписание</Link>
                     <Link to='/friends'><UsersIcon width={16} height={16} />Друзья</Link>
-                    <Link to='/chats'><MessageIcon width={16} height={16} />Чаты</Link>
                     <Link to='/rooms'><RoomIcon width={16} height={16} />Комнаты</Link>
                     {user.isAdmin && (
                       <Link to='/admin'><span style={{ display: 'inline-flex', width: 16, height: 16, alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>⚙</span>Админка</Link>

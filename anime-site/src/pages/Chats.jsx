@@ -183,117 +183,21 @@ export default function Chats() {
   }
 
   return (
-    <div className="container page" style={{ paddingBottom: activeChat ? 0 : undefined }}>
+    <div className="container page">
       <SEO
         title="Чаты"
         description="Личные сообщения на QIK Anime."
         canonical="https://quickik.ru/chats"
       />
 
-      <div className="chat-layout">
-        {/* Chat list */}
-        <div className={`chat-list-panel${activeChat ? ' hidden-mobile' : ''}`}>
-          <h1 style={{ marginBottom: 18 }}>Чаты</h1>
-          {loading ? (
-            <div className="comment-empty">Загрузка...</div>
-          ) : chats.length === 0 ? (
-            <div className="state" style={{ padding: 20 }}>
-              <p style={{ color: 'var(--text-faint)' }}>Нет чатов.</p>
-              <p style={{ color: 'var(--text-faint)', fontSize: 13, marginTop: 8 }}>
-                Чаты создаются автоматически при первом сообщении другу. Откройте профиль друга чтобы начать.
-              </p>
-              <Link to="/friends" className="btn btn-ghost" style={{ marginTop: 14 }}>К друзьям</Link>
-            </div>
-          ) : (
-            chats.map((c) => (
-              <button
-                key={c.id}
-                className={`chat-list-item${activeChat?.id === c.id ? ' active' : ''}`}
-                onClick={() => openChat(c)}
-                type="button"
-              >
-                <Avatar user={c.with} size={44} />
-                <div className="chat-list-info">
-                  <div className="chat-list-name">{c.with?.username || 'Пользователь'}</div>
-                  <div className="chat-list-preview">{c.lastMessage || 'Нет сообщений'}</div>
-                </div>
-                <div className="chat-list-time">{timeAgo(c.lastMessageAt)}</div>
-              </button>
-            ))
-          )}
-        </div>
-
-        {/* Chat window */}
-        {activeChat && (
-          <div className="chat-window">
-            <div className="chat-window-head">
-              <button className="btn btn-ghost btn-sm chat-back-btn" onClick={() => setActiveChat(null)} type="button">
-                <ArrowLeft width={16} height={16} />
-              </button>
-              <Avatar user={activeChat.with} size={34} />
-              <div>
-                <div className="chat-window-name">{activeChat.with?.username || 'Пользователь'}</div>
-              </div>
-              <Link to={`/u/${activeChat.with?.id}`} className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }}>Профиль</Link>
-            </div>
-
-            <div className="chat-messages">
-              {msgsLoading ? (
-                <div className="comment-empty">Загрузка...</div>
-              ) : messages.length === 0 ? (
-                <div className="comment-empty">Нет сообщений. Напишите первое!</div>
-              ) : (
-                messages.map((m) => {
-                  const isMine = m.sender?.id === user?.id
-                  return (
-                    <div key={m.id} className={`chat-msg${isMine ? ' mine' : ''}`}>
-                      {!isMine && <Avatar user={m.sender} size={26} />}
-                      <div className="chat-msg-bubble">
-                        {m.body && <div className="chat-msg-text">{m.body}</div>}
-                        {m.imageUrl && (
-                          <img
-                            className="chat-msg-img"
-                            src={uploadUrl(m.imageUrl)}
-                            alt=""
-                            onClick={() => setLightbox(uploadUrl(m.imageUrl))}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  )
-                })
-              )}
-              <div ref={msgEndRef} />
-            </div>
-
-            <form className="chat-input-bar" onSubmit={sendMessage}>
-              {attach && (
-                <div className="attach-preview">
-                  <img src={attach.preview} alt="preview" />
-                  <button type="button" className="rm" onClick={clearAttach}><CloseIcon width={13} height={13} /></button>
-                </div>
-              )}
-              <div className="chat-input-row">
-                <button type="button" className="attach-btn" onClick={() => fileRef.current?.click()}>
-                  <ImageIcon width={15} height={15} />
-                </button>
-                <input ref={fileRef} type="file" hidden accept="image/png,image/jpeg,image/gif,image/webp" onChange={pickFile} />
-                <input
-                  className="chat-input"
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  placeholder="Сообщение..."
-                  maxLength={5000}
-                />
-                <button className="btn btn-primary btn-sm" type="submit" disabled={sending || (!text.trim() && !attach)}>
-                  {uploading ? '...' : sending ? '...' : 'Отпр'}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
+      <div className="state" style={{ padding: 40 }}>
+        <span style={{ fontSize: 40 }}>🚧</span>
+        <h2 style={{ marginTop: 16 }}>Чаты временно недоступны</h2>
+        <p style={{ color: 'var(--text-faint)', marginTop: 8, maxWidth: 420, textAlign: 'center' }}>
+          Мы работаем над улучшением чатов. Скоро они вернутся.
+        </p>
       </div>
-      {lightbox && <Lightbox src={lightbox} onClose={() => setLightbox(null)} />}
+
     </div>
   )
 }
