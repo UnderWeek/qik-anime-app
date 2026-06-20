@@ -50,8 +50,8 @@ export default function Admin() {
       } else {
         setClaimError(res.error || 'Неверный код')
       }
-    } catch {
-      setClaimError('Ошибка соединения')
+    } catch (err) {
+      setClaimError(err.message || 'Ошибка соединения')
     }
     setClaiming(false)
   }

@@ -1,7 +1,8 @@
-import { Controller, Delete, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { AdminGuard } from '../auth/admin.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../common/current-user.decorator';
 
 @Controller('admin')
 @UseGuards(AdminGuard)
@@ -10,8 +11,8 @@ export class AdminController {
 
   @Post('claim')
   @UseGuards(JwtAuthGuard)
-  claim(@Req() req, @Query('secret') secret: string) {
-    return this.service.claimAdmin(req.user.id, secret);
+  claim(@CurrentUser('id') userId: number, @Body() body: { secret?: string }) {
+    return this.service.claimAdmin(userId, body.secret || '');
   }
 
   @Get('stats')
