@@ -55,28 +55,24 @@ jobs:
           name: deploy
           path: artifact/
 
-      - name: Copy files to server
-        uses: appleboy/scp-action@v0
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          source: artifact/*
-          target: /root/qik-anime/
-          strip_components: 1
-          rm: true
+      - name: Deploy
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          set -e
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
 
-      - name: Reload app
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          script: |
+          RSYNC_RSH="ssh -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i ~/.ssh/deploy_key -p $SSH_PORT"
+
+          rsync -rlgoDzvc --delete -e "$RSYNC_RSH" artifact/ "$SSH_USER@$SSH_HOST:/root/qik-anime/"
+
+          ssh -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "
             cp -r /root/qik-anime/anime-site/dist/* /var/www/quickik.ru/
-            cd /root/qik-anime/server
-            npm ci --omit=dev
-            pm2 reload anime-api
-            echo "ok"
+            cd /root/qik-anime/server && npm ci --omit=dev && pm2 reload anime-api
+            echo ok
+          "
