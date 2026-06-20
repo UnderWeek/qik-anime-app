@@ -114,10 +114,6 @@ export class WatchRoomsGateway
     this.server.to(roomChannel(roomId)).emit('room:snapshot', snapshot);
   }
 
-  emitState(roomId: number, payload: any) {
-    this.server.to(roomChannel(roomId)).emit('room:state', payload);
-  }
-
   emitMembers(roomId: number, payload: any) {
     this.server.to(roomChannel(roomId)).emit('room:members', payload);
   }

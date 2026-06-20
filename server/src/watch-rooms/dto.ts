@@ -112,17 +112,6 @@ export class SendWatchRoomMessageDto {
   imageUrl?: string;
 }
 
-export class UpdateWatchRoomStateDto {
-  @IsOptional()
-  @Type(() => Number)
-  @Min(0)
-  currentTime?: number;
-
-  @IsOptional()
-  @IsBoolean()
-  isPaused?: boolean;
-}
-
 export class InviteToRoomDto {
   @Type(() => Number)
   @IsInt()

@@ -24,12 +24,6 @@ export class WatchRoom {
   @Column({ nullable: true, type: 'integer' })
   hostId: number | null;
 
-  @Column({ type: 'float', default: 0 })
-  currentTime: number;
-
-  @Column({ type: 'boolean', default: true })
-  isPaused: boolean;
-
   @Column({ nullable: true, type: 'integer' })
   animeId: number | null;
 

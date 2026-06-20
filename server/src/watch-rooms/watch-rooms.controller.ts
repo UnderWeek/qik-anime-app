@@ -5,7 +5,6 @@ import {
   Get,
   Param,
   ParseIntPipe,
-  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -17,7 +16,6 @@ import {
   JoinWatchRoomDto,
   SendWatchRoomMessageDto,
   SetWatchRoomVideoDto,
-  UpdateWatchRoomStateDto,
 } from './dto';
 import { WatchRoomsGateway } from './watch-rooms.gateway';
 import { WatchRoomsService } from './watch-rooms.service';
@@ -55,17 +53,6 @@ export class WatchRoomsController {
     @Param('id', ParseIntPipe) roomId: number,
   ) {
     return this.service.get(roomId, user.id);
-  }
-
-  @Patch(':id/state')
-  async updateState(
-    @CurrentUser() user: AuthUser,
-    @Param('id', ParseIntPipe) roomId: number,
-    @Body() dto: UpdateWatchRoomStateDto,
-  ) {
-    const state = await this.service.updateState(roomId, user.id, dto);
-    this.gateway.emitState(roomId, state);
-    return state;
   }
 
   @Post(':id/video')

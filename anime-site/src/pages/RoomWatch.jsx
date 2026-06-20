@@ -1,16 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { io } from 'socket.io-client'
 import { api, poster } from '../api/client.js'
 import { BACKEND_ORIGIN, backend, getToken, uploadUrl } from '../api/backend.js'
 import { useAuth } from '../context/AuthContext.jsx'
-import { sendKodikCommand, subscribeKodikEvents } from '../utils/kodikPlayer.js'
 import Avatar from '../components/Avatar.jsx'
 import Lightbox from '../components/Lightbox.jsx'
-import { ArrowLeft, CloseIcon, ImageIcon, UsersIcon, UserPlusIcon, PlayIcon, StarIcon } from '../components/icons.jsx'
-
-const CLOCK_TICK_MS = 250
-const DRIFT_THRESHOLD = 1
+import { ArrowLeft, CloseIcon, ImageIcon, UsersIcon, UserPlusIcon, StarIcon } from '../components/icons.jsx'
 
 function timeAgo(iso) {
   const d = new Date(iso)
@@ -19,13 +15,6 @@ function timeAgo(iso) {
   if (diff < 3600) return `${Math.floor(diff / 60)} мин назад`
   if (diff < 86400) return `${Math.floor(diff / 3600)} ч назад`
   return d.toLocaleDateString('ru-RU')
-}
-
-function formatClock(seconds) {
-  const s = Math.max(0, Math.floor(seconds))
-  const m = Math.floor(s / 60)
-  const sec = s % 60
-  return `${m}:${String(sec).padStart(2, '0')}`
 }
 
 function animePosterUrl(anime) {
@@ -44,9 +33,6 @@ export default function RoomWatch() {
   const [iframeSrc, setIframeSrc] = useState('')
   const [members, setMembers] = useState([])
   const [messages, setMessages] = useState([])
-
-  const [clockSeconds, setClockSeconds] = useState(0)
-  const [localPaused, setLocalPaused] = useState(true)
   const [isHost, setIsHost] = useState(false)
 
   const [searchText, setSearchText] = useState('')
@@ -69,50 +55,10 @@ export default function RoomWatch() {
   const [inviting, setInviting] = useState(null)
   const inviteRef = useRef(null)
   const fileRef = useRef(null)
-
   const iframeRef = useRef(null)
   const socketRef = useRef(null)
 
-  // Playback refs
-  const localTimeRef = useRef(0)
-  const localPausedRef = useRef(true)
-  const localTickAtRef = useRef(Date.now())
-  const suppressUntilRef = useRef(0)
-  const heartbeatRef = useRef(null)
-  const clockTimerRef = useRef(null)
-  const kodikUnsubRef = useRef(null)
-  const sendingRef = useRef(false)
-  const lastSendRef = useRef(0)
-  const isHostRef = useRef(false)
-  const lastLoadedUrlRef = useRef('')
-  const stateRef = useRef(null)
-
-  // Keep refs in sync
-  useEffect(() => { isHostRef.current = isHost }, [isHost])
-  useEffect(() => { localPausedRef.current = localPaused }, [localPaused])
-  useEffect(() => { stateRef.current = state }, [state])
-
-  // Advance local clock (simulated between Kodik time events)
-  const advanceLocalClock = useCallback(() => {
-    const now = Date.now()
-    if (!localPausedRef.current) {
-      const delta = Math.max(0, (now - localTickAtRef.current) / 1000)
-      localTimeRef.current += delta
-    }
-    localTickAtRef.current = now
-  }, [])
-
-  // Local clock tick — updates display every CLOCK_TICK_MS
-  useEffect(() => {
-    if (!state?.iframeUrl) return undefined
-    clockTimerRef.current = setInterval(() => {
-      advanceLocalClock()
-      setClockSeconds(Math.floor(localTimeRef.current))
-    }, CLOCK_TICK_MS)
-    return () => clearInterval(clockTimerRef.current)
-  }, [advanceLocalClock, state?.iframeUrl])
-
-  // Filter to Kodik-only episodes
+  // ---- episode filtering ----
   const kodikEpisodes = useMemo(() => {
     return (Array.isArray(animeVideos) ? animeVideos : [])
       .filter((v) => /kodik/i.test(v.iframe_url || ''))
@@ -142,96 +88,10 @@ export default function RoomWatch() {
   )
 
   function loadIframeUrl(url) {
-    if (!url) {
-      setIframeSrc('')
-      lastLoadedUrlRef.current = ''
-      return
-    }
-    lastLoadedUrlRef.current = url
+    if (!url) { setIframeSrc(''); return }
     setIframeSrc(url)
     if (iframeRef.current) iframeRef.current.src = url
   }
-
-  // ---- sendState (host only) ----
-  const sendState = useCallback(async (payload, opts = {}) => {
-    if (!isHostRef.current) return
-    if (sendingRef.current) return
-    if (!opts.force) {
-      const now = Date.now()
-      if (now - lastSendRef.current < 250) return
-    }
-    sendingRef.current = true
-    lastSendRef.current = Date.now()
-    try {
-      await backend.updateWatchRoomState(roomId, payload)
-    } catch (err) {
-      if (err.status === 404 || err.status === 403) {
-        showToast('Комната была закрыта')
-        navigate('/rooms')
-      }
-    } finally {
-      sendingRef.current = false
-    }
-  }, [navigate, roomId, showToast])
-
-  const iframeLoadTimerRef = useRef(null)
-
-  // ---- onIframeLoad — apply room state after iframe is ready ----
-  function onIframeLoad() {
-    const snapState = stateRef.current
-    if (!snapState?.iframeUrl) return
-    // Clear any previous pending timer (Kodik may trigger onLoad repeatedly)
-    if (iframeLoadTimerRef.current) {
-      clearTimeout(iframeLoadTimerRef.current)
-      iframeLoadTimerRef.current = null
-    }
-    iframeLoadTimerRef.current = setTimeout(() => {
-      iframeLoadTimerRef.current = null
-      if (!iframeRef.current) return
-      const targetTime = snapState.currentTime || 0
-      const targetPaused = !!snapState.isPaused
-      suppressUntilRef.current = Date.now() + 2000
-      if (targetTime > 0) {
-        sendKodikCommand(iframeRef, 'seek', Math.floor(targetTime))
-      }
-      if (!targetPaused) {
-        sendKodikCommand(iframeRef, 'play')
-      }
-      localTimeRef.current = targetTime
-      localPausedRef.current = targetPaused
-      localTickAtRef.current = Date.now()
-      setLocalPaused(targetPaused)
-      setClockSeconds(Math.floor(targetTime))
-    }, 1500)
-  }
-
-  // ---- applyRemoteState (viewer only) ----
-  const applyRemoteState = useCallback((remoteState) => {
-    if (isHostRef.current) return
-    if (!iframeRef.current || !remoteState) return
-
-    const targetTime = remoteState.currentTime || 0
-    const targetPaused = !!remoteState.isPaused
-    const drift = Math.abs(localTimeRef.current - targetTime)
-    const pauseChanged = targetPaused !== localPausedRef.current
-
-    if (drift > DRIFT_THRESHOLD) {
-      suppressUntilRef.current = Date.now() + 1500
-      sendKodikCommand(iframeRef, 'seek', Math.floor(targetTime))
-    }
-
-    if (pauseChanged) {
-      suppressUntilRef.current = Date.now() + 1500
-      sendKodikCommand(iframeRef, targetPaused ? 'pause' : 'play')
-      localPausedRef.current = targetPaused
-      localTickAtRef.current = Date.now()
-      setLocalPaused(targetPaused)
-    }
-
-    localTimeRef.current = targetTime
-    localTickAtRef.current = Date.now()
-    setClockSeconds(Math.floor(targetTime))
-  }, [])
 
   // ---- applySnapshot ----
   const applySnapshot = useCallback((snap) => {
@@ -239,27 +99,14 @@ export default function RoomWatch() {
     if (snap.room) {
       setRoom(snap.room)
       if (user && snap.room.hostId !== undefined) {
-        const host = snap.room.hostId === user.id
-        setIsHost(host)
+        setIsHost(snap.room.hostId === user.id)
       }
     }
     if (snap.state) {
       setState(snap.state)
-      const targetTime = snap.state.currentTime || 0
-      const targetPaused = !!snap.state.isPaused
-      if (snap.state.iframeUrl && snap.state.iframeUrl !== lastLoadedUrlRef.current) {
+      if (snap.state.iframeUrl && snap.state.iframeUrl !== iframeSrc) {
         loadIframeUrl(snap.state.iframeUrl)
-      } else if (snap.state.iframeUrl && iframeRef.current?.contentWindow) {
-        // Same URL (e.g. host restarted video) — seek existing player
-        suppressUntilRef.current = Date.now() + 1500
-        sendKodikCommand(iframeRef, 'seek', Math.floor(targetTime))
-        sendKodikCommand(iframeRef, targetPaused ? 'pause' : 'play')
       }
-      localTimeRef.current = targetTime
-      localPausedRef.current = targetPaused
-      localTickAtRef.current = Date.now()
-      setLocalPaused(targetPaused)
-      setClockSeconds(Math.floor(targetTime))
     }
     if (Array.isArray(snap.members)) setMembers(snap.members)
     if (Array.isArray(snap.messages)) {
@@ -270,9 +117,9 @@ export default function RoomWatch() {
         return [...map.values()].sort((a, b) => a.id - b.id)
       })
     }
-  }, [user])
+  }, [user, iframeSrc])
 
-  // ---- loadRoom (initial data) ----
+  // ---- loadRoom ----
   const loadRoom = useCallback(async () => {
     if (!user) { setLoading(false); return }
     if (!Number.isFinite(roomId)) { navigate('/rooms'); return }
@@ -324,10 +171,6 @@ export default function RoomWatch() {
 
     socket.on('room:snapshot', (snap) => { applySnapshot(snap) })
 
-    socket.on('room:state', (payload) => {
-      if (!isHostRef.current && payload) applyRemoteState(payload)
-    })
-
     socket.on('room:members', (payload) => {
       if (Array.isArray(payload?.members)) setMembers(payload.members)
     })
@@ -353,67 +196,13 @@ export default function RoomWatch() {
       socket.disconnect()
       socketRef.current = null
     }
-  }, [applySnapshot, applyRemoteState, navigate, roomId, showToast, user])
-
-  // ---- Kodik event subscription ----
-  useEffect(() => {
-    if (!state?.iframeUrl || !iframeRef.current) return undefined
-
-    const unsub = subscribeKodikEvents(iframeRef, (event) => {
-      if (Date.now() < suppressUntilRef.current) return
-
-      if (event.type === 'time') {
-        advanceLocalClock()
-        // Use Kodik's reported time as authoritative correction
-        localTimeRef.current = event.time
-        localTickAtRef.current = Date.now()
-        setClockSeconds(Math.floor(event.time))
-      } else if (event.type === 'play') {
-        localPausedRef.current = false
-        localTickAtRef.current = Date.now()
-        setLocalPaused(false)
-        if (isHostRef.current) {
-          sendState({ currentTime: Math.floor(localTimeRef.current), isPaused: false }, { force: true })
-        }
-      } else if (event.type === 'pause') {
-        localPausedRef.current = true
-        setLocalPaused(true)
-        if (isHostRef.current) {
-          sendState({ currentTime: Math.floor(localTimeRef.current), isPaused: true }, { force: true })
-        }
-      }
-    })
-
-    kodikUnsubRef.current = unsub
-    return () => { unsub(); kodikUnsubRef.current = null }
-  }, [advanceLocalClock, sendState, state?.iframeUrl])
-
-  // ---- Host heartbeat (1s while playing) ----
-  useEffect(() => {
-    if (!isHost || !state?.iframeUrl) return undefined
-    heartbeatRef.current = setInterval(() => {
-      if (localPausedRef.current) return
-      advanceLocalClock()
-      sendState({ currentTime: Math.floor(localTimeRef.current), isPaused: false })
-    }, 1000)
-    return () => clearInterval(heartbeatRef.current)
-  }, [advanceLocalClock, isHost, sendState, state?.iframeUrl])
-
-  // ---- Init iframe when state.iframeUrl appears ----
-  useEffect(() => {
-    if (state?.iframeUrl && !iframeSrc) {
-      loadIframeUrl(state.iframeUrl)
-    }
-  }, [iframeSrc, state])
+  }, [applySnapshot, navigate, roomId, showToast, user])
 
   // ---- Cleanup ----
   useEffect(
     () => () => { if (attach?.preview) URL.revokeObjectURL(attach.preview) },
     [attach]
   )
-  useEffect(() => () => {
-    if (iframeLoadTimerRef.current) clearTimeout(iframeLoadTimerRef.current)
-  }, [])
 
   useEffect(() => {
     if (dubbings.length) {
@@ -439,9 +228,7 @@ export default function RoomWatch() {
   useEffect(() => {
     const aid = state?.animeId
     if (!aid) return
-    // Don't overwrite if user manually searched for a different anime
     if (selectedAnime && selectedAnime.anime_id !== aid) return
-    // Already loaded
     if (selectedAnime?.anime_id === aid && animeVideos.length > 0) return
 
     let cancelled = false
@@ -541,29 +328,6 @@ export default function RoomWatch() {
 
   async function pushVideoToRoom() {
     await pushEpisode(activeEpisode)
-  }
-
-  async function pauseToggle() {
-    if (!isHost) {
-      showToast('Управление плеером доступно только ведущему')
-      return
-    }
-    if (!iframeRef.current) return
-
-    advanceLocalClock()
-    const nextPaused = !localPausedRef.current
-    const syncTime = Math.floor(localTimeRef.current)
-
-    // Suppress Kodik event echo for 1.5s
-    suppressUntilRef.current = Date.now() + 1500
-    sendKodikCommand(iframeRef, nextPaused ? 'pause' : 'play')
-
-    localPausedRef.current = nextPaused
-    localTickAtRef.current = Date.now()
-    setLocalPaused(nextPaused)
-
-    // Force immediate send (bypass debounce)
-    await sendState({ currentTime: syncTime, isPaused: nextPaused }, { force: true })
   }
 
   async function copyCode() {
@@ -762,7 +526,6 @@ export default function RoomWatch() {
                 title="Room player — Kodik"
                 allowFullScreen
                 allow="autoplay; fullscreen; encrypted-media"
-                onLoad={onIframeLoad}
               />
             ) : (
               <div className="state" style={{ padding: 20 }}>
@@ -771,28 +534,14 @@ export default function RoomWatch() {
             )}
           </div>
 
-          <div className="room-player-controls">
-            <div className="room-sync-info">
-              {isHost ? (
-                <span className="room-host-badge">Вы ведущий</span>
-              ) : (
-                <span className="room-viewer-badge">
-                  Ведущий: {members.find((m) => m.isHost)?.user?.username || '—'}
-                </span>
-              )}
-              <span className="room-clock">Время: {formatClock(clockSeconds)}</span>
-            </div>
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={pauseToggle}
-              disabled={!state?.iframeUrl}
-            >
-              {localPaused ? (
-                <><PlayIcon width={14} height={14} /> {isHost ? 'Play' : 'Ожидание'}</>
-              ) : (
-                isHost ? 'Pause' : 'Смотрю'
-              )}
-            </button>
+          <div className="room-sync-info" style={{ marginTop: 14, fontSize: 13, color: 'var(--text-faint)', display: 'flex', gap: 16, alignItems: 'center' }}>
+            {isHost ? (
+              <span className="room-host-badge">Вы ведущий</span>
+            ) : (
+              <span className="room-viewer-badge">
+                Ведущий: {members.find((m) => m.isHost)?.user?.username || '—'}
+              </span>
+            )}
           </div>
 
           <div className="room-picker">
