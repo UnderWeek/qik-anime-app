@@ -202,7 +202,7 @@ export default function RoomWatch() {
 
   // ---- Kodik events (local play/pause tracking) ----
   useEffect(() => {
-    if (!iframeRef.current) return undefined
+    setLocalPaused(true)
     const unsub = subscribeKodikEvents(iframeRef, (event) => {
       if (event.type === 'play') setLocalPaused(false)
       else if (event.type === 'pause') setLocalPaused(true)

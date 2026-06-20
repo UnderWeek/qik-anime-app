@@ -48,15 +48,10 @@ export function sendKodikCommand(iframeRef, method, value) {
 }
 
 export function subscribeKodikEvents(iframeRef, callback) {
-  if (!iframeRef?.current?.contentWindow) {
-    return () => {}
-  }
-
   function handler(event) {
     const msg = parsePayload(event.data)
     if (!msg) return
 
-    // New Kodik player: underscore keys + type field
     const type = msg.type || msg.key || ''
     if (!type) return
 
