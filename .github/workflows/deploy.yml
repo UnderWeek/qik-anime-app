@@ -55,17 +55,26 @@ jobs:
           name: deploy
           path: artifact/
 
-      - name: Deploy via rsync
-        uses: easingthemes/ssh-deploy@v5
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_KEY }}
-          ARGS: -rlgoDzvc --delete
-          SOURCE: artifact/
-          REMOTE_HOST: ${{ secrets.SSH_HOST }}
-          REMOTE_USER: ${{ secrets.SSH_USER }}
-          REMOTE_PORT: ${{ secrets.SSH_PORT }}
-          TARGET: /root/qik-anime/
-          SCRIPT_AFTER: |
+      - name: Copy files to server
+        uses: appleboy/scp-action@v0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: artifact/*
+          target: /root/qik-anime/
+          strip_components: 1
+          rm: true
+
+      - name: Reload app
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
             cp -r /root/qik-anime/anime-site/dist/* /var/www/quickik.ru/
             cd /root/qik-anime/server
             npm ci --omit=dev
