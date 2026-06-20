@@ -36,7 +36,6 @@ export default function RoomWatch() {
   const [messages, setMessages] = useState([])
   const [isHost, setIsHost] = useState(false)
   const [localPaused, setLocalPaused] = useState(true)
-  const [currentPos, setCurrentPos] = useState(0)
 
   const [searchText, setSearchText] = useState('')
   const [searching, setSearching] = useState(false)
@@ -201,19 +200,16 @@ export default function RoomWatch() {
     }
   }, [applySnapshot, navigate, roomId, showToast, user])
 
-  // ---- Kodik events (time tracking + play/pause state) ----
+  // ---- Kodik events (reset state on video change) ----
   useEffect(() => {
     setLocalPaused(true)
-    setCurrentPos(0)
-    const unsub = subscribeKodikEvents(iframeRef, (event) => {
-      if (event.type === 'time') setCurrentPos(event.time)
-    })
+    const unsub = subscribeKodikEvents(iframeRef, () => {})
     return () => unsub()
   }, [iframeSrc])
 
   function togglePlayPause() {
-    const ok = playPause(iframeRef)
-    if (ok) setLocalPaused((prev) => !prev)
+    const playing = playPause(iframeRef, iframeSrc)
+    if (playing !== false) setLocalPaused(!playing)
   }
 
   // ---- Cleanup ----
