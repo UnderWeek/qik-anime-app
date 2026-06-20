@@ -212,9 +212,8 @@ export default function RoomWatch() {
 
   function togglePlayPause() {
     if (!iframeRef.current) return
-    const next = !localPaused
-    setLocalPaused(next)
-    sendKodikCommand(iframeRef, next ? 'pause' : 'play')
+    setLocalPaused((prev) => !prev)
+    sendKodikCommand(iframeRef, 'playPause')
   }
 
   // ---- Cleanup ----
