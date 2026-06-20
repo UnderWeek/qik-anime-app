@@ -5,7 +5,6 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../common/current-user.decorator';
 
 @Controller('admin')
-@UseGuards(AdminGuard)
 export class AdminController {
   constructor(private readonly service: AdminService) {}
 
@@ -16,11 +15,13 @@ export class AdminController {
   }
 
   @Get('stats')
+  @UseGuards(AdminGuard)
   stats() {
     return this.service.getStats();
   }
 
   @Get('users')
+  @UseGuards(AdminGuard)
   users(
     @Query('q') q?: string,
     @Query('page') page?: string,
@@ -34,6 +35,7 @@ export class AdminController {
   }
 
   @Delete('users/:id')
+  @UseGuards(AdminGuard)
   deleteUser(@Param('id', ParseIntPipe) id: number) {
     return this.service.deleteUser(id);
   }
