@@ -70,8 +70,11 @@ jobs:
 
           SSH_OPTS="-o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i ~/.ssh/deploy_key -p $SSH_PORT"
 
+          echo "--- backup db ---"
+          ssh $SSH_OPTS "$SSH_USER@$SSH_HOST" 'cp /root/qik-anime/server/data/qik-anime.db /root/qik-anime/server/data/qik-anime.db.bak 2>/dev/null; echo ok'
+
           echo "--- rsync ---"
-          rsync -rlgoDzvc --delete -e "ssh $SSH_OPTS" artifact/ "$SSH_USER@$SSH_HOST:/root/qik-anime/"
+          rsync -rlgoDzvc -e "ssh $SSH_OPTS" --exclude='server/data/' --exclude='server/uploads/' artifact/ "$SSH_USER@$SSH_HOST:/root/qik-anime/"
 
           echo "--- reload ---"
           ssh $SSH_OPTS "$SSH_USER@$SSH_HOST" 'cp -r /root/qik-anime/anime-site/dist/* /var/www/quickik.ru/ && cd /root/qik-anime/server && npm ci --omit=dev && pm2 reload anime-api && echo ok'
