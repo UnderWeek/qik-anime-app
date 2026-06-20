@@ -213,6 +213,8 @@ export const backend = {
   },
   adminDeleteUser: (id) =>
     request(`/admin/users/${id}`, { method: 'DELETE', auth: true }),
+  adminClaim: (secret) =>
+    request(`/admin/claim?secret=${encodeURIComponent(secret)}`, { method: 'POST', auth: true }),
 
   // ---- chats ----
   listChats: () => request('/chats', { auth: true }),

@@ -1,24 +1,18 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { backend } from '../api/backend.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import SEO from '../components/SEO.jsx'
 
 export default function Admin() {
   const { user, ready } = useAuth()
-  const navigate = useNavigate()
   const [tab, setTab] = useState('stats')
   const [stats, setStats] = useState(null)
   const [users, setUsers] = useState(null)
   const [userPage, setUserPage] = useState(1)
   const [userQuery, setUserQuery] = useState('')
-
-  useEffect(() => {
-    if (ready && (!user || !user.isAdmin)) {
-      navigate('/')
-      return
-    }
-  }, [user, ready, navigate])
+  const [claimCode, setClaimCode] = useState('')
+  const [claimError, setClaimError] = useState('')
+  const [claiming, setClaiming] = useState(false)
 
   useEffect(() => {
     if (!user?.isAdmin) return
@@ -44,7 +38,60 @@ export default function Admin() {
     }
   }
 
-  if (!user?.isAdmin) return null
+  async function handleClaim(e) {
+    e.preventDefault()
+    if (!claimCode.trim()) return
+    setClaiming(true)
+    setClaimError('')
+    try {
+      const res = await backend.adminClaim(claimCode.trim())
+      if (res.ok) {
+        window.location.reload()
+      } else {
+        setClaimError(res.error || 'Неверный код')
+      }
+    } catch {
+      setClaimError('Ошибка соединения')
+    }
+    setClaiming(false)
+  }
+
+  if (!user) {
+    return (
+      <div className="container page">
+        <SEO title="Админка" />
+        <div className="state">
+          <h2>Войдите в аккаунт</h2>
+          <p style={{ color: 'var(--text-faint)' }}>Чтобы получить доступ к админке.</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user.isAdmin) {
+    return (
+      <div className="container page">
+        <SEO title="Админка" />
+        <h1 style={{ marginBottom: 24 }}>Админка</h1>
+        <form onSubmit={handleClaim} style={{ maxWidth: 360 }}>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: 14, fontSize: 14, lineHeight: 1.5 }}>
+            Введите код доступа чтобы стать администратором.
+          </p>
+          <input
+            className="select"
+            style={{ width: '100%', marginBottom: 10 }}
+            placeholder="Код..."
+            value={claimCode}
+            onChange={(e) => setClaimCode(e.target.value)}
+          />
+          {claimError && <p style={{ color: '#ff6b6b', fontSize: 13, marginBottom: 10 }}>{claimError}</p>}
+          <button className="btn btn-primary" type="submit" disabled={claiming}>
+            {claiming ? '...' : 'Войти как админ'}
+          </button>
+        </form>
+      </div>
+    )
+  }
 
   return (
     <div className="container page">

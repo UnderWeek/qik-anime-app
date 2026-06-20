@@ -10,6 +10,16 @@ export class AdminService {
     private readonly users: Repository<User>,
   ) {}
 
+  async claimAdmin(userId: number, secret: string) {
+    const expected = process.env.ADMIN_SECRET;
+    if (!expected || secret !== expected) {
+      return { ok: false, error: 'Неверный код' };
+    }
+
+    await this.users.update(userId, { isAdmin: true });
+    return { ok: true };
+  }
+
   async getStats() {
     const totalUsers = await this.users.count();
     // Use raw query for cross-table stats since we don't have repos for all entities

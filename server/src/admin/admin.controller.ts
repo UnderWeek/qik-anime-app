@@ -1,11 +1,18 @@
-import { Controller, Delete, Get, Param, ParseIntPipe, Query, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { AdminGuard } from '../auth/admin.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('admin')
 @UseGuards(AdminGuard)
 export class AdminController {
   constructor(private readonly service: AdminService) {}
+
+  @Post('claim')
+  @UseGuards(JwtAuthGuard)
+  claim(@Req() req, @Query('secret') secret: string) {
+    return this.service.claimAdmin(req.user.id, secret);
+  }
 
   @Get('stats')
   stats() {
