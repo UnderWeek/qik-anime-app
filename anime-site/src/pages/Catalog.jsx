@@ -4,6 +4,7 @@ import { api } from '../api/client.js'
 import { useApi } from '../hooks/useApi.js'
 import AnimeCard, { CardSkeleton } from '../components/AnimeCard.jsx'
 import { CloseIcon, SearchIcon } from '../components/icons.jsx'
+import SEO from '../components/SEO.jsx'
 
 const SORTS = [
   { v: 'rating', label: 'По рейтингу' },
@@ -424,6 +425,12 @@ export default function Catalog() {
 
   return (
     <div className="container page">
+      <SEO
+        title="Каталог аниме"
+        description="Каталог аниме с фильтрами по жанрам, типу, статусу, году и рейтингу. Найдите своё следующее аниме."
+        canonical="https://quickik.ru/catalog"
+      />
+
       <div className="section-head catalog-page-head" style={{ marginBottom: 22 }}>
         <h2 className="section-title">Каталог аниме</h2>
         <button className="btn btn-ghost btn-sm catalog-filter-toggle" onClick={() => setMobileOpen(true)}>

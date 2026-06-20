@@ -5,6 +5,7 @@ import { api, poster } from '../api/client.js'
 import { backend } from '../api/backend.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { ArrowLeft, CheckIcon, TrashIcon } from '../components/icons.jsx'
+import SEO from '../components/SEO.jsx'
 
 export default function Watch() {
   const { url } = useParams()
@@ -174,8 +175,6 @@ export default function Watch() {
         episodeNumber: String(kodikEp.number || ''),
         dubbing: dub || '',
         iframeUrl: kodikEp.iframe_url,
-        currentTime: 0,
-        isPaused: true,
       })
       if (room?.room?.id) navigate(`/rooms/${room.room.id}`)
     } catch (err) {
@@ -189,8 +188,19 @@ export default function Watch() {
   // videos still loading OR not yet arrived → show loading, never "unavailable"
   const stillLoading = loading || (!error && videos == null)
 
+  const watchImage = anime ? (poster(anime, 'big') || poster(anime, 'medium')) : ''
+
   return (
     <div className="container page">
+      <SEO
+        title={anime ? `Смотреть «${anime.title}»` : 'Просмотр'}
+        description={anime ? `Смотреть ${anime.title} онлайн бесплатно.` : 'Просмотр аниме онлайн.'}
+        image={watchImage || 'https://quickik.ru/og-image.png'}
+        url={`https://quickik.ru/anime/${url}/watch`}
+        type="video.movie"
+        canonical={`https://quickik.ru/anime/${url}/watch`}
+      />
+
       <Link
         to={`/anime/${url}`}
         className="section-link"

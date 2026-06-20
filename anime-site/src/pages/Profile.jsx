@@ -8,6 +8,7 @@ import { frameColor } from '../utils/frames.js'
 import Avatar from '../components/Avatar.jsx'
 import Comments from '../components/Comments.jsx'
 import { statusLabel } from '../components/BookmarkButton.jsx'
+import SEO from '../components/SEO.jsx'
 import {
   TrophyIcon,
   ClockIcon,
@@ -162,6 +163,7 @@ export default function Profile() {
   if (loading) {
     return (
       <div className="container page">
+        <SEO title="Загрузка профиля…" />
         <div className="skel" style={{ height: 180, borderRadius: 16, marginBottom: 26 }} />
         <div className="stats-grid">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -175,6 +177,7 @@ export default function Profile() {
   if (error || !data) {
     return (
       <div className="container page">
+        <SEO title="Профиль не найден" description="Запрашиваемый профиль не найден." />
         <div className="state">
           <h2>Профиль не найден</h2>
           <Link to="/" className="btn btn-ghost" style={{ marginTop: 16 }}>На главную</Link>
@@ -190,9 +193,19 @@ export default function Profile() {
     ? { ...profile, avatarColor: color, avatarUrl, avatarFrame: frame }
     : profile
   const shownBanner = editing ? bannerUrl : profile.bannerUrl
+  const profileImage = profile.avatarUrl || undefined
 
   return (
     <div className="container page">
+      <SEO
+        title={profile.username ? `${profile.username} — профиль` : 'Профиль'}
+        description={profile.bio || `Профиль ${profile.username || 'пользователя'} на QIK Anime. Уровень ${level.level}, ${stats.watchedEpisodes} просмотренных серий.`}
+        image={profileImage}
+        url={`https://quickik.ru/u/${uid}`}
+        type="profile"
+        canonical={`https://quickik.ru/u/${uid}`}
+      />
+
       <button className="btn btn-ghost profile-theme-mobile" onClick={toggle}>
         {theme === 'dark' ? <SunIcon width={16} height={16} /> : <MoonIcon width={16} height={16} />}
         {theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { backend } from '../api/backend.js'
 import { useAuth } from '../context/AuthContext.jsx'
+import SEO from '../components/SEO.jsx'
 
 export default function Admin() {
   const { user, ready } = useAuth()
@@ -47,6 +48,8 @@ export default function Admin() {
 
   return (
     <div className="container page">
+      <SEO title="Админка" description="Панель администратора QIK Anime." />
+
       <h1 style={{ marginBottom: 24 }}>Админка</h1>
 
       <div className="subtabs" style={{ marginBottom: 24 }}>

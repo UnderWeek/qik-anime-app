@@ -4,6 +4,7 @@ import { backend } from '../api/backend.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import Avatar from '../components/Avatar.jsx'
 import { SearchIcon, UserPlusIcon, CheckIcon, TrashIcon, CloseIcon, UserIcon } from '../components/icons.jsx'
+import SEO from '../components/SEO.jsx'
 
 export default function Friends() {
   const { user, ready, openAuth, showToast } = useAuth()
@@ -112,6 +113,12 @@ export default function Friends() {
 
   return (
     <div className="container page">
+      <SEO
+        title="Друзья"
+        description="Список друзей на QIK Anime."
+        canonical="https://quickik.ru/friends"
+      />
+
       <div className="section-head" style={{ marginBottom: 22 }}>
         <h2 className="section-title">Друзья</h2>
       </div>

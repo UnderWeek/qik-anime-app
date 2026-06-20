@@ -93,7 +93,6 @@ export class WatchRoomsGateway
 
     await client.join(roomChannel(roomId));
 
-    // Broadcast updated member list to everyone in the room
     const snap = await this.rooms.snapshotForRoom(roomId);
     this.emitSnapshot(roomId, snap);
 

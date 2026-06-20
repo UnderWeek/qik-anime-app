@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import Avatar from '../components/Avatar.jsx'
 import Lightbox from '../components/Lightbox.jsx'
 import { ArrowLeft, ImageIcon, CloseIcon } from '../components/icons.jsx'
+import SEO from '../components/SEO.jsx'
 
 function timeAgo(iso) {
   const d = new Date(iso)
@@ -183,6 +184,12 @@ export default function Chats() {
 
   return (
     <div className="container page" style={{ paddingBottom: activeChat ? 0 : undefined }}>
+      <SEO
+        title="Чаты"
+        description="Личные сообщения на QIK Anime."
+        canonical="https://quickik.ru/chats"
+      />
+
       <div className="chat-layout">
         {/* Chat list */}
         <div className={`chat-list-panel${activeChat ? ' hidden-mobile' : ''}`}>

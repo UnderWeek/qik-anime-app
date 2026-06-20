@@ -2329,20 +2329,6 @@ input {
   margin-top: 14px;
 }
 
-.room-player-controls {
-  margin-top: 14px;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.room-sync-tip {
-  margin-left: 6px;
-  color: var(--text-faint);
-  font-size: 12.5px;
-}
-
 .room-picker {
   margin-top: 18px;
   padding-top: 14px;

@@ -12,6 +12,7 @@ import Comments from '../components/Comments.jsx'
 import SuggestModal from '../components/SuggestModal.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { PlayIcon, ArrowLeft, UsersIcon } from '../components/icons.jsx'
+import SEO, { animeJsonLd } from '../components/SEO.jsx'
 
 function fmtNum(n) {
   if (!n && n !== 0) return '—'
@@ -43,6 +44,7 @@ export default function AnimeDetail() {
   if (loading) {
     return (
       <div className="container page">
+        <SEO title="Загрузка…" />
         <div className="skel" style={{ height: 360, borderRadius: 16, marginBottom: 34 }} />
         <div className="skel skel-line" style={{ width: '40%', height: 24 }} />
       </div>
@@ -52,6 +54,7 @@ export default function AnimeDetail() {
   if (error || !anime) {
     return (
       <div className="container page">
+        <SEO title="Аниме не найдено" description="Запрашиваемое аниме не найдено. Возможно, ссылка устарела." />
         <div className="state">
           <h2>Аниме не найдено</h2>
           <p>Возможно, ссылка устарела.</p>
@@ -67,6 +70,8 @@ export default function AnimeDetail() {
   const img = poster(anime, 'big') || poster(anime, 'medium')
   const rate = anime.rating?.average
   const recList = Array.isArray(recs) ? recs : []
+  const desc = anime.description?.replace(/<[^>]+>/g, '').substring(0, 300) || ''
+  const shareImage = img || 'https://quickik.ru/og-image.png'
 
   const info = [
     ['Тип', anime.type?.name],
@@ -81,6 +86,16 @@ export default function AnimeDetail() {
 
   return (
     <div className="page">
+      <SEO
+        title={`${anime.title} — смотреть онлайн`}
+        description={desc || `Смотреть ${anime.title} онлайн. ${anime.type?.name || 'Аниме'}${anime.year ? `, ${anime.year} год` : ''}.`}
+        image={shareImage}
+        url={`https://quickik.ru/anime/${url}`}
+        type="video.tv_show"
+        canonical={`https://quickik.ru/anime/${url}`}
+        jsonLd={animeJsonLd(anime, 'https://quickik.ru')}
+      />
+
       <div className="detail-hero">
         <div className="detail-hero-bg" style={{ backgroundImage: `url(${bg})` }} />
         <div className="detail-hero-overlay" />

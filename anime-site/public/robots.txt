@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /library
+Disallow: /settings
+Disallow: /friends
+Disallow: /chats
+Disallow: /admin
+
+Sitemap: https://quickik.ru/sitemap.xml

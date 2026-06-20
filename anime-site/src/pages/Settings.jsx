@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme, ACCENT_PRESETS } from '../context/ThemeContext.jsx'
 import { backend } from '../api/backend.js'
 import { GridIcon, CalendarIcon, UsersIcon, BookmarkIcon, SunIcon, MoonIcon, MessageIcon, RoomIcon } from '../components/icons.jsx'
+import SEO from '../components/SEO.jsx'
 
 const MOBILE_KEY = 'qik_mobile_tabs'
 
@@ -160,6 +161,12 @@ export default function Settings() {
 
   return (
     <div className="container page">
+      <SEO
+        title="Настройки"
+        description="Настройки аккаунта QIK Anime: тема, акцентный цвет, навигация, импорт закладок."
+        canonical="https://quickik.ru/settings"
+      />
+
       <h1 style={{ marginBottom: 28 }}>Настройки</h1>
 
       {/* Theme toggle */}

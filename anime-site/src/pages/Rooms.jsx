@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { backend } from '../api/backend.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { UsersIcon, PlayIcon } from '../components/icons.jsx'
+import SEO from '../components/SEO.jsx'
 
 function formatWhen(iso) {
   if (!iso) return 'только что'
@@ -82,6 +83,12 @@ export default function Rooms() {
 
   return (
     <div className="container page">
+      <SEO
+        title="Комнаты просмотра"
+        description="Совместный просмотр аниме в реальном времени. Присоединяйтесь к комнате или создайте свою."
+        canonical="https://quickik.ru/rooms"
+      />
+
       <div className="section-head" style={{ marginBottom: 22 }}>
         <h1 className="section-title">Комнаты просмотра</h1>
       </div>

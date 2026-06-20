@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import Avatar from '../components/Avatar.jsx'
 import { statusLabel } from '../components/BookmarkButton.jsx'
 import { TrashIcon } from '../components/icons.jsx'
+import SEO from '../components/SEO.jsx'
 
 const TABS = [
   { value: '', label: 'Все' },
@@ -70,6 +71,12 @@ export default function Library() {
 
   return (
     <div className="container page">
+      <SEO
+        title="Мои закладки"
+        description="Моя коллекция аниме: смотрю, в планах, просмотрено, отложено, брошено, любимое."
+        canonical="https://quickik.ru/library"
+      />
+
       {user && (
         <div className="profile-head">
           <Avatar user={user} size={64} />

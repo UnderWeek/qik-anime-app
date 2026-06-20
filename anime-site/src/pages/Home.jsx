@@ -4,6 +4,7 @@ import Hero from '../components/Hero.jsx'
 import Section from '../components/Section.jsx'
 import AnimeCard, { CardSkeleton } from '../components/AnimeCard.jsx'
 import ContinueWatching from '../components/ContinueWatching.jsx'
+import SEO, { websiteJsonLd } from '../components/SEO.jsx'
 
 function Row({ items, scroll }) {
   return (
@@ -31,6 +32,7 @@ export default function Home() {
   if (error) {
     return (
       <div className="container page">
+        <SEO />
         <div className="state">
           <h2>Не удалось загрузить</h2>
           <p>Проверьте подключение к сети и попробуйте обновить страницу.</p>
@@ -46,6 +48,8 @@ export default function Home() {
 
   return (
     <div className="container page">
+      <SEO url="https://quickik.ru" jsonLd={websiteJsonLd('https://quickik.ru')} />
+
       {loading ? (
         <div className="hero skel" style={{ height: 440, marginBottom: 52 }} />
       ) : (

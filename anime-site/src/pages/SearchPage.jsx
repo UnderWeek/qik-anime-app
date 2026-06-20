@@ -2,6 +2,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useApi } from '../hooks/useApi.js'
 import { api } from '../api/client.js'
 import AnimeCard, { CardSkeleton } from '../components/AnimeCard.jsx'
+import SEO from '../components/SEO.jsx'
 
 export default function SearchPage() {
   const [params] = useSearchParams()
@@ -16,6 +17,12 @@ export default function SearchPage() {
 
   return (
     <div className="container page">
+      <SEO
+        title={q ? `Поиск: ${q}` : 'Поиск аниме'}
+        description={q ? `Результаты поиска аниме по запросу «${q}».` : 'Поиск аниме в каталоге QIK Anime.'}
+        canonical={q ? `https://quickik.ru/search?q=${encodeURIComponent(q)}` : 'https://quickik.ru/search'}
+      />
+
       <div className="section-head" style={{ marginBottom: 24 }}>
         <h2 className="section-title">
           Поиск{q ? `: «${q}»` : ''}

@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useApi } from '../hooks/useApi.js'
 import { api } from '../api/client.js'
 import AnimeCard, { CardSkeleton } from '../components/AnimeCard.jsx'
+import SEO from '../components/SEO.jsx'
 
 const DAYS = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота']
 const DAYS_SHORT = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
@@ -25,6 +26,12 @@ export default function Schedule() {
 
   return (
     <div className="container page">
+      <SEO
+        title="Расписание выхода аниме"
+        description="Расписание выхода новых серий аниме по дням недели. Узнайте, когда выйдет следующая серия."
+        canonical="https://quickik.ru/schedule"
+      />
+
       <div className="section-head" style={{ marginBottom: 24 }}>
         <h2 className="section-title">Расписание выхода</h2>
       </div>
