@@ -26,6 +26,31 @@ function GridSkeleton({ count = 12 }) {
   )
 }
 
+function ResetBanner() {
+  return (
+    <div style={{
+      background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
+      border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: 14,
+      padding: '18px 22px',
+      marginBottom: 20,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 14,
+      fontSize: 14.5,
+      lineHeight: 1.55,
+      color: 'var(--text-secondary)',
+    }}>
+      <span style={{ fontSize: 28, flexShrink: 0 }}>😔</span>
+      <div>
+        <strong style={{ color: 'var(--text-primary)' }}>База данных была сброшена</strong><br />
+        Из-за ошибки при деплое 20 июня все аккаунты и закладки были утеряны. Мы очень извиняемся.<br />
+        Придётся создать новый аккаунт. Мы уже исправили CI/CD, чтобы такое не повторилось.
+      </div>
+    </div>
+  )
+}
+
 export default function Home() {
   const { data: feed, loading, error } = useApi(() => api.feed(), [])
 
@@ -33,6 +58,7 @@ export default function Home() {
     return (
       <div className="container page">
         <SEO />
+        <ResetBanner />
         <div className="state">
           <h2>Не удалось загрузить</h2>
           <p>Проверьте подключение к сети и попробуйте обновить страницу.</p>
@@ -49,6 +75,7 @@ export default function Home() {
   return (
     <div className="container page">
       <SEO url="https://quickik.ru" jsonLd={websiteJsonLd('https://quickik.ru')} />
+      <ResetBanner />
 
       {loading ? (
         <div className="hero skel" style={{ height: 440, marginBottom: 52 }} />
