@@ -23,7 +23,9 @@ export function playPause(iframeRef, iframeUrl, currentPosition) {
   const iframe = iframeRef.current
   if (!iframe || !iframeUrl) return
 
-  const url = new URL(iframeUrl)
+  // Kodik links are protocol-relative: //kodik.info/... → add https:
+  const fullUrl = iframeUrl.startsWith('//') ? `https:${iframeUrl}` : iframeUrl
+  const url = new URL(fullUrl)
   url.searchParams.set('start_from', String(Math.floor(currentPosition)))
 
   const wasAutoplay = url.searchParams.get('autoplay') === 'true'
@@ -33,9 +35,8 @@ export function playPause(iframeRef, iframeUrl, currentPosition) {
     url.searchParams.set('autoplay', 'true')
   }
 
-  // Force reload with cache-bust
   url.searchParams.set('_t', String(Date.now()))
   iframe.src = url.toString()
 
-  return !wasAutoplay // new state: true = playing
+  return !wasAutoplay
 }
