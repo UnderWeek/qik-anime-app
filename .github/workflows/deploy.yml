@@ -64,15 +64,15 @@ jobs:
         run: |
           set -e
           mkdir -p ~/.ssh
-          echo "$SSH_KEY" > ~/.ssh/deploy_key
+
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
+          echo "Key lines: $(wc -l < ~/.ssh/deploy_key)"
 
-          RSYNC_RSH="ssh -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i ~/.ssh/deploy_key -p $SSH_PORT"
+          SSH_OPTS="-o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i ~/.ssh/deploy_key -p $SSH_PORT"
 
-          rsync -rlgoDzvc --delete -e "$RSYNC_RSH" artifact/ "$SSH_USER@$SSH_HOST:/root/qik-anime/"
+          echo "--- rsync ---"
+          rsync -rlgoDzvc --delete -e "ssh $SSH_OPTS" artifact/ "$SSH_USER@$SSH_HOST:/root/qik-anime/"
 
-          ssh -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "
-            cp -r /root/qik-anime/anime-site/dist/* /var/www/quickik.ru/
-            cd /root/qik-anime/server && npm ci --omit=dev && pm2 reload anime-api
-            echo ok
-          "
+          echo "--- reload ---"
+          ssh $SSH_OPTS "$SSH_USER@$SSH_HOST" 'cp -r /root/qik-anime/anime-site/dist/* /var/www/quickik.ru/ && cd /root/qik-anime/server && npm ci --omit=dev && pm2 reload anime-api && echo ok'
