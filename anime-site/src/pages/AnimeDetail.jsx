@@ -10,6 +10,7 @@ import BookmarkButton from '../components/BookmarkButton.jsx'
 import RatingWidget from '../components/RatingWidget.jsx'
 import Comments from '../components/Comments.jsx'
 import SuggestModal from '../components/SuggestModal.jsx'
+import Lightbox from '../components/Lightbox.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { PlayIcon, ArrowLeft, UsersIcon } from '../components/icons.jsx'
 import SEO, { animeJsonLd } from '../components/SEO.jsx'
@@ -25,6 +26,7 @@ export default function AnimeDetail() {
   const { url } = useParams()
   const { user, requireAuth } = useAuth()
   const [suggestOpen, setSuggestOpen] = useState(false)
+  const [posterZoom, setPosterZoom] = useState(null)
   const [commentCount, setCommentCount] = useState(null)
   const { data: anime, loading, error } = useApi(() => api.anime(url), [url])
   const { data: recs } = useApi(
@@ -101,7 +103,7 @@ export default function AnimeDetail() {
         <div className="detail-hero-overlay" />
         <div className="container">
           <div className="detail-hero-inner">
-            <div className="detail-poster">
+            <div className="detail-poster" onClick={() => setPosterZoom(bg || img)} style={{ cursor: 'pointer' }} title="Увеличить постер">
               {img && <img src={img} alt={anime.title} />}
             </div>
             <div className="detail-info">
@@ -210,6 +212,7 @@ export default function AnimeDetail() {
 
       {suggestOpen && (
         <SuggestModal anime={anime} posterUrl={img} onClose={() => setSuggestOpen(false)} />
+        {posterZoom && <Lightbox src={posterZoom} onClose={() => setPosterZoom(null)} />}
       )}
     </div>
   )
