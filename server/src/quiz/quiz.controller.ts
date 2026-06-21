@@ -6,11 +6,12 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
 function getDeepSeekToken() {
-  if (process.env.getDeepSeekToken()) return process.env.getDeepSeekToken();
+  const key = 'DEEPSEEK_TOKEN';
+  if (process.env[key]) return process.env[key];
   try {
     const envPath = resolve(__dirname, '..', '.env');
     const content = readFileSync(envPath, 'utf-8');
-    const match = content.match(/^getDeepSeekToken()\s*=\s*(.+)$/m);
+    const match = content.match(new RegExp(`^${key}\\s*=\\s*(.+)$`, 'm'));
     if (match) return match[1].trim();
   } catch {}
   return '';
