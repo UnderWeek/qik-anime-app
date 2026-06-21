@@ -221,6 +221,13 @@ export const backend = {
     const qs = exclude?.length ? `?exclude=${exclude.join(',')}` : ''
     return request(`/quiz/question${qs}`, { auth: true })
   },
+  quizEmoji: (exclude, difficulty) => {
+    const params = new URLSearchParams()
+    if (exclude?.length) params.set('exclude', exclude.join(','))
+    if (difficulty) params.set('diff', difficulty)
+    const qs = params.toString()
+    return request(`/quiz/emoji${qs ? '?' + qs : ''}`, { auth: true })
+  },
 
   // ---- chats ----
   listChats: () => request('/chats', { auth: true }),
