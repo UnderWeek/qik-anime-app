@@ -150,16 +150,6 @@ export default function Profile() {
     }
   }
 
-  async function sendMessage() {
-    if (!user) return openAuth('login')
-    try {
-      await backend.startChat(uid)
-      navigate('/chats')
-    } catch (e) {
-      showToast(e.message || 'Ошибка')
-    }
-  }
-
   if (loading) {
     return (
       <div className="container page">
@@ -261,9 +251,6 @@ export default function Profile() {
               </button>
             ) : (
               <>
-                <button className="btn btn-primary btn-sm" onClick={sendMessage}>
-                  <MessageIcon width={15} height={15} /> Написать
-                </button>
                 {friendStatus === 'friends' && (
                   <button className="btn btn-danger btn-sm" onClick={removeFriend}>
                     <CheckIcon width={15} height={15} /> В друзьях
