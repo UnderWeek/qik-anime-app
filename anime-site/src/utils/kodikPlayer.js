@@ -1,7 +1,10 @@
-// DEBUG: log all postMessage events from Kodik iframe
-window.addEventListener('message', (event) => {
-  console.log('[KODIK-MSG] origin:', event.origin);
-  console.log('[KODIK-MSG] data:', event.data);
+// DEBUG: log postMessage from Kodik iframe
+window.addEventListener("message", (e) => {
+  if (e.origin.includes("kodik")) {
+    console.log("ORIGIN:", e.origin);
+    console.log("DATA:", e.data);
+    console.log("----------------");
+  }
 });
 
 // Kodik/Flowplayer iframe postMessage API
