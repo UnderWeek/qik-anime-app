@@ -34,7 +34,8 @@ export class PlayerProxyController {
       const kodikOrigin = new URL(fullUrl).origin;
       const baseTag = `<base href="${kodikOrigin}/">`;
 
-      // Inject control script + base tag before </head>
+      // Inject base tag right after <head> (before any other tags)
+      // Inject control script before </head>
       const controlScript = `<script>
 (function() {
   var v = document.querySelector('video');
@@ -61,7 +62,8 @@ export class PlayerProxyController {
 })();
 </script>`;
 
-      html = html.replace('</head>', baseTag + controlScript + '</head>');
+      html = html.replace(/<head[^>]*>/i, (match) => match + baseTag);
+      html = html.replace('</head>', controlScript + '</head>');
       res.type('text/html').send(html);
     } catch (err) {
       console.error('[PLAYER-PROXY] fetch error', err.message);
