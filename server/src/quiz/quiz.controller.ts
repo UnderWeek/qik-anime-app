@@ -12,13 +12,12 @@ export class QuizController {
       .filter((n) => Number.isFinite(n));
 
     const attempts = 20;
-    const randomPage = () => Math.floor(Math.random() * 120) + 1;
 
     for (let i = 0; i < attempts; i++) {
       try {
-        const page = randomPage();
+        const page = Math.floor(Math.random() * 120) + 1;
         const resp = await fetch(
-          `https://api.yani.tv/anime?limit=20&page=${page}`,
+          `https://api.yani.tv/anime?limit=20&page=${page}&with_material_data=true`,
           { headers: { Accept: 'application/json', Lang: 'ru' } }
         );
         const data = await resp.json();
@@ -30,34 +29,62 @@ export class QuizController {
           const id = anime.anime_id;
           if (!id || excludedIds.includes(id)) continue;
 
+          // Get MAL ID from material_data
+          const malId =
+            anime.material_data?.mal_id ??
+            anime.material_data?.myanimelist_id ??
+            null;
+          if (!malId) continue;
+
           try {
+            // Find an episode with iframe_url
             const vResp = await fetch(`https://api.yani.tv/anime/${id}/videos`, {
-              headers: { Accept: 'application/json', Lang: 'ru' },
-            });
+              headers: { Accept: 'application/json', Lang: 'ru' } },
+            );
             const vData = await vResp.json();
             const episodes = vData?.response || vData;
             if (!Array.isArray(episodes) || !episodes.length) continue;
 
-            const episode = episodes.find((ep) => {
-              if (!ep?.iframe_url) return false;
-              const t = ep?.data?.skips?.opening;
-              return typeof t === 'number' && t > 0;
-            });
+            // Try up to 3 episodes to find one with AniSkip data
+            const withIframe = episodes
+              .filter((ep) => !!ep?.iframe_url)
+              .sort(() => Math.random() - 0.5)
+              .slice(0, 3);
 
-            if (!episode) continue;
+            for (const episode of withIframe) {
+              const epNumber = episode.number || episode.index || 1;
 
-            const openStart = Number(episode.data.skips.opening);
+              try {
+                // Query AniSkip API
+                const skipResp = await fetch(
+                  `https://api.aniskip.com/v2/skip-times/${malId}/${epNumber}?types[]=op&types[]=ed&episodeLength=${episode.duration || 1500}`,
+                  { headers: { Accept: 'application/json' } }
+                );
 
-            return {
-              animeId: id,
-              animeTitle: anime.title,
-              animeUrl: anime.anime_url,
-              animePoster: anime.poster?.medium || anime.poster?.small || '',
-              episodeNumber: episode.number || 1,
-              iframeUrl: episode.iframe_url,
-              openStart: Math.floor(Number(openStart)),
-              openEnd: Math.floor(Number(openStart)) + 10,
-            };
+                if (!skipResp.ok) continue;
+                const skipData = await skipResp.json();
+
+                if (skipData?.found && skipData?.results?.length > 0) {
+                  const op = skipData.results.find(
+                    (r) => r.skipType === 'op'
+                  );
+                  if (!op) continue;
+
+                  return {
+                    animeId: id,
+                    animeTitle: anime.title,
+                    animeUrl: anime.anime_url,
+                    animePoster: anime.poster?.medium || anime.poster?.small || '',
+                    episodeNumber: epNumber,
+                    iframeUrl: episode.iframe_url,
+                    openStart: op.interval.startTime,
+                    openEnd: op.interval.endTime,
+                  };
+                }
+              } catch {
+                continue;
+              }
+            }
           } catch {
             continue;
           }
