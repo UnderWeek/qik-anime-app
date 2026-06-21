@@ -30,7 +30,6 @@ import { SuggestionsModule } from './suggestions/suggestions.module';
 import { WatchRoomsModule } from './watch-rooms/watch-rooms.module';
 import { ChatsModule } from './chats/chats.module';
 import { AdminModule } from './admin/admin.module';
-import { QuizModule } from './quiz/quiz.module';
 import { DB_PATH, UPLOAD_DIR_ABSOLUTE } from './common/runtime-paths';
 
 @Module({
@@ -77,7 +76,6 @@ import { DB_PATH, UPLOAD_DIR_ABSOLUTE } from './common/runtime-paths';
     WatchRoomsModule,
     ChatsModule,
     AdminModule,
-    QuizModule,
   ],
 })
 export class AppModule {}
