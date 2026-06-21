@@ -80,8 +80,10 @@ export default function QuizEmoji() {
   }
 
   function guess(anime) {
-    const idMatch = anime.anime_id === question.animeId
-    const titleMatch = normalize(anime.title) === normalize(question.animeTitle)
+    const aid = anime.anime_id ?? anime.animeId
+    const qid = question.animeId ?? question.anime_id
+    const idMatch = aid === qid
+    const titleMatch = normalize(anime.title || anime.animeTitle) === normalize(question.animeTitle)
     const correct = idMatch || titleMatch
     if (correct) {
       setScore((s) => s + 1)
