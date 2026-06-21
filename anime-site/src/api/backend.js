@@ -216,6 +216,12 @@ export const backend = {
   adminClaim: (secret) =>
     request('/admin/claim', { method: 'POST', body: { secret }, auth: true }),
 
+  // ---- quiz ----
+  quizQuestion: (exclude) => {
+    const qs = exclude?.length ? `?exclude=${exclude.join(',')}` : ''
+    return request(`/quiz/question${qs}`, { auth: true })
+  },
+
   // ---- chats ----
   listChats: () => request('/chats', { auth: true }),
   startChat: (friendId) => request('/chats/start', { method: 'POST', body: { friendId }, auth: true }),
