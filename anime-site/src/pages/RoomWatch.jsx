@@ -6,7 +6,8 @@ import { BACKEND_ORIGIN, backend, getToken, uploadUrl } from '../api/backend.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import Avatar from '../components/Avatar.jsx'
 import Lightbox from '../components/Lightbox.jsx'
-import { ArrowLeft, CloseIcon, ImageIcon, UsersIcon, UserPlusIcon, StarIcon } from '../components/icons.jsx'
+import { ArrowLeft, CloseIcon, ImageIcon, UsersIcon, UserPlusIcon, StarIcon, PlayIcon } from '../components/icons.jsx'
+import { sendPlayerCommand, subscribePlayerEvents } from '../utils/playerApi.js'
 
 function timeAgo(iso) {
   const d = new Date(iso)
@@ -58,6 +59,22 @@ export default function RoomWatch() {
   const iframeRef = useRef(null)
   const socketRef = useRef(null)
 
+  // ---- sync state ----
+  const [clockSeconds, setClockSeconds] = useState(0)
+  const [localPaused, setLocalPaused] = useState(true)
+  const localTimeRef = useRef(0)
+  const localPausedRef = useRef(true)
+  const localTickAtRef = useRef(Date.now())
+  const isHostRef = useRef(false)
+  const suppressRef = useRef(0)
+  const sendingRef = useRef(false)
+  const lastSendRef = useRef(0)
+  const heartbeatRef = useRef(null)
+  const playerUnsubRef = useRef(null)
+
+  useEffect(() => { isHostRef.current = isHost }, [isHost])
+  useEffect(() => { localPausedRef.current = localPaused }, [localPaused])
+
   // ---- episode filtering ----
   const playerEpisodes = useMemo(() => {
     return (Array.isArray(animeVideos) ? animeVideos : [])
@@ -106,6 +123,18 @@ export default function RoomWatch() {
       setState(snap.state)
       if (snap.state.iframeUrl && snap.state.iframeUrl !== iframeSrc) {
         loadIframeUrl(snap.state.iframeUrl)
+      } else if (snap.state.iframeUrl && iframeRef.current?.contentWindow) {
+        // Same URL — apply sync state to already-loaded player
+        suppressRef.current = Date.now() + 1500
+        const t = snap.state.currentTime || 0
+        const p = !!snap.state.isPaused
+        sendPlayerCommand(iframeRef, 'seekTo', Math.floor(t))
+        sendPlayerCommand(iframeRef, p ? 'pause' : 'play')
+        localTimeRef.current = t
+        localPausedRef.current = p
+        localTickAtRef.current = Date.now()
+        setLocalPaused(p)
+        setClockSeconds(Math.floor(t))
       }
     }
     if (Array.isArray(snap.members)) setMembers(snap.members)
@@ -149,6 +178,44 @@ export default function RoomWatch() {
 
   useEffect(() => { loadRoom() }, [loadRoom])
 
+  // ---- sync helpers ----
+  const advanceLocalClock = useCallback(() => {
+    const now = Date.now()
+    if (!localPausedRef.current) {
+      localTimeRef.current += Math.max(0, (now - localTickAtRef.current) / 1000)
+    }
+    localTickAtRef.current = now
+  }, [])
+
+  const sendState = useCallback(async (payload, force) => {
+    if (!isHostRef.current || sendingRef.current) return
+    if (!force && Date.now() - lastSendRef.current < 250) return
+    sendingRef.current = true
+    lastSendRef.current = Date.now()
+    try {
+      await backend.updateWatchRoomState(roomId, payload)
+    } catch (err) {
+      if (err.status === 404 || err.status === 403) {
+        showToast('Комната была закрыта')
+        navigate('/rooms')
+      }
+    } finally {
+      sendingRef.current = false
+    }
+  }, [navigate, roomId, showToast])
+
+  function togglePlayPause() {
+    if (!iframeRef.current) return
+    const next = !localPausedRef.current
+    suppressRef.current = Date.now() + 1500
+    sendPlayerCommand(iframeRef, next ? 'pause' : 'play')
+    localPausedRef.current = next
+    localTickAtRef.current = Date.now()
+    setLocalPaused(next)
+    const t = Math.floor(localTimeRef.current)
+    sendState({ currentTime: t, isPaused: next }, true)
+  }
+
   // Keep applySnapshot stable for socket
   const applySnapshotRef = useRef(applySnapshot)
   useEffect(() => { applySnapshotRef.current = applySnapshot }, [applySnapshot])
@@ -174,6 +241,27 @@ export default function RoomWatch() {
     })
 
     socket.on('room:snapshot', (snap) => { applySnapshotRef.current(snap) })
+
+    socket.on('room:state', (remote) => {
+      if (isHostRef.current || !remote) return
+      const targetTime = remote.currentTime || 0
+      const targetPaused = !!remote.isPaused
+      const drift = Math.abs(localTimeRef.current - targetTime)
+      if (drift > 1) {
+        suppressRef.current = Date.now() + 1500
+        sendPlayerCommand(iframeRef, 'seekTo', Math.floor(targetTime))
+      }
+      if (targetPaused !== localPausedRef.current) {
+        suppressRef.current = Date.now() + 1500
+        sendPlayerCommand(iframeRef, targetPaused ? 'pause' : 'play')
+        localPausedRef.current = targetPaused
+        localTickAtRef.current = Date.now()
+        setLocalPaused(targetPaused)
+      }
+      localTimeRef.current = targetTime
+      localTickAtRef.current = Date.now()
+      setClockSeconds(Math.floor(targetTime))
+    })
 
     socket.on('room:members', (payload) => {
       if (Array.isArray(payload?.members)) setMembers(payload.members)
@@ -201,6 +289,67 @@ export default function RoomWatch() {
       socketRef.current = null
     }
   }, [navigate, roomId, showToast, user])
+
+  // ---- Player events + sync ----
+  const stateRef = useRef(null)
+  useEffect(() => { stateRef.current = state }, [state])
+
+  useEffect(() => {
+    if (!state?.iframeUrl || !iframeRef.current) return undefined
+    setLocalPaused(true)
+    localTimeRef.current = state.currentTime || 0
+    localPausedRef.current = true
+    localTickAtRef.current = Date.now()
+    setClockSeconds(Math.floor(state.currentTime || 0))
+
+    const unsub = subscribePlayerEvents(iframeRef, (event) => {
+      if (Date.now() < suppressRef.current) return
+
+      if (event.type === 'time' && event.time !== undefined) {
+        localTimeRef.current = event.time
+        localTickAtRef.current = Date.now()
+        setClockSeconds(Math.floor(event.time))
+      } else if (event.type === 'play') {
+        localPausedRef.current = false
+        localTickAtRef.current = Date.now()
+        setLocalPaused(false)
+        if (isHostRef.current) {
+          sendState({ currentTime: Math.floor(localTimeRef.current), isPaused: false }, true)
+        }
+      } else if (event.type === 'pause') {
+        localPausedRef.current = true
+        setLocalPaused(true)
+        if (isHostRef.current) {
+          sendState({ currentTime: Math.floor(localTimeRef.current), isPaused: true }, true)
+        }
+      } else if (event.type === 'seek' && event.time !== undefined) {
+        localTimeRef.current = event.time
+        localTickAtRef.current = Date.now()
+        setClockSeconds(Math.floor(event.time))
+      }
+    })
+
+    playerUnsubRef.current = unsub
+    return () => { unsub(); playerUnsubRef.current = null }
+  }, [sendState, state?.iframeUrl])
+
+  // Host heartbeat every second while playing
+  useEffect(() => {
+    if (!isHost || !state?.iframeUrl) return undefined
+    heartbeatRef.current = setInterval(() => {
+      if (localPausedRef.current) return
+      advanceLocalClock()
+      sendState({ currentTime: Math.floor(localTimeRef.current), isPaused: false })
+    }, 1000)
+    return () => clearInterval(heartbeatRef.current)
+  }, [advanceLocalClock, isHost, sendState, state?.iframeUrl])
+
+  // Clock tick
+  useEffect(() => {
+    if (!state?.iframeUrl) return undefined
+    const iv = setInterval(() => { advanceLocalClock(); setClockSeconds(Math.floor(localTimeRef.current)) }, 250)
+    return () => clearInterval(iv)
+  }, [advanceLocalClock, state?.iframeUrl])
 
   // ---- Cleanup ----
   useEffect(
@@ -537,8 +686,22 @@ export default function RoomWatch() {
             )}
           </div>
 
-          <div style={{ marginTop: 14, fontSize: 13, color: 'var(--text-faint)' }}>
-            {isHost ? 'Вы ведущий' : `Ведущий: ${members.find((m) => m.isHost)?.user?.username || '—'}`}
+          <div style={{ marginTop: 14, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={togglePlayPause}
+              disabled={!state?.iframeUrl}
+            >
+              {localPaused ? (
+                <><PlayIcon width={14} height={14} /> Запустить плеер</>
+              ) : (
+                'Пауза'
+              )}
+            </button>
+            <span style={{ fontSize: 13, color: 'var(--text-faint)' }}>
+              {isHost ? 'Вы ведущий' : `Ведущий: ${members.find((m) => m.isHost)?.user?.username || '—'}`}
+              {state?.iframeUrl && ` · ${Math.floor(clockSeconds / 60)}:${String(Math.floor(clockSeconds % 60)).padStart(2, '0')}`}
+            </span>
           </div>
 
           <div className="room-picker">

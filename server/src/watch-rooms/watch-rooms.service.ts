@@ -17,6 +17,7 @@ import {
   JoinWatchRoomDto,
   SendWatchRoomMessageDto,
   SetWatchRoomVideoDto,
+  UpdateWatchRoomStateDto,
 } from './dto';
 import { WatchRoomMessage } from './watch-room-message.entity';
 import { WatchRoomParticipant } from './watch-room-participant.entity';
@@ -72,6 +73,8 @@ export class WatchRoomsService {
       episodeNumber: room.episodeNumber,
       dubbing: room.dubbing,
       iframeUrl: room.iframeUrl,
+      currentTime: room.currentTime || 0,
+      isPaused: !!room.isPaused,
       hostId: room.hostId,
     };
   }
@@ -242,6 +245,8 @@ export class WatchRoomsService {
       code: await this.generateUniqueCode(),
       owner: { id: userId } as any,
       hostId: userId,
+      currentTime: 0,
+      isPaused: true,
       animeId: dto.animeId ?? null,
       animeUrl: this.normalizeText(dto.animeUrl),
       animeTitle: this.normalizeText(dto.animeTitle),
@@ -330,9 +335,28 @@ export class WatchRoomsService {
     setTextField('episodeNumber', dto.episodeNumber);
     setTextField('dubbing', dto.dubbing);
     setTextField('iframeUrl', dto.iframeUrl);
+    room.currentTime = 0;
+    room.isPaused = true;
 
     await this.rooms.save(room);
 
+    return this.roomState(room);
+  }
+
+  async updateState(roomId: number, userId: number, dto: UpdateWatchRoomStateDto) {
+    const { room } = await this.assertMember(roomId, userId);
+    if (room.hostId !== userId) {
+      throw new ForbiddenException('Управлять плеером может только ведущий');
+    }
+
+    if (dto.currentTime !== undefined && Number.isFinite(dto.currentTime)) {
+      room.currentTime = Math.max(0, dto.currentTime);
+    }
+    if (dto.isPaused !== undefined) {
+      room.isPaused = dto.isPaused;
+    }
+
+    await this.rooms.save(room);
     return this.roomState(room);
   }
 

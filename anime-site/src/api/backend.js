@@ -183,6 +183,8 @@ export const backend = {
   joinWatchRoomById: (id) =>
     request(`/watch-rooms/${id}/join`, { method: 'POST', auth: true }),
   watchRoom: (id) => request(`/watch-rooms/${id}`, { auth: true }),
+  updateWatchRoomState: (id, payload) =>
+    request(`/watch-rooms/${id}/state`, { method: 'PATCH', body: payload, auth: true }),
   setWatchRoomVideo: (id, payload) =>
     request(`/watch-rooms/${id}/video`, { method: 'POST', body: payload, auth: true }),
   sendWatchRoomMessage: (id, payload) =>
