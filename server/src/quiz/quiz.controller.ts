@@ -40,21 +40,13 @@ export class QuizController {
 
             const episode = episodes.find((ep) => {
               if (!ep?.iframe_url) return false;
-              // Look for opening timestamp in episode data
-              const d = ep.data || ep;
-              const fields = [
-                d?.op_start, d?.opening_start, d?.opening, d?.intro_start,
-                d?.op_start_sec, d?.opening_time, d?.op_time,
-              ];
-              return fields.some((f) => typeof f === 'number' && f >= 0);
+              const t = ep?.data?.skips?.opening;
+              return typeof t === 'number' && t > 0;
             });
 
             if (!episode) continue;
 
-            const d = episode.data || episode;
-            const openStart =
-              d?.op_start ?? d?.opening_start ?? d?.opening ?? d?.intro_start ??
-              d?.op_start_sec ?? d?.opening_time ?? d?.op_time ?? 0;
+            const openStart = Number(episode.data.skips.opening);
 
             return {
               animeId: id,
