@@ -1,0 +1,59 @@
+import { Controller, Get, Query, Res } from '@nestjs/common';
+import { Response } from 'express';
+
+@Controller('player-proxy')
+export class PlayerProxyController {
+  @Get()
+  async proxy(@Query('url') url: string, @Res() res: Response) {
+    if (!url) {
+      return res.status(400).send('Missing ?url= parameter');
+    }
+
+    try {
+      const fullUrl = url.startsWith('//') ? `https:${url}` : url;
+      const resp = await fetch(fullUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; QIK-Anime/1.0)',
+        },
+      });
+
+      if (!resp.ok) {
+        return res.status(resp.status).send('Failed to fetch player');
+      }
+
+      let html = await resp.text();
+
+      // Inject control script before </head>
+      const controlScript = `<script>
+(function() {
+  var v = document.querySelector('video');
+  function waitForVideo(cb) {
+    if (v) return cb(v);
+    var iv = setInterval(function() {
+      v = document.querySelector('video');
+      if (v) { clearInterval(iv); cb(v); }
+    }, 200);
+  }
+  waitForVideo(function(video) {
+    window.addEventListener('message', function(e) {
+      var cmd = e.data && e.data.kodikCommand;
+      if (!cmd) return;
+      switch (cmd) {
+        case 'play': video.play(); break;
+        case 'pause': video.pause(); break;
+        case 'seek': video.currentTime = e.data.time || 0; break;
+      }
+    });
+    // Notify parent that proxy is ready for commands
+    parent.postMessage({ event: 'proxy_ready' }, '*');
+  });
+})();
+</script>`;
+
+      html = html.replace('</head>', controlScript + '</head>');
+      res.type('text/html').send(html);
+    } catch (err) {
+      res.status(502).send('Proxy error');
+    }
+  }
+}

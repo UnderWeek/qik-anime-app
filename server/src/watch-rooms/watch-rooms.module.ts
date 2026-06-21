@@ -7,6 +7,7 @@ import { User } from '../users/user.entity';
 import { WatchRoomMessage } from './watch-room-message.entity';
 import { WatchRoomParticipant } from './watch-room-participant.entity';
 import { WatchRoom } from './watch-room.entity';
+import { PlayerProxyController } from './player-proxy.controller';
 import { WatchRoomsController } from './watch-rooms.controller';
 import { WatchRoomsGateway } from './watch-rooms.gateway';
 import { WatchRoomsService } from './watch-rooms.service';
@@ -19,7 +20,7 @@ import { WatchRoomsService } from './watch-rooms.service';
     TypeOrmModule.forFeature([WatchRoom, WatchRoomParticipant, WatchRoomMessage, User]),
     NotificationsModule,
   ],
-  controllers: [WatchRoomsController],
+  controllers: [WatchRoomsController, PlayerProxyController],
   providers: [WatchRoomsService, WatchRoomsGateway],
   exports: [WatchRoomsService, WatchRoomsGateway],
 })
