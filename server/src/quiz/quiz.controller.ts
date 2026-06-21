@@ -17,7 +17,7 @@ export class QuizController {
       try {
         const page = Math.floor(Math.random() * 120) + 1;
         const resp = await fetch(
-          `https://api.yani.tv/anime?limit=20&page=${page}&with_material_data=true`,
+          `https://api.yani.tv/anime?limit=20&page=${page}`,
           { headers: { Accept: 'application/json', Lang: 'ru' } }
         );
         const data = await resp.json();
@@ -29,10 +29,7 @@ export class QuizController {
           const id = anime.anime_id;
           if (!id || excludedIds.includes(id)) continue;
 
-          const malId =
-            anime.material_data?.mal_id ??
-            anime.material_data?.myanimelist_id ??
-            null;
+          const malId = anime.remote_ids?.myanimelist_id || 0;
           if (!malId) continue;
 
           return {
