@@ -6,7 +6,8 @@ import { BACKEND_ORIGIN, backend, getToken, uploadUrl } from '../api/backend.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import Avatar from '../components/Avatar.jsx'
 import Lightbox from '../components/Lightbox.jsx'
-import { ArrowLeft, CloseIcon, ImageIcon, UsersIcon, UserPlusIcon, StarIcon } from '../components/icons.jsx'
+import { ArrowLeft, CloseIcon, ImageIcon, UsersIcon, UserPlusIcon, StarIcon, PlayIcon } from '../components/icons.jsx'
+import { sendKodikCommand, subscribeKodikEvents } from '../utils/kodikPlayer.js'
 
 function timeAgo(iso) {
   const d = new Date(iso)
@@ -34,6 +35,7 @@ export default function RoomWatch() {
   const [members, setMembers] = useState([])
   const [messages, setMessages] = useState([])
   const [isHost, setIsHost] = useState(false)
+  const [localPaused, setLocalPaused] = useState(true)
 
   const [searchText, setSearchText] = useState('')
   const [searching, setSearching] = useState(false)
@@ -197,6 +199,18 @@ export default function RoomWatch() {
       socketRef.current = null
     }
   }, [applySnapshot, navigate, roomId, showToast, user])
+
+  // ---- Kodik events (track play/pause from player) ----
+  useEffect(() => {
+    setLocalPaused(true)
+    const unsub = subscribeKodikEvents(iframeRef, () => {})
+    return () => unsub()
+  }, [iframeSrc])
+
+  function togglePlayPause() {
+    sendKodikCommand(iframeRef, 'playPause')
+    setLocalPaused((prev) => !prev)
+  }
 
   // ---- Cleanup ----
   useEffect(
@@ -534,8 +548,21 @@ export default function RoomWatch() {
             )}
           </div>
 
-          <div style={{ marginTop: 14, fontSize: 13, color: 'var(--text-faint)' }}>
-            {isHost ? 'Вы ведущий' : `Ведущий: ${members.find((m) => m.isHost)?.user?.username || '—'}`}
+          <div style={{ marginTop: 14, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={togglePlayPause}
+              disabled={!state?.iframeUrl}
+            >
+              {localPaused ? (
+                <><PlayIcon width={14} height={14} /> Запустить плеер</>
+              ) : (
+                'Пауза'
+              )}
+            </button>
+            <span style={{ fontSize: 13, color: 'var(--text-faint)' }}>
+              {isHost ? 'Вы ведущий' : `Ведущий: ${members.find((m) => m.isHost)?.user?.username || '—'}`}
+            </span>
           </div>
 
           <div className="room-picker">

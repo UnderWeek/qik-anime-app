@@ -1,6 +1,6 @@
 // Kodik iframe postMessage API
 // Player sends: { key: 'kodik_player_time_update', value: seconds }
-// Control only via URL params (no documented postMessage control)
+// Player listens: { key: 'kodik_player_api', value: { method, value? } }
 
 export function subscribeKodikEvents(iframeRef, callback) {
   function handler(event) {
@@ -19,20 +19,13 @@ export function subscribeKodikEvents(iframeRef, callback) {
   return () => window.removeEventListener('message', handler)
 }
 
-export function playPause(iframeRef, iframeUrl) {
-  const iframe = iframeRef.current
-  if (!iframe || !iframeUrl) return false
+export function sendKodikCommand(iframeRef, method, value) {
+  const cw = iframeRef.current?.contentWindow
+  if (!cw) return
 
-  const fullUrl = iframeUrl.startsWith('//') ? `https:${iframeUrl}` : iframeUrl
-  const url = new URL(fullUrl)
+  const payload = { key: 'kodik_player_api', value: { method } }
+  if (value !== undefined) payload.value.value = value
 
-  const wasAutoplay = url.searchParams.get('autoplay') === 'true'
-  if (wasAutoplay) {
-    url.searchParams.delete('autoplay')
-  } else {
-    url.searchParams.set('autoplay', 'true')
-  }
-
-  iframe.src = url.toString()
-  return !wasAutoplay
+  cw.postMessage(payload, '*')
+  cw.postMessage(JSON.stringify(payload), '*')
 }
