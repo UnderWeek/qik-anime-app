@@ -1,11 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { api, poster } from '../api/client.js'
 import { backend } from '../api/backend.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import SEO from '../components/SEO.jsx'
 import { PlayIcon, StarIcon } from '../components/icons.jsx'
-
-const FRAME_SECONDS = 5
 
 export default function Quiz() {
   const { user, openAuth } = useAuth()
@@ -19,17 +17,15 @@ export default function Quiz() {
   const [totalPlayed, setTotalPlayed] = useState(0)
   const [wrongsInRow, setWrongsInRow] = useState(0)
   const [resultMsg, setResultMsg] = useState('')
-  const [timeLeft, setTimeLeft] = useState(FRAME_SECONDS)
+  const [imageLoaded, setImageLoaded] = useState(false)
   const excludeRef = useRef([])
-  const iframeRef = useRef(null)
-  const timerRef = useRef(null)
 
   const loadQuestion = useCallback(async () => {
     setState('loading')
     setSearchText('')
     setResults([])
     setResultMsg('')
-    setTimeLeft(FRAME_SECONDS)
+    setImageLoaded(false)
     try {
       const q = await backend.quizQuestion(excludeRef.current)
       if (q.error) {
@@ -39,11 +35,6 @@ export default function Quiz() {
       }
       setQuestion(q)
       excludeRef.current.push(q.animeId)
-
-      // Load iframe
-      if (iframeRef.current) {
-        iframeRef.current.src = q.iframeUrl
-      }
       setState('image')
     } catch {
       setResultMsg('Ошибка загрузки')
@@ -59,22 +50,6 @@ export default function Quiz() {
     setWrongsInRow(0)
     loadQuestion()
   }, [loadQuestion])
-
-  // Timer for frame display
-  useEffect(() => {
-    if (state !== 'image') return undefined
-    timerRef.current = setInterval(() => {
-      setTimeLeft((t) => {
-        if (t <= 1) {
-          clearInterval(timerRef.current)
-          setState('guessing')
-          return 0
-        }
-        return t - 1
-      })
-    }, 1000)
-    return () => clearInterval(timerRef.current)
-  }, [state])
 
   async function runSearch(e) {
     e.preventDefault()
@@ -92,11 +67,9 @@ export default function Quiz() {
   }
 
   function guess(anime) {
-    clearInterval(timerRef.current)
     const correct = anime.anime_id === question.animeId
     if (correct) {
-      const bonus = state === 'image' ? 2 : 1
-      setScore((s) => s + 1 + bonus)
+      setScore((s) => s + 1 + (state === 'image' ? 2 : 1))
       setWrongsInRow(0)
       setResultMsg(`Правильно! ${question.animeTitle}`)
     } else {
@@ -132,7 +105,7 @@ export default function Quiz() {
 
   return (
     <div className="container page">
-      <SEO title="Квиз по кадрам" description="Угадай аниме по кадру из серии." canonical="https://quickik.ru/quiz" />
+      <SEO title="Квиз по кадрам" description="Угадай аниме по кадру." canonical="https://quickik.ru/quiz" />
 
       <div className="section-head" style={{ marginBottom: 24 }}>
         <h2 className="section-title">Квиз по кадрам</h2>
@@ -154,35 +127,27 @@ export default function Quiz() {
       )}
 
       {state === 'loading' && (
-        <div className="state"><p>Загрузка...</p></div>
+        <div className="state"><p>Загрузка кадра...</p></div>
       )}
 
       {(state === 'image' || state === 'guessing') && question && (
         <div>
           <div style={{
-            borderRadius: 14, overflow: 'hidden', maxWidth: 560, marginBottom: 20,
-            aspectRatio: '16/9', background: '#000', position: 'relative',
+            borderRadius: 14, overflow: 'hidden', maxWidth: 640, marginBottom: 20,
+            background: '#0c0c11', minHeight: 200,
           }}>
-            {state === 'image' && (
-              <div style={{
-                position: 'absolute', top: 12, right: 12, zIndex: 2,
-                background: 'rgba(0,0,0,0.7)', color: '#fff',
-                borderRadius: 8, padding: '4px 10px', fontSize: 13, fontWeight: 600,
-              }}>
-                {timeLeft}с
+            {!imageLoaded && (
+              <div style={{ padding: 80, textAlign: 'center', color: 'var(--text-faint)', fontSize: 14 }}>
+                Загрузка изображения...
               </div>
             )}
-            <iframe
-              ref={iframeRef}
-              title="quiz-frame"
-              allow="autoplay"
-              style={{ width: '100%', height: '100%', border: 0 }}
+            <img
+              src={question.imageUrl}
+              alt="Кадр из аниме"
+              onLoad={() => setImageLoaded(true)}
+              style={{ width: '100%', display: imageLoaded ? 'block' : 'none', borderRadius: 14 }}
             />
           </div>
-
-          <p style={{ fontSize: 13, color: 'var(--text-faint)', marginBottom: 14 }}>
-            Кадр из серии №{question.episodeNumber}. {state === 'image' ? 'Смотрите на кадр!' : 'Какое это аниме?'}
-          </p>
 
           <form onSubmit={runSearch} style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
             <input
@@ -238,8 +203,8 @@ export default function Quiz() {
             {resultMsg.includes('Правильно') ? '🎉' : '😔'}
           </div>
           <p style={{ marginBottom: 8, fontWeight: 600 }}>{resultMsg}</p>
-          {question?.animePoster && (
-            <img src={question.animePoster} alt="" style={{ width: 120, borderRadius: 12, marginBottom: 16 }} />
+          {question?.imageUrl && (
+            <img src={question.imageUrl} alt="" style={{ maxWidth: 320, borderRadius: 12, marginBottom: 16 }} />
           )}
           <button className="btn btn-primary" onClick={nextRound}>
             Дальше

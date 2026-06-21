@@ -13,7 +13,7 @@ export class QuizController {
 
     for (let i = 0; i < 20; i++) {
       try {
-        const page = Math.floor(Math.random() * 120) + 1;
+        const page = Math.floor(Math.random() * 150) + 1;
         const resp = await fetch(
           `https://api.yani.tv/anime?limit=20&page=${page}`,
           { headers: { Accept: 'application/json', Lang: 'ru' } }
@@ -27,36 +27,27 @@ export class QuizController {
           const id = anime.anime_id;
           if (!id || excludedIds.includes(id)) continue;
 
+          const shikiId = anime.remote_ids?.shikimori_id || 0;
+          if (!shikiId) continue;
+
           try {
-            const vResp = await fetch(`https://api.yani.tv/anime/${id}/videos`, {
-              headers: { Accept: 'application/json', Lang: 'ru' } },
+            const ssResp = await fetch(
+              `https://shikimori.one/api/animes/${shikiId}/screenshots`,
+              { headers: { 'User-Agent': 'QIK-Anime/1.0' } }
             );
-            const vData = await vResp.json();
-            const episodes = vData?.response || vData;
-            if (!Array.isArray(episodes) || !episodes.length) continue;
+            if (!ssResp.ok) continue;
+            const screenshots = await ssResp.json();
+            if (!Array.isArray(screenshots) || screenshots.length < 3) continue;
 
-            const withIframe = episodes.filter((ep) => !!ep?.iframe_url);
-            if (!withIframe.length) continue;
-
-            const episode = withIframe[Math.floor(Math.random() * withIframe.length)];
-            const duration = episode.duration || 1500;
-            // Random timestamp in the middle 60% of the video (avoid intro/credits)
-            const screenshotTime = Math.floor(duration * 0.2 + Math.random() * duration * 0.6);
-
-            // Build iframe URL with autoplay + start_from to jump to frame
-            let iframeUrl = episode.iframe_url;
-            if (iframeUrl.startsWith('//')) iframeUrl = 'https:' + iframeUrl;
-            const sep = iframeUrl.includes('?') ? '&' : '?';
-            iframeUrl += `${sep}autoplay=true&start_from=${screenshotTime}`;
+            // Pick a random screenshot
+            const ss = screenshots[Math.floor(Math.random() * screenshots.length)];
+            const imageUrl = `https://shikimori.one${ss.original || ss.preview}`;
 
             return {
               animeId: id,
               animeTitle: anime.title,
               animeUrl: anime.anime_url,
-              animePoster: anime.poster?.medium || anime.poster?.small || '',
-              episodeNumber: episode.number || 1,
-              iframeUrl,
-              screenshotTime,
+              imageUrl,
             };
           } catch {
             continue;
@@ -67,6 +58,6 @@ export class QuizController {
       }
     }
 
-    return { error: 'Не удалось найти аниме с сериями.' };
+    return { error: 'Не удалось найти аниме со скриншотами.' };
   }
 }
