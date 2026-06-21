@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { backend } from '../api/backend.js'
 import { fixUrl } from '../api/client.js'
@@ -19,11 +19,19 @@ const TABS = [
   { value: 'favorite', label: 'Любимое' },
 ]
 
+const SORTS = [
+  { value: 'updated', label: 'Недавние' },
+  { value: 'created', label: 'По дате добавления' },
+  { value: 'title', label: 'По названию' },
+  { value: 'status', label: 'По статусу' },
+]
+
 export default function Library() {
   const { user, ready, openAuth, showToast } = useAuth()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('')
+  const [sort, setSort] = useState('updated')
 
   const load = useCallback(() => {
     if (!user) return
@@ -63,7 +71,27 @@ export default function Library() {
     )
   }
 
-  const filtered = tab ? items.filter((b) => b.status === tab) : items
+  const filtered = useMemo(() => {
+    let list = tab ? items.filter((b) => b.status === tab) : items
+    const STATUS_ORDER = { watching: 1, rewatching: 2, planned: 3, on_hold: 4, completed: 5, dropped: 6, favorite: 7 }
+    switch (sort) {
+      case 'created':
+        list = [...list].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+        break
+      case 'title':
+        list = [...list].sort((a, b) => (a.animeTitle || '').localeCompare(b.animeTitle || '', 'ru'))
+        break
+      case 'status':
+        list = [...list].sort((a, b) => (STATUS_ORDER[a.status] || 99) - (STATUS_ORDER[b.status] || 99))
+        break
+      case 'updated':
+      default:
+        list = [...list].sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
+        break
+    }
+    return list
+  }, [items, tab, sort])
+
   const counts = items.reduce((acc, b) => {
     acc[b.status] = (acc[b.status] || 0) + 1
     return acc
@@ -90,19 +118,26 @@ export default function Library() {
         </div>
       )}
 
-      <div className="day-tabs" style={{ flexWrap: 'wrap', gap: 8 }}>
-        {TABS.map((t) => (
-          <button
-            key={t.value}
-            className={`chip ${tab === t.value ? 'active' : ''}`}
-            onClick={() => setTab(t.value)}
-          >
-            {t.label}
-            {t.value && counts[t.value] ? (
-              <span style={{ opacity: 0.6, marginLeft: 6 }}>{counts[t.value]}</span>
-            ) : null}
-          </button>
-        ))}
+      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+        <div className="day-tabs" style={{ flexWrap: 'wrap', gap: 8 }}>
+          {TABS.map((t) => (
+            <button
+              key={t.value}
+              className={`chip ${tab === t.value ? 'active' : ''}`}
+              onClick={() => setTab(t.value)}
+            >
+              {t.label}
+              {t.value && counts[t.value] ? (
+                <span style={{ opacity: 0.6, marginLeft: 6 }}>{counts[t.value]}</span>
+              ) : null}
+            </button>
+          ))}
+        </div>
+        <select className="select" style={{ width: 'auto', minWidth: 160 }} value={sort} onChange={(e) => setSort(e.target.value)}>
+          {SORTS.map((s) => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
+        </select>
       </div>
 
       {loading ? (
