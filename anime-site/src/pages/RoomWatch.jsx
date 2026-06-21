@@ -158,6 +158,10 @@ export default function RoomWatch() {
 
   useEffect(() => { loadRoom() }, [loadRoom])
 
+  // Keep applySnapshot stable for socket
+  const applySnapshotRef = useRef(applySnapshot)
+  useEffect(() => { applySnapshotRef.current = applySnapshot }, [applySnapshot])
+
   // ---- Socket.IO ----
   useEffect(() => {
     if (!roomId || !user) return undefined
@@ -178,7 +182,7 @@ export default function RoomWatch() {
       socket.emit('room:join', { roomId })
     })
 
-    socket.on('room:snapshot', (snap) => { applySnapshot(snap) })
+    socket.on('room:snapshot', (snap) => { applySnapshotRef.current(snap) })
 
     socket.on('room:members', (payload) => {
       if (Array.isArray(payload?.members)) setMembers(payload.members)
@@ -214,7 +218,7 @@ export default function RoomWatch() {
       socket.disconnect()
       socketRef.current = null
     }
-  }, [applySnapshot, navigate, roomId, showToast, user])
+  }, [navigate, roomId, showToast, user])
 
   // ---- Cleanup ----
   useEffect(
