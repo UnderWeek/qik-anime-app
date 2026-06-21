@@ -160,7 +160,7 @@ export default function Library() {
           <Link to="/catalog" className="btn btn-ghost">В каталог</Link>
         </div>
       ) : (
-        <div className="grid">
+        <div className="grid" key={`${tab}-${sort}-${sortDir}`} style={{ animation: 'cardFlipIn 0.35s ease' }}>
           {filtered.map((b) => (
             <div key={b.animeId} style={{ position: 'relative' }}>
               <Link to={`/anime/${b.animeUrl || b.animeId}`} className="card">

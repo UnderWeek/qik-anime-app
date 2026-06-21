@@ -2851,3 +2851,15 @@ input {
     display: inline-flex;
   }
 }
+
+/* Library sort animation */
+@keyframes cardFlipIn {
+  from {
+    opacity: 0;
+    transform: perspective(600px) rotateX(8deg) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(600px) rotateX(0) translateY(0);
+  }
+}
