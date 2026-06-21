@@ -2852,6 +2852,21 @@ input {
   }
 }
 
+.library-toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 600px) {
+  .library-toolbar {
+    margin-bottom: 26px;
+  }
+}
+
 /* Library sort animation */
 @keyframes cardFlipIn {
   from {

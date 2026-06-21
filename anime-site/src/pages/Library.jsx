@@ -127,7 +127,7 @@ export default function Library() {
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+      <div className="library-toolbar">
         <div className="day-tabs" style={{ flexWrap: 'wrap', gap: 8 }}>
           {TABS.map((t) => (
             <button
