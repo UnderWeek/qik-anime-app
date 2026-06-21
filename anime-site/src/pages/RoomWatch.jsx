@@ -59,27 +59,27 @@ export default function RoomWatch() {
   const socketRef = useRef(null)
 
   // ---- episode filtering ----
-  const kodikEpisodes = useMemo(() => {
+  const playerEpisodes = useMemo(() => {
     return (Array.isArray(animeVideos) ? animeVideos : [])
-      .filter((v) => /kodik/i.test(v.iframe_url || ''))
+      .filter((v) => !!v?.iframe_url)
   }, [animeVideos])
 
   const dubbings = useMemo(() => {
     const seen = new Set()
     const out = []
-    kodikEpisodes.forEach((v) => {
+    playerEpisodes.forEach((v) => {
       const d = v.data?.dubbing || 'Озвучка'
       if (!seen.has(d)) { seen.add(d); out.push(d) }
     })
     return out
-  }, [kodikEpisodes])
+  }, [playerEpisodes])
 
   const episodes = useMemo(
     () =>
-      kodikEpisodes
+      playerEpisodes
         .filter((v) => (v.data?.dubbing || 'Озвучка') === selectedDub)
         .sort((a, b) => (a.index || 0) - (b.index || 0)),
-    [kodikEpisodes, selectedDub]
+    [playerEpisodes, selectedDub]
   )
 
   const activeEpisode = useMemo(
@@ -284,9 +284,8 @@ export default function RoomWatch() {
     try {
       const raw = await api.videos(anime.anime_id)
       const list = Array.isArray(raw) ? raw.filter((v) => !!v?.iframe_url) : []
-      const kodik = list.filter((v) => /kodik/i.test(v.iframe_url || ''))
       setAnimeVideos(list)
-      if (!kodik.length) showToast('Для этого аниме нет плеера Kodik')
+      if (!list.length) showToast('Для этого аниме нет доступных плееров')
     } catch {
       setAnimeVideos([])
       showToast('Не удалось загрузить серии')
@@ -543,7 +542,7 @@ export default function RoomWatch() {
           </div>
 
           <div className="room-picker">
-            <div className="control-label">Подобрать аниме (только Kodik)</div>
+            <div className="control-label">Подобрать аниме</div>
             {!isHost && (
               <div className="room-viewer-hint">Управление плеером доступно только ведущему</div>
             )}
@@ -597,15 +596,15 @@ export default function RoomWatch() {
                   <div style={{ color: 'var(--text-faint)', fontSize: 13 }}>
                     {videoLoading
                       ? 'Загружаем серии...'
-                      : kodikEpisodes.length
-                        ? `Kodik-серий: ${kodikEpisodes.length}`
-                        : 'Нет серий Kodik'}
+                      : playerEpisodes.length
+                        ? `Доступно серий: ${playerEpisodes.length}`
+                        : 'Нет доступных плееров'}
                   </div>
                 </div>
               </div>
             )}
 
-            {kodikEpisodes.length > 0 && (
+            {playerEpisodes.length > 0 && (
               <div className="room-episode-picker">
                 {dubbings.length > 1 && (
                   <div className="control-group" style={{ maxWidth: 280 }}>
