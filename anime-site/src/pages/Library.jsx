@@ -134,22 +134,18 @@ export default function Library() {
             </button>
           ))}
         </div>
-        <div className="day-tabs" style={{ gap: 6 }}>
-          {SORTS.map((s) => (
-            <button
-              key={s.value}
-              className={`chip ${sort === s.value ? 'active' : ''}`}
-              onClick={() => setSort(s.value)}
-            >
-              {s.label}
-            </button>
-          ))}
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <select className="chip" value={sort} onChange={(e) => setSort(e.target.value)} style={{ cursor: 'pointer' }}>
+            {SORTS.map((s) => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </select>
           <button
             className="chip"
             onClick={() => setSortDir((d) => -d)}
             title={sortDir === 1 ? 'По возрастанию' : 'По убыванию'}
           >
-            {sortDir === 1 ? '↑ Возр.' : '↓ Убыв.'}
+            {sortDir === 1 ? '↑' : '↓'}
           </button>
         </div>
       </div>
