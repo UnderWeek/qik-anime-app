@@ -6,8 +6,7 @@ import { BACKEND_ORIGIN, backend, getToken, uploadUrl } from '../api/backend.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import Avatar from '../components/Avatar.jsx'
 import Lightbox from '../components/Lightbox.jsx'
-import { ArrowLeft, CloseIcon, ImageIcon, UsersIcon, UserPlusIcon, StarIcon, PlayIcon } from '../components/icons.jsx'
-import { sendPlayerCommand, proxyUrl } from '../utils/kodikPlayer.js'
+import { ArrowLeft, CloseIcon, ImageIcon, UsersIcon, UserPlusIcon, StarIcon } from '../components/icons.jsx'
 
 function timeAgo(iso) {
   const d = new Date(iso)
@@ -88,18 +87,10 @@ export default function RoomWatch() {
     [episodes, videoId]
   )
 
-  const [localPaused, setLocalPaused] = useState(true)
-
   function loadIframeUrl(url) {
     if (!url) { setIframeSrc(''); return }
-    const proxied = proxyUrl(url)
-    setIframeSrc(proxied)
-    if (iframeRef.current) iframeRef.current.src = proxied
-  }
-
-  function togglePlayPause() {
-    sendPlayerCommand(iframeRef, localPaused ? 'play' : 'pause')
-    setLocalPaused((prev) => !prev)
+    setIframeSrc(url)
+    if (iframeRef.current) iframeRef.current.src = url
   }
 
   // ---- applySnapshot ----
@@ -199,18 +190,9 @@ export default function RoomWatch() {
       }
     })
 
-    socket.on('room:closed', (payload) => {
-      console.log('[ROOM-DEBUG] room:closed received', payload)
+    socket.on('room:closed', () => {
       showToast('Комната закрыта')
       navigate('/rooms')
-    })
-
-    socket.on('connect_error', (err) => {
-      console.log('[ROOM-DEBUG] socket connect_error', err.message)
-    })
-
-    socket.on('disconnect', (reason) => {
-      console.log('[ROOM-DEBUG] socket disconnect', reason)
     })
 
     return () => {
@@ -556,21 +538,8 @@ export default function RoomWatch() {
             )}
           </div>
 
-          <div style={{ marginTop: 14, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={togglePlayPause}
-              disabled={!state?.iframeUrl}
-            >
-              {localPaused ? (
-                <><PlayIcon width={14} height={14} /> Запустить плеер</>
-              ) : (
-                'Пауза'
-              )}
-            </button>
-            <span style={{ fontSize: 13, color: 'var(--text-faint)' }}>
-              {isHost ? 'Вы ведущий' : `Ведущий: ${members.find((m) => m.isHost)?.user?.username || '—'}`}
-            </span>
+          <div style={{ marginTop: 14, fontSize: 13, color: 'var(--text-faint)' }}>
+            {isHost ? 'Вы ведущий' : `Ведущий: ${members.find((m) => m.isHost)?.user?.username || '—'}`}
           </div>
 
           <div className="room-picker">

@@ -1,15 +1,20 @@
-// Kodik player control via server-side proxy (same-origin iframe)
-// Proxy injects a control script that listens for { kodikCommand } postMessage
+// Kodik iframe postMessage API
+// Player sends: { key: 'kodik_player_time_update', value: seconds }
+// Note: Kodik does not support external play/pause/seek control via postMessage
 
-export function sendPlayerCommand(iframeRef, command, time) {
-  const cw = iframeRef.current?.contentWindow
-  if (!cw) return
-  const msg = { kodikCommand: command }
-  if (time !== undefined) msg.time = time
-  cw.postMessage(msg, '*')
-}
+export function subscribeKodikEvents(iframeRef, callback) {
+  function handler(event) {
+    let msg = event.data
+    if (typeof msg === 'string') {
+      try { msg = JSON.parse(msg) } catch { return }
+    }
+    if (!msg || typeof msg !== 'object') return
 
-export function proxyUrl(originalUrl) {
-  if (!originalUrl) return ''
-  return `/api/player-proxy?url=${encodeURIComponent(originalUrl)}`
+    if (msg.key === 'kodik_player_time_update' && typeof msg.value === 'number') {
+      callback({ type: 'time', time: msg.value })
+    }
+  }
+
+  window.addEventListener('message', handler)
+  return () => window.removeEventListener('message', handler)
 }
