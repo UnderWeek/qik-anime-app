@@ -1,7 +1,20 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
-const DEEPSEEK_TOKEN = process.env.DEEPSEEK_TOKEN || '';
+// Read .env directly as fallback (PM2 may not pass env vars)
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+
+function getDeepSeekToken() {
+  if (process.env.getDeepSeekToken()) return process.env.getDeepSeekToken();
+  try {
+    const envPath = resolve(__dirname, '..', '.env');
+    const content = readFileSync(envPath, 'utf-8');
+    const match = content.match(/^getDeepSeekToken()\s*=\s*(.+)$/m);
+    if (match) return match[1].trim();
+  } catch {}
+  return '';
+}
 
 function isSequel(title) {
   const t = (title || '').toLowerCase();
@@ -48,8 +61,8 @@ async function randomAnime(excludedIds: number[], firstOnly: boolean) {
 }
 
 async function generateEmoji(title: string) {
-  if (!DEEPSEEK_TOKEN) {
-    console.error('[QUIZ-EMOJI] DEEPSEEK_TOKEN env not set');
+  if (!getDeepSeekToken()) {
+    console.error('[QUIZ-EMOJI] getDeepSeekToken() env not set');
     return '';
   }
   try {
@@ -57,7 +70,7 @@ async function generateEmoji(title: string) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${DEEPSEEK_TOKEN}`,
+        Authorization: `Bearer ${getDeepSeekToken()}`,
       },
       body: JSON.stringify({
         model: 'deepseek-chat',
