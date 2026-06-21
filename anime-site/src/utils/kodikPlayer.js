@@ -1,3 +1,9 @@
+// DEBUG: log all postMessage events from Kodik iframe
+window.addEventListener('message', (event) => {
+  console.log('[KODIK-MSG] origin:', event.origin);
+  console.log('[KODIK-MSG] data:', event.data);
+});
+
 // Kodik/Flowplayer iframe postMessage API
 // Player sends: { key: 'kodik_player_time_update', value: seconds }
 // Flowplayer API: { method: 'toggle'|'play'|'pause'|'mute'|'unmute' }
