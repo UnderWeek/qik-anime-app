@@ -212,8 +212,8 @@ export default function AnimeDetail() {
 
       {suggestOpen && (
         <SuggestModal anime={anime} posterUrl={img} onClose={() => setSuggestOpen(false)} />
-        {posterZoom && <Lightbox src={posterZoom} onClose={() => setPosterZoom(null)} />}
       )}
+      {posterZoom && <Lightbox src={posterZoom} onClose={() => setPosterZoom(null)} />}
     </div>
   )
 }
