@@ -43,13 +43,19 @@ export class QuizController {
             // Random timestamp in the middle 60% of the video (avoid intro/credits)
             const screenshotTime = Math.floor(duration * 0.2 + Math.random() * duration * 0.6);
 
+            // Build iframe URL with autoplay + start_from to jump to frame
+            let iframeUrl = episode.iframe_url;
+            if (iframeUrl.startsWith('//')) iframeUrl = 'https:' + iframeUrl;
+            const sep = iframeUrl.includes('?') ? '&' : '?';
+            iframeUrl += `${sep}autoplay=true&start_from=${screenshotTime}`;
+
             return {
               animeId: id,
               animeTitle: anime.title,
               animeUrl: anime.anime_url,
               animePoster: anime.poster?.medium || anime.poster?.small || '',
               episodeNumber: episode.number || 1,
-              iframeUrl: episode.iframe_url,
+              iframeUrl,
               screenshotTime,
             };
           } catch {

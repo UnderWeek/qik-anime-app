@@ -2,9 +2,10 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { api, poster } from '../api/client.js'
 import { backend } from '../api/backend.js'
 import { useAuth } from '../context/AuthContext.jsx'
-import { sendPlayerCommand } from '../utils/playerApi.js'
 import SEO from '../components/SEO.jsx'
 import { PlayIcon, StarIcon } from '../components/icons.jsx'
+
+const FRAME_SECONDS = 5
 
 export default function Quiz() {
   const { user, openAuth } = useAuth()
@@ -18,14 +19,17 @@ export default function Quiz() {
   const [totalPlayed, setTotalPlayed] = useState(0)
   const [wrongsInRow, setWrongsInRow] = useState(0)
   const [resultMsg, setResultMsg] = useState('')
+  const [timeLeft, setTimeLeft] = useState(FRAME_SECONDS)
   const excludeRef = useRef([])
   const iframeRef = useRef(null)
+  const timerRef = useRef(null)
 
   const loadQuestion = useCallback(async () => {
     setState('loading')
     setSearchText('')
     setResults([])
     setResultMsg('')
+    setTimeLeft(FRAME_SECONDS)
     try {
       const q = await backend.quizQuestion(excludeRef.current)
       if (q.error) {
@@ -35,6 +39,11 @@ export default function Quiz() {
       }
       setQuestion(q)
       excludeRef.current.push(q.animeId)
+
+      // Load iframe
+      if (iframeRef.current) {
+        iframeRef.current.src = q.iframeUrl
+      }
       setState('image')
     } catch {
       setResultMsg('Ошибка загрузки')
@@ -51,26 +60,21 @@ export default function Quiz() {
     loadQuestion()
   }, [loadQuestion])
 
-  // Load iframe and seek to screenshot position
+  // Timer for frame display
   useEffect(() => {
-    if (state !== 'image' || !question?.iframeUrl || !iframeRef.current) return
-
-    const src = question.iframeUrl.startsWith('//')
-      ? `https:${question.iframeUrl}`
-      : question.iframeUrl
-    iframeRef.current.src = src
-
-    function onLoad() {
-      setTimeout(() => {
-        sendPlayerCommand(iframeRef, 'seekTo', question.screenshotTime)
-        // Wait a bit for the frame to render, then pause
-        setTimeout(() => sendPlayerCommand(iframeRef, 'pause'), 1500)
-        setState('guessing')
-      }, 2000)
-    }
-    iframeRef.current.addEventListener('load', onLoad, { once: true })
-    return () => iframeRef.current?.removeEventListener('load', onLoad)
-  }, [state, question])
+    if (state !== 'image') return undefined
+    timerRef.current = setInterval(() => {
+      setTimeLeft((t) => {
+        if (t <= 1) {
+          clearInterval(timerRef.current)
+          setState('guessing')
+          return 0
+        }
+        return t - 1
+      })
+    }, 1000)
+    return () => clearInterval(timerRef.current)
+  }, [state])
 
   async function runSearch(e) {
     e.preventDefault()
@@ -88,6 +92,7 @@ export default function Quiz() {
   }
 
   function guess(anime) {
+    clearInterval(timerRef.current)
     const correct = anime.anime_id === question.animeId
     if (correct) {
       const bonus = state === 'image' ? 2 : 1
@@ -154,21 +159,29 @@ export default function Quiz() {
 
       {(state === 'image' || state === 'guessing') && question && (
         <div>
-          {/* Visible player showing the frame */}
           <div style={{
             borderRadius: 14, overflow: 'hidden', maxWidth: 560, marginBottom: 20,
-            aspectRatio: '16/9', background: '#000',
+            aspectRatio: '16/9', background: '#000', position: 'relative',
           }}>
+            {state === 'image' && (
+              <div style={{
+                position: 'absolute', top: 12, right: 12, zIndex: 2,
+                background: 'rgba(0,0,0,0.7)', color: '#fff',
+                borderRadius: 8, padding: '4px 10px', fontSize: 13, fontWeight: 600,
+              }}>
+                {timeLeft}с
+              </div>
+            )}
             <iframe
               ref={iframeRef}
               title="quiz-frame"
               allow="autoplay"
-              style={{ width: '100%', height: '100%', border: 0, pointerEvents: 'none' }}
+              style={{ width: '100%', height: '100%', border: 0 }}
             />
           </div>
 
           <p style={{ fontSize: 13, color: 'var(--text-faint)', marginBottom: 14 }}>
-            Кадр из серии №{question.episodeNumber}. Какое это аниме?
+            Кадр из серии №{question.episodeNumber}. {state === 'image' ? 'Смотрите на кадр!' : 'Какое это аниме?'}
           </p>
 
           <form onSubmit={runSearch} style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
