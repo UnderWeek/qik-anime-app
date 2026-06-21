@@ -144,8 +144,9 @@ export default function Library() {
             className="chip"
             onClick={() => setSortDir((d) => -d)}
             title={sortDir === 1 ? 'По возрастанию' : 'По убыванию'}
+            style={{ transition: 'transform 0.3s ease', transform: sortDir === 1 ? 'rotate(180deg)' : 'rotate(0deg)' }}
           >
-            {sortDir === 1 ? '↑' : '↓'}
+            ↓
           </button>
         </div>
       </div>
