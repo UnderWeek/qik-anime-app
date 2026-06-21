@@ -48,28 +48,42 @@ async function randomAnime(excludedIds: number[], firstOnly: boolean) {
 }
 
 async function generateEmoji(title: string) {
-  const resp = await fetch('https://api.deepseek.com/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${DEEPSEEK_TOKEN}`,
-    },
-    body: JSON.stringify({
-      model: 'deepseek-chat',
-      messages: [
-        {
-          role: 'system',
-          content:
-            'Ты — генератор эмодзи-загадок. Тебе дают название аниме, ты описываешь его сюжет только эмодзи (8-15 штук), без слов. Ответ — только эмодзи, ничего больше.',
-        },
-        { role: 'user', content: `Аниме: ${title}` },
-      ],
-      max_tokens: 60,
-      temperature: 0.8,
-    }),
-  });
-  const data = await resp.json();
-  return data?.choices?.[0]?.message?.content?.trim() || '';
+  if (!DEEPSEEK_TOKEN) {
+    console.error('[QUIZ-EMOJI] DEEPSEEK_TOKEN env not set');
+    return '';
+  }
+  try {
+    const resp = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${DEEPSEEK_TOKEN}`,
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          {
+            role: 'system',
+            content:
+              'Ты — генератор эмодзи-загадок. Тебе дают название аниме, ты описываешь его сюжет только эмодзи (8-15 штук), без слов. Ответ — только эмодзи, ничего больше.',
+          },
+          { role: 'user', content: `Аниме: ${title}` },
+        ],
+        max_tokens: 60,
+        temperature: 0.8,
+      }),
+    });
+    if (!resp.ok) {
+      const errText = await resp.text();
+      console.error('[QUIZ-EMOJI] API error', resp.status, errText.slice(0, 300));
+      return '';
+    }
+    const data = await resp.json();
+    return data?.choices?.[0]?.message?.content?.trim() || '';
+  } catch (err) {
+    console.error('[QUIZ-EMOJI] fetch error', err.message);
+    return '';
+  }
 }
 
 @Controller('quiz')
