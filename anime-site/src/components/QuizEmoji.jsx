@@ -128,7 +128,7 @@ export default function QuizEmoji() {
                 key={d.k}
                 className={`btn ${diff === d.k ? 'btn-primary' : 'btn-ghost'}`}
                 onClick={() => selectDifficulty(d.k)}
-                style={{ flex: '1 1 180px', maxWidth: 240, padding: '14px 12px', textAlign: 'center' }}
+                style={{ flex: '1 1 160px', maxWidth: 240, padding: '14px 10px', textAlign: 'center', whiteSpace: 'normal', wordBreak: 'break-word' }}
               >
                 <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 2 }}>{d.l}</div>
                 <div style={{ fontSize: 12, opacity: 0.7 }}>{d.d}</div>
@@ -184,7 +184,7 @@ export default function QuizEmoji() {
                 <button
                   key={a.animeId}
                   className="btn btn-ghost"
-                  style={{ textAlign: 'left', padding: '10px 16px' }}
+                  style={{ textAlign: 'left', padding: '10px 16px', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'break-word' }}
                   onClick={() => guess(a)}
                   disabled={state === 'reveal'}
                 >
