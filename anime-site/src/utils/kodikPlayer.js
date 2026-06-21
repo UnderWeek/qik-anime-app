@@ -1,9 +1,6 @@
-// DEBUG: log postMessage from Kodik iframe
 window.addEventListener("message", (e) => {
   if (e.origin.includes("kodik")) {
-    console.log("ORIGIN:", e.origin);
-    console.log("DATA:", e.data);
-    console.log("----------------");
+    console.log(JSON.stringify(e.data, null, 2));
   }
 });
 
