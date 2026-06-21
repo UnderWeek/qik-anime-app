@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import Avatar from '../components/Avatar.jsx'
 import Lightbox from '../components/Lightbox.jsx'
 import { ArrowLeft, CloseIcon, ImageIcon, UsersIcon, UserPlusIcon, StarIcon, PlayIcon } from '../components/icons.jsx'
-import { sendKodikCommand, subscribeKodikEvents } from '../utils/kodikPlayer.js'
+import { togglePlayPause, subscribeKodikEvents } from '../utils/kodikPlayer.js'
 
 function timeAgo(iso) {
   const d = new Date(iso)
@@ -207,8 +207,8 @@ export default function RoomWatch() {
     return () => unsub()
   }, [iframeSrc])
 
-  function togglePlayPause() {
-    sendKodikCommand(iframeRef, 'playPause')
+  function onTogglePlayPause() {
+    togglePlayPause(iframeRef)
     setLocalPaused((prev) => !prev)
   }
 
@@ -551,7 +551,7 @@ export default function RoomWatch() {
           <div style={{ marginTop: 14, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <button
               className="btn btn-primary btn-sm"
-              onClick={togglePlayPause}
+              onClick={onTogglePlayPause}
               disabled={!state?.iframeUrl}
             >
               {localPaused ? (

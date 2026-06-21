@@ -1,6 +1,6 @@
-// Kodik iframe postMessage API
+// Kodik/Flowplayer iframe postMessage API
 // Player sends: { key: 'kodik_player_time_update', value: seconds }
-// Player listens: { key: 'kodik_player_api', value: { method, value? } }
+// Flowplayer API: { method: 'toggle'|'play'|'pause'|'mute'|'unmute' }
 
 export function subscribeKodikEvents(iframeRef, callback) {
   function handler(event) {
@@ -19,13 +19,18 @@ export function subscribeKodikEvents(iframeRef, callback) {
   return () => window.removeEventListener('message', handler)
 }
 
-export function sendKodikCommand(iframeRef, method, value) {
+export function togglePlayPause(iframeRef) {
   const cw = iframeRef.current?.contentWindow
   if (!cw) return
 
-  const payload = { key: 'kodik_player_api', value: { method } }
-  if (value !== undefined) payload.value.value = value
+  // Try multiple formats that Flowplayer / Kodik might accept
+  const payloads = [
+    { method: 'toggle' },
+    { key: 'kodik_player_api', value: { method: 'playPause' } },
+  ]
 
-  cw.postMessage(payload, '*')
-  cw.postMessage(JSON.stringify(payload), '*')
+  for (const p of payloads) {
+    try { cw.postMessage(p, '*') } catch { /* ignore */ }
+    try { cw.postMessage(JSON.stringify(p), '*') } catch { /* ignore */ }
+  }
 }
