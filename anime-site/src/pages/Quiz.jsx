@@ -2,17 +2,16 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { api, poster } from '../api/client.js'
 import { backend } from '../api/backend.js'
 import { useAuth } from '../context/AuthContext.jsx'
-import { sendPlayerCommand, subscribePlayerEvents } from '../utils/playerApi.js'
 import SEO from '../components/SEO.jsx'
 import { PlayIcon, StarIcon } from '../components/icons.jsx'
 
-const QUESTION_TIME = 12 // seconds to listen
-const HINT_TIME = 6 // after this many seconds, show search field
+const QUESTION_TIME = 10
 
 export default function Quiz() {
   const { user, openAuth } = useAuth()
-  const [state, setState] = useState('idle') // idle | loading | listening | guessing | reveal
+  const [state, setState] = useState('idle')
   const [question, setQuestion] = useState(null)
+  const [videoUrl, setVideoUrl] = useState('')
   const [searchText, setSearchText] = useState('')
   const [searching, setSearching] = useState(false)
   const [results, setResults] = useState([])
@@ -24,13 +23,14 @@ export default function Quiz() {
   const [totalPlayed, setTotalPlayed] = useState(0)
   const [wrongsInRow, setWrongsInRow] = useState(0)
   const excludeRef = useRef([])
-  const iframeRef = useRef(null)
+  const videoRef = useRef(null)
   const timerRef = useRef(null)
 
   const loadQuestion = useCallback(async () => {
     setState('loading')
     setSearchText('')
     setResults([])
+    setVideoUrl('')
     setTimeLeft(QUESTION_TIME)
     setShowHint(false)
     setResultMsg('')
@@ -43,7 +43,39 @@ export default function Quiz() {
       }
       setQuestion(q)
       excludeRef.current.push(q.animeId)
-      setState('listening')
+
+      // Fetch opening video from AnimeThemes
+      try {
+        const themeResp = await fetch(
+          `https://api.animethemes.moe/anime?filter[has]=resources&filter[site]=MyAnimeList&filter[external_id]=${q.malId}&include=animethemes.animethemeentries.videos`
+        )
+        const themeData = await themeResp.json()
+        const animeList = themeData?.anime || []
+        if (!animeList.length) throw new Error('no themes')
+
+        // Collect all opening videos
+        const openings = []
+        for (const a of animeList) {
+          for (const theme of a.animethemes || []) {
+            if (theme.type !== 'OP') continue
+            for (const entry of theme.animethemeentries || []) {
+              for (const v of entry.videos || []) {
+                if (v.link) openings.push(v)
+              }
+            }
+          }
+        }
+
+        if (!openings.length) throw new Error('no openings')
+
+        // Pick a random opening video
+        const picked = openings[Math.floor(Math.random() * openings.length)]
+        setVideoUrl(picked.link)
+        setState('listening')
+      } catch {
+        setResultMsg('Не удалось загрузить опенинг. Попробуйте другой.')
+        setState('idle')
+      }
     } catch {
       setResultMsg('Ошибка загрузки вопроса')
       setState('idle')
@@ -68,8 +100,8 @@ export default function Quiz() {
           clearInterval(timerRef.current)
           return 0
         }
-        if (t === QUESTION_TIME - HINT_TIME) setShowHint(true)
-        if (t === QUESTION_TIME - HINT_TIME + 2 && state === 'listening') {
+        if (t === QUESTION_TIME - 4) setShowHint(true)
+        if (t === QUESTION_TIME - 2 && state === 'listening') {
           setState('guessing')
         }
         return t - 1
@@ -78,41 +110,17 @@ export default function Quiz() {
     return () => clearInterval(timerRef.current)
   }, [state])
 
-  // Control player: seek to opening start, play for 10 sec, then pause
+  // Play video when URL is ready
   useEffect(() => {
-    if (state !== 'listening' || !question?.iframeUrl) return
-    const iframe = iframeRef.current
-    if (!iframe) return
-
-    // Load the iframe
-    const src = question.iframeUrl.startsWith('//')
-      ? `https:${question.iframeUrl}`
-      : question.iframeUrl
-    iframe.src = src
-
-    // Wait for iframe to load, then seek + play
-    function onLoad() {
+    if (state === 'listening' && videoUrl && videoRef.current) {
+      videoRef.current.currentTime = 0
+      videoRef.current.play().catch(() => {})
+      // Pause after 10 seconds
       setTimeout(() => {
-        sendPlayerCommand(iframeRef, 'seekTo', question.openStart)
-        setTimeout(() => sendPlayerCommand(iframeRef, 'play'), 300)
-        // Pause after 10 seconds
-        setTimeout(() => sendPlayerCommand(iframeRef, 'pause'), 10000)
-      }, 2000)
+        if (videoRef.current) videoRef.current.pause()
+      }, 10000)
     }
-    iframe.addEventListener('load', onLoad, { once: true })
-    return () => iframe.removeEventListener('load', onLoad)
-  }, [state, question])
-
-  // Listen for timeupdate to detect natural pause
-  useEffect(() => {
-    if (!iframeRef.current || state !== 'listening') return undefined
-    const unsub = subscribePlayerEvents(iframeRef, (event) => {
-      if (event.type === 'time' && event.time > question.openEnd) {
-        sendPlayerCommand(iframeRef, 'pause')
-      }
-    })
-    return () => unsub()
-  }, [state, question])
+  }, [state, videoUrl])
 
   async function runSearch(e) {
     e.preventDefault()
@@ -131,10 +139,10 @@ export default function Quiz() {
 
   function guess(anime) {
     clearInterval(timerRef.current)
+    if (videoRef.current) videoRef.current.pause()
     const correct = anime.anime_id === question.animeId
-    const titleMatch = searchText.trim().toLowerCase() === question.animeTitle.toLowerCase()
 
-    if (correct || titleMatch) {
+    if (correct) {
       const bonus = state === 'listening' ? 2 : 1
       setScore((s) => s + 1 + bonus)
       setWrongsInRow(0)
@@ -147,7 +155,6 @@ export default function Quiz() {
     setTotalPlayed((t) => t + 1)
     setRound((r) => r + 1)
     setState('reveal')
-    sendPlayerCommand(iframeRef, 'pause')
   }
 
   function nextRound() {
@@ -183,28 +190,11 @@ export default function Quiz() {
         </div>
       </div>
 
-      {/* Player — visible for volume control */}
-      {(state === 'listening' || state === 'guessing') && (
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 6 }}>
-            Не смотрите на видео — слушайте опенинг. Громкость регулируется в плеере.
-          </div>
-          <div style={{ borderRadius: 12, overflow: 'hidden', maxWidth: 320, opacity: 0.3 }}>
-            <iframe
-              ref={iframeRef}
-              title="quiz-player"
-              allow="autoplay"
-              style={{ width: '100%', aspectRatio: '16/9', border: 0, pointerEvents: 'none' }}
-            />
-          </div>
-        </div>
-      )}
-
       {state === 'idle' && (
         <div className="state">
           {resultMsg && <p style={{ color: resultMsg.includes('Правильно') ? '#4ade80' : 'var(--text-faint)', marginBottom: 16 }}>{resultMsg}</p>}
           <p style={{ marginBottom: 20, maxWidth: 400 }}>
-            Угадайте аниме по фрагменту опенинга. <br />
+            Угадайте аниме по фрагменту опенинга.<br />
             Будет проигран отрывок 10 секунд — введите название.
           </p>
           <button className="btn btn-primary" onClick={startGame}>
@@ -214,7 +204,17 @@ export default function Quiz() {
       )}
 
       {state === 'loading' && (
-        <div className="state"><p>Загрузка...</p></div>
+        <div className="state"><p>Загрузка опенинга...</p></div>
+      )}
+
+      {/* Hidden video player — audio only */}
+      {videoUrl && (
+        <video
+          ref={videoRef}
+          src={videoUrl}
+          style={{ display: 'none' }}
+          preload="auto"
+        />
       )}
 
       {(state === 'listening' || state === 'guessing') && question && (
@@ -230,7 +230,7 @@ export default function Quiz() {
             <div>
               <div style={{ fontWeight: 700 }}>Слушайте опенинг</div>
               <div style={{ fontSize: 13, color: 'var(--text-faint)' }}>
-                {state === 'listening' ? 'Секунд до подсказки: ' + Math.max(0, timeLeft - (QUESTION_TIME - HINT_TIME)) : 'Введите название аниме'}
+                {state === 'listening' ? 'Секунд до подсказки: ' + Math.max(0, timeLeft - (QUESTION_TIME - 4)) : 'Введите название аниме'}
               </div>
             </div>
           </div>
@@ -258,7 +258,7 @@ export default function Quiz() {
                 return (
                   <button
                     key={a.anime_id || a.anime_url}
-                    className={`room-search-item ${state === 'reveal' && a.anime_id === question.animeId ? 'active' : ''}`}
+                    className="room-search-item"
                     onClick={() => guess(a)}
                     type="button"
                     disabled={state === 'reveal'}
