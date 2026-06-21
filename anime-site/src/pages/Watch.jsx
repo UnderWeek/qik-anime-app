@@ -190,6 +190,34 @@ export default function Watch() {
 
   const watchImage = anime ? (poster(anime, 'big') || poster(anime, 'medium')) : ''
 
+  if (!user) {
+    return (
+      <div className="container page">
+        <SEO
+          title={anime ? `Смотреть «${anime.title}»` : 'Просмотр'}
+          description={anime ? `Смотреть ${anime.title} онлайн бесплатно.` : 'Просмотр аниме онлайн.'}
+          image={watchImage || 'https://quickik.ru/og-image.png'}
+          url={`https://quickik.ru/anime/${url}/watch`}
+          canonical={`https://quickik.ru/anime/${url}/watch`}
+        />
+        <Link
+          to={`/anime/${url}`}
+          className="section-link"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 20 }}
+        >
+          <ArrowLeft width={14} height={14} /> Назад к аниме
+        </Link>
+        <div className="state">
+          <h2>Нужна авторизация</h2>
+          <p style={{ marginBottom: 20 }}>Войдите в аккаунт, чтобы смотреть серии.</p>
+          <button className="btn btn-primary" onClick={() => openAuth('login')}>
+            Войти
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="container page">
       <SEO
