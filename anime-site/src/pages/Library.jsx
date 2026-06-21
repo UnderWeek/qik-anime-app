@@ -28,11 +28,14 @@ const SORTS = [
 
 export default function Library() {
   const { user, ready, openAuth, showToast } = useAuth()
+  const PAGE_SIZE = 24
+
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('')
   const [sort, setSort] = useState('updated')
   const [sortDir, setSortDir] = useState(-1)
+  const [visible, setVisible] = useState(PAGE_SIZE)
 
   const load = useCallback(() => {
     if (!user) return
@@ -47,6 +50,11 @@ export default function Library() {
   useEffect(() => {
     load()
   }, [load])
+
+  // Reset visible when tab/sort changes
+  useEffect(() => {
+    setVisible(PAGE_SIZE)
+  }, [tab, sort, sortDir])
 
   async function remove(animeId) {
     try {
@@ -160,8 +168,9 @@ export default function Library() {
           <Link to="/catalog" className="btn btn-ghost">В каталог</Link>
         </div>
       ) : (
-        <div className="grid" key={`${tab}-${sort}-${sortDir}`} style={{ animation: 'cardFlipIn 0.35s ease' }}>
-          {filtered.map((b) => (
+        <>
+          <div className="grid" key={`${tab}-${sort}-${sortDir}`} style={{ animation: 'cardFlipIn 0.35s ease' }}>
+            {filtered.slice(0, visible).map((b) => (
             <div key={b.animeId} style={{ position: 'relative' }}>
               <Link to={`/anime/${b.animeUrl || b.animeId}`} className="card">
                 <div className="card-poster">
@@ -198,7 +207,17 @@ export default function Library() {
             </div>
           ))}
         </div>
-      )}
+        {visible < filtered.length && (
+          <div style={{ textAlign: 'center', marginTop: 24 }}>
+            <button
+              className="btn btn-ghost"
+              onClick={() => setVisible((v) => v + PAGE_SIZE)}
+            >
+              Загрузить ещё ({filtered.length - visible} из {filtered.length})
+            </button>
+          </div>
+        )}
+      </>)}
     </div>
   )
 }
