@@ -195,9 +195,18 @@ export default function RoomWatch() {
       }
     })
 
-    socket.on('room:closed', () => {
+    socket.on('room:closed', (payload) => {
+      console.log('[ROOM-DEBUG] room:closed received', payload)
       showToast('Комната закрыта')
       navigate('/rooms')
+    })
+
+    socket.on('connect_error', (err) => {
+      console.log('[ROOM-DEBUG] socket connect_error', err.message)
+    })
+
+    socket.on('disconnect', (reason) => {
+      console.log('[ROOM-DEBUG] socket disconnect', reason)
     })
 
     return () => {

@@ -18,7 +18,14 @@ export class PlayerProxyController {
       });
 
       if (!resp.ok) {
+        console.error('[PLAYER-PROXY] upstream error', resp.status, resp.statusText);
         return res.status(resp.status).send('Failed to fetch player');
+      }
+
+      const contentType = resp.headers.get('content-type') || '';
+      if (!contentType.includes('text/html')) {
+        console.error('[PLAYER-PROXY] not HTML, got', contentType);
+        return res.status(502).send('Not HTML');
       }
 
       let html = await resp.text();
@@ -53,6 +60,7 @@ export class PlayerProxyController {
       html = html.replace('</head>', controlScript + '</head>');
       res.type('text/html').send(html);
     } catch (err) {
+      console.error('[PLAYER-PROXY] fetch error', err.message);
       res.status(502).send('Proxy error');
     }
   }
