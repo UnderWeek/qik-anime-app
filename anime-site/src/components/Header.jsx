@@ -9,7 +9,7 @@ const links = [
   { to: '/catalog', label: 'Каталог' },
   { to: '/schedule', label: 'Расписание' },
   { to: '/rooms', label: 'Комнаты' },
-  { to: '/quiz', label: 'Квиз' },
+  { to: '/quiz', label: 'Квизы' },
 ];
 
 const TAB_DEFS = {
