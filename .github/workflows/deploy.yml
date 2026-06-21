@@ -77,4 +77,4 @@ jobs:
           rsync -rlgoDzvc -e "ssh $SSH_OPTS" --exclude='server/data/' --exclude='server/uploads/' artifact/ "$SSH_USER@$SSH_HOST:/root/qik-anime/"
 
           echo "--- reload ---"
-          ssh $SSH_OPTS "$SSH_USER@$SSH_HOST" 'cp -r /root/qik-anime/anime-site/dist/* /var/www/quickik.ru/ && cd /root/qik-anime/server && npm ci --omit=dev && pm2 restart ecosystem.config.cjs --update-env && echo ok'
+          ssh $SSH_OPTS "$SSH_USER@$SSH_HOST" 'cp -r /root/qik-anime/anime-site/dist/* /var/www/quickik.ru/ && cd /root/qik-anime/server && npm ci --omit=dev && pm2 reload anime-api && echo ok'
