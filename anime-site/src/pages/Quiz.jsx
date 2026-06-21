@@ -183,10 +183,22 @@ export default function Quiz() {
         </div>
       </div>
 
-      {/* Hidden player */}
-      <div style={{ width: 1, height: 1, overflow: 'hidden', opacity: 0, pointerEvents: 'none' }}>
-        <iframe ref={iframeRef} title="quiz-player" allow="autoplay" />
-      </div>
+      {/* Player — visible for volume control */}
+      {(state === 'listening' || state === 'guessing') && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 6 }}>
+            Не смотрите на видео — слушайте опенинг. Громкость регулируется в плеере.
+          </div>
+          <div style={{ borderRadius: 12, overflow: 'hidden', maxWidth: 320, opacity: 0.3 }}>
+            <iframe
+              ref={iframeRef}
+              title="quiz-player"
+              allow="autoplay"
+              style={{ width: '100%', aspectRatio: '16/9', border: 0, pointerEvents: 'none' }}
+            />
+          </div>
+        </div>
+      )}
 
       {state === 'idle' && (
         <div className="state">

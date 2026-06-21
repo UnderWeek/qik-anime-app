@@ -11,9 +11,8 @@ export class QuizController {
       .map(Number)
       .filter((n) => Number.isFinite(n));
 
-    // Fetch a few random pages to find an anime with episodes
-    const attempts = 12;
-    const randomPage = () => Math.floor(Math.random() * 100) + 1;
+    const attempts = 20;
+    const randomPage = () => Math.floor(Math.random() * 120) + 1;
 
     for (let i = 0; i < attempts; i++) {
       try {
@@ -26,7 +25,6 @@ export class QuizController {
         const list = data?.response || data;
         if (!Array.isArray(list) || !list.length) continue;
 
-        // Shuffle and try each anime
         const shuffled = list.sort(() => Math.random() - 0.5);
         for (const anime of shuffled) {
           const id = anime.anime_id;
@@ -40,13 +38,23 @@ export class QuizController {
             const episodes = vData?.response || vData;
             if (!Array.isArray(episodes) || !episodes.length) continue;
 
-            // Find first episode with an iframe URL
-            const episode = episodes.find((ep) => !!ep?.iframe_url);
+            const episode = episodes.find((ep) => {
+              if (!ep?.iframe_url) return false;
+              // Look for opening timestamp in episode data
+              const d = ep.data || ep;
+              const fields = [
+                d?.op_start, d?.opening_start, d?.opening, d?.intro_start,
+                d?.op_start_sec, d?.opening_time, d?.op_time,
+              ];
+              return fields.some((f) => typeof f === 'number' && f >= 0);
+            });
+
             if (!episode) continue;
 
-            // Opening timestamp: between 60-130 seconds
-            const openStart = 60 + Math.floor(Math.random() * 70);
-            const openEnd = openStart + 10;
+            const d = episode.data || episode;
+            const openStart =
+              d?.op_start ?? d?.opening_start ?? d?.opening ?? d?.intro_start ??
+              d?.op_start_sec ?? d?.opening_time ?? d?.op_time ?? 0;
 
             return {
               animeId: id,
@@ -55,8 +63,8 @@ export class QuizController {
               animePoster: anime.poster?.medium || anime.poster?.small || '',
               episodeNumber: episode.number || 1,
               iframeUrl: episode.iframe_url,
-              openStart,
-              openEnd,
+              openStart: Math.floor(Number(openStart)),
+              openEnd: Math.floor(Number(openStart)) + 10,
             };
           } catch {
             continue;
