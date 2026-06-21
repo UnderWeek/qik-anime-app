@@ -67,7 +67,7 @@ export default function Schedule() {
           <p>Выберите другой день недели.</p>
         </div>
       ) : (
-        <div className="grid">
+        <div className="grid" key={day} style={{ animation: 'cardFlipIn 0.35s ease' }}>
           {byDay[day].map((a) => (
             <ScheduleCard key={a.anime_id} anime={a} />
           ))}
