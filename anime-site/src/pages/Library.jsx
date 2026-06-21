@@ -32,6 +32,7 @@ export default function Library() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('')
   const [sort, setSort] = useState('updated')
+  const [sortDir, setSortDir] = useState(-1)
 
   const load = useCallback(() => {
     if (!user) return
@@ -76,21 +77,21 @@ export default function Library() {
     const STATUS_ORDER = { watching: 1, rewatching: 2, planned: 3, on_hold: 4, completed: 5, dropped: 6, favorite: 7 }
     switch (sort) {
       case 'created':
-        list = [...list].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+        list = [...list].sort((a, b) => sortDir * (new Date(b.createdAt || 0) - new Date(a.createdAt || 0)))
         break
       case 'title':
-        list = [...list].sort((a, b) => (a.animeTitle || '').localeCompare(b.animeTitle || '', 'ru'))
+        list = [...list].sort((a, b) => sortDir * (a.animeTitle || '').localeCompare(b.animeTitle || '', 'ru'))
         break
       case 'status':
-        list = [...list].sort((a, b) => (STATUS_ORDER[a.status] || 99) - (STATUS_ORDER[b.status] || 99))
+        list = [...list].sort((a, b) => sortDir * ((STATUS_ORDER[a.status] || 99) - (STATUS_ORDER[b.status] || 99)))
         break
       case 'updated':
       default:
-        list = [...list].sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
+        list = [...list].sort((a, b) => sortDir * (new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)))
         break
     }
     return list
-  }, [items, tab, sort])
+  }, [items, tab, sort, sortDir])
 
   const counts = items.reduce((acc, b) => {
     acc[b.status] = (acc[b.status] || 0) + 1
@@ -133,11 +134,16 @@ export default function Library() {
             </button>
           ))}
         </div>
-        <select className="select" style={{ width: 'auto', minWidth: 160 }} value={sort} onChange={(e) => setSort(e.target.value)}>
-          {SORTS.map((s) => (
-            <option key={s.value} value={s.value}>{s.label}</option>
-          ))}
-        </select>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <select className="select" style={{ width: 'auto', minWidth: 160 }} value={sort} onChange={(e) => setSort(e.target.value)}>
+            {SORTS.map((s) => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </select>
+          <button className="btn btn-ghost btn-sm" onClick={() => setSortDir((d) => -d)} title={sortDir === 1 ? 'По возрастанию' : 'По убыванию'}>
+            {sortDir === 1 ? '↑' : '↓'}
+          </button>
+        </div>
       </div>
 
       {loading ? (
