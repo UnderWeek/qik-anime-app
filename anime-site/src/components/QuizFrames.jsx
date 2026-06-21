@@ -65,8 +65,14 @@ export default function QuizFrames() {
     }
   }
 
+  function normalize(s) {
+    return (s || '').toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9]/g, '')
+  }
+
   function guess(anime) {
-    const correct = anime.anime_id === question.animeId
+    const idMatch = anime.anime_id === question.animeId
+    const titleMatch = normalize(anime.title) === normalize(question.animeTitle)
+    const correct = idMatch || titleMatch
     if (correct) {
       setScore((s) => s + 1 + (state === 'image' ? 2 : 1))
       setWrongsInRow(0)
