@@ -3,11 +3,30 @@
 // Events ← iframe: { event: 'play'|'pause'|'seek'|'timeupdate'|'ended', time: seconds }
 
 export function sendPlayerCommand(iframeRef, type, time) {
-  const cw = iframeRef.current?.contentWindow
-  if (!cw) return
+  const iframe = iframeRef.current
+  if (!iframe) return console.log('[PLAYER-CMD] no iframe ref')
+
   const msg = { type }
   if (time !== undefined) msg.time = time
-  cw.postMessage(JSON.stringify(msg), '*')
+
+  // Collect all target windows (main + nested iframes inside the player)
+  const targets = []
+  try {
+    if (iframe.contentWindow) targets.push(iframe.contentWindow)
+    const frames = iframe.contentWindow?.frames
+    if (frames) {
+      for (let i = 0; i < frames.length; i++) {
+        try { if (frames[i]) targets.push(frames[i]) } catch { /* ignore */ }
+      }
+    }
+  } catch { /* cross-origin */ }
+
+  console.log('[PLAYER-CMD]', type, time, 'targets:', targets.length)
+
+  for (const cw of targets) {
+    try { cw.postMessage(JSON.stringify(msg), '*') } catch { /* ignore */ }
+    try { cw.postMessage(msg, '*') } catch { /* ignore */ }
+  }
 }
 
 export function subscribePlayerEvents(iframeRef, callback) {
