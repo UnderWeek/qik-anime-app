@@ -1,5 +1,5 @@
-import { BadRequestException, Controller, Get, Query, Res } from '@nestjs/common';
-import { Response } from 'express';
+import { BadRequestException, Controller, Get, Header, Query, Res } from '@nestjs/common';
+import type { Response } from 'express';
 
 const ALLOWED_HOSTS = ['static.yani.tv', 'imgproxy.yani.tv'];
 
@@ -12,14 +12,14 @@ const EXT_TO_MIME: Record<string, string> = {
   '.avif': 'image/avif',
 };
 
-// Small bounded cache — avoids re-fetching the same posters from yani.tv
 const cache = new Map<string, { body: Buffer; contentType: string; ts: number }>();
 const MAX_CACHE = 100;
 
 @Controller('proxy')
 export class ProxyController {
   @Get('image')
-  async image(@Query('url') url: string, @Res() res: Response) {
+  @Header('Cache-Control', 'public, max-age=604800, immutable')
+  async image(@Query('url') url: string, @Res({ passthrough: true }) res: Response) {
     if (!url) throw new BadRequestException('url is required');
 
     let parsed: URL;
@@ -35,32 +35,31 @@ export class ProxyController {
 
     const ext = (parsed.pathname.split('.').pop() || '').toLowerCase();
     const contentType = EXT_TO_MIME[`.${ext}`] || 'image/jpeg';
+    res.set('Content-Type', contentType);
 
-    // Browser caches for a week — most requests won't even reach the server
-    res.set({
-      'Content-Type': contentType,
-      'Cache-Control': 'public, max-age=604800, immutable',
-    });
-
-    // Serve from cache
     const cached = cache.get(url);
     if (cached) {
       cached.ts = Date.now();
-      res.send(cached.body);
-      return;
+      return cached.body;
     }
 
-    // Fetch from upstream
     try {
-      const upstream = await fetch(url);
+      const upstream = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+          Accept: 'image/avif,image/webp,image/*,*/*',
+          Referer: 'https://quickik.ru/',
+        },
+        signal: AbortSignal.timeout(8000),
+      });
+
       if (!upstream.ok) {
-        res.status(upstream.status).end();
-        return;
+        console.error(`[proxy] upstream ${upstream.status} for ${url}`);
+        throw new BadRequestException(`Upstream returned ${upstream.status}`);
       }
 
       const buf = Buffer.from(await upstream.arrayBuffer());
 
-      // Evict oldest if at capacity
       if (cache.size >= MAX_CACHE) {
         let oldestKey = '';
         let oldestTs = Infinity;
@@ -71,9 +70,11 @@ export class ProxyController {
       }
 
       cache.set(url, { body: buf, contentType, ts: Date.now() });
-      res.send(buf);
-    } catch {
-      res.status(502).end();
+      return buf;
+    } catch (err) {
+      if (err instanceof BadRequestException) throw err;
+      console.error(`[proxy] fetch failed for ${url}: ${err.message}`);
+      throw new BadRequestException('Failed to fetch image');
     }
   }
 }

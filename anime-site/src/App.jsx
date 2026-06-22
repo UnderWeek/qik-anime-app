@@ -19,6 +19,7 @@ import Rooms from './pages/Rooms.jsx'
 import RoomWatch from './pages/RoomWatch.jsx'
 import Admin from './pages/Admin.jsx'
 import Quiz from './pages/Quiz.jsx'
+import Ratings from './pages/Ratings.jsx'
 import NotFound from './pages/NotFound.jsx'
 
 function ScrollToTop() {
@@ -51,6 +52,7 @@ export default function App() {
           <Route path="/anime/:url/watch" element={<Watch />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/quiz" element={<Quiz />} />
+          <Route path="/ratings" element={<Ratings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

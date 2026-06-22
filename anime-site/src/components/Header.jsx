@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
-import { SearchIcon, BookmarkIcon, LogoutIcon, UserIcon, ChevronDown, UsersIcon, GridIcon, CalendarIcon, MessageIcon, RoomIcon, CloseIcon } from './icons.jsx';
+import { SearchIcon, BookmarkIcon, LogoutIcon, UserIcon, ChevronDown, UsersIcon, GridIcon, CalendarIcon, MessageIcon, RoomIcon, CloseIcon, StarIcon } from './icons.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import Avatar from './Avatar.jsx';
 import NotificationBell from './NotificationBell.jsx';
@@ -116,6 +116,7 @@ export default function Header() {
                     <div className='who'><b>{user.username}</b><span>{user.email}</span></div>
                     <Link to={`/u/${user.id}`}><UserIcon width={16} height={16} />Профиль</Link>
                     <Link to='/library'><BookmarkIcon width={16} height={16} />Закладки</Link>
+                    <Link to='/ratings'><StarIcon width={16} height={16} />Рейтинги</Link>
                     <Link to='/schedule'><CalendarIcon width={16} height={16} />Расписание</Link>
                     <Link to='/friends'><UsersIcon width={16} height={16} />Друзья</Link>
                     {(user?.isMaster || user?.isAdmin) && (

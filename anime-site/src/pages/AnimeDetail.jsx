@@ -8,6 +8,7 @@ import Section from '../components/Section.jsx'
 import Carousel from '../components/Carousel.jsx'
 import BookmarkButton from '../components/BookmarkButton.jsx'
 import RatingWidget from '../components/RatingWidget.jsx'
+import OpeningRatingWidget from '../components/OpeningRatingWidget.jsx'
 import Comments from '../components/Comments.jsx'
 import SuggestModal from '../components/SuggestModal.jsx'
 import Lightbox from '../components/Lightbox.jsx'
@@ -203,6 +204,7 @@ export default function AnimeDetail() {
 
           <aside>
             <RatingWidget animeId={anime.anime_id} />
+            <OpeningRatingWidget animeId={anime.anime_id} />
             <div className="info-card">
               {info.map(([k, v]) => (
                 <div className="info-row" key={k}>

@@ -6,6 +6,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { User } from './users/user.entity';
 import { Bookmark } from './bookmarks/bookmark.entity';
 import { Rating } from './ratings/rating.entity';
+import { OpeningRating } from './ratings/opening-rating.entity';
 import { Comment } from './comments/comment.entity';
 import { CommentLike } from './comments/comment-like.entity';
 import { WatchProgress } from './progress/watch-progress.entity';
@@ -52,6 +53,7 @@ import { DB_PATH, UPLOAD_DIR_ABSOLUTE } from './common/runtime-paths';
         User,
         Bookmark,
         Rating,
+        OpeningRating,
         Comment,
         CommentLike,
         WatchProgress,

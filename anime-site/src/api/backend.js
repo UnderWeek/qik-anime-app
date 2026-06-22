@@ -94,6 +94,17 @@ export const backend = {
     request('/ratings', { method: 'PUT', body: { animeId, score }, auth: true }),
   removeRating: (animeId) =>
     request(`/ratings/anime/${animeId}`, { method: 'DELETE', auth: true }),
+  // OP/ED ratings
+  getOpeningRatings: (animeId) => request(`/ratings/opening/${animeId}`, { auth: true }),
+  rateOpening: (payload) =>
+    request('/ratings/opening', { method: 'PUT', body: payload, auth: true }),
+  removeOpeningRating: (animeId, type) =>
+    request(`/ratings/opening/${animeId}/${type}`, { method: 'DELETE', auth: true }),
+  // leaderboards
+  topAnime: () => request('/ratings/top/anime'),
+  topOpenings: () => request('/ratings/top/openings'),
+  topEndings: () => request('/ratings/top/endings'),
+  topUsers: () => request('/ratings/top/users'),
 
   // ---- comments ----
   listComments: (animeId) => request(`/comments/anime/${animeId}`, { auth: true }),
