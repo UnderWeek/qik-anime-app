@@ -22,17 +22,22 @@ function isSequel(title) {
   const pats = [
     /сезон\s*[2-9]/, /2nd\s*season/, /3rd\s*season/, /[2-9]\s*сезон/,
     /part\s*[2-9]/i, /[2-9]\s*часть/, /season\s*[2-9]/i,
-    /фильм/i, /movie/i, /film/i,
+    /фильм\s*(второй|третий|четв[её]ртый|пятый|шестой|седьмой|восьмой|девятый|десятый|\d)/i,
+    /movie\s*[2-9]/i, /film\s*[2-9]/i,
   ];
   return pats.some((p) => p.test(t));
 }
 
 async function randomAnime(excludedIds: number[], firstOnly: boolean) {
-  for (let i = 0; i < 30; i++) {
+  // Fetch from several random pages to build a wide pool, then pick randomly.
+  // Using different sort orders per page to avoid the same popular anime dominating.
+  const SORTS = ['random', 'rating', 'views', 'year', 'id', 'title'];
+  for (let attempt = 0; attempt < 10; attempt++) {
     try {
-      const page = Math.floor(Math.random() * 150) + 1;
+      const sort = SORTS[Math.floor(Math.random() * SORTS.length)];
+      const page = Math.floor(Math.random() * 40) + 1;
       const resp = await fetch(
-        `https://api.yani.tv/anime?limit=20&page=${page}`,
+        `https://api.yani.tv/anime?limit=50&page=${page}&sort=${sort}`,
         { headers: { Accept: 'application/json', Lang: 'ru' } }
       );
       const data = await resp.json();
