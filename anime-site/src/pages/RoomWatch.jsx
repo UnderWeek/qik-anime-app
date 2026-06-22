@@ -458,17 +458,14 @@ export default function RoomWatch() {
   }, [episodes])
 
   // ---- Actions ----
-  const ANILIBRIA = 'https://www.anilibria.top/api/v1'
-
   async function runSearch(e) {
     e.preventDefault()
     const q = searchText.trim()
     if (!q) return
     setSearching(true)
     try {
-      const resp = await fetch(`${ANILIBRIA}/app/search/releases?query=${encodeURIComponent(q)}&limit=10`)
-      const data = await resp.json()
-      setSearchResults(Array.isArray(data) ? data : [])
+      const res = await backend.searchAnilibria(q)
+      setSearchResults(Array.isArray(res) ? res : [])
     } catch {
       setSearchResults([])
       showToast('Не удалось выполнить поиск')
@@ -482,8 +479,7 @@ export default function RoomWatch() {
     setVideoLoading(true)
     setAnimeVideos([])
     try {
-      const resp = await fetch(`${ANILIBRIA}/anime/releases/${release.id}?include=episodes`)
-      const full = await resp.json()
+      const full = await backend.anilibriaRelease(release.id)
       const eps = Array.isArray(full?.episodes) ? full.episodes : []
       setAnimeVideos(eps)
       if (!eps.length) showToast('Нет эпизодов')
@@ -508,8 +504,7 @@ export default function RoomWatch() {
     // Get streaming URL from AniLibria
     setPushingVideo(true)
     try {
-      const epResp = await fetch(`${ANILIBRIA}/anime/releases/episodes/${episode.id}`)
-      const epData = await epResp.json()
+      const epData = await backend.anilibriaEpisode(episode.id)
       if (!epData?.hls_720 && !epData?.hls_1080) {
         showToast('Нет доступного стрима для этого эпизода')
         setPushingVideo(false)
