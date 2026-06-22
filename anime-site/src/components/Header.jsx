@@ -9,7 +9,7 @@ const links = [
   { to: '/catalog', label: 'Каталог' },
   { to: '/schedule', label: 'Расписание' },
   { to: '/rooms', label: 'Комнаты' },
-  { to: '/quiz', label: 'Квиз' },
+  { to: '/quiz', label: 'Квиз', badge: 'Beta' },
 ];
 
 const TAB_DEFS = {
@@ -81,6 +81,11 @@ export default function Header() {
             {links.map((l) => (
               <NavLink key={l.to} to={l.to} end={l.end} className={({ isActive }) => (isActive ? 'active' : '')}>
                 {l.label}
+                {l.badge && <span style={{
+                  fontSize: 9, fontWeight: 700, background: 'var(--accent-grad)', color: '#fff',
+                  padding: '1px 5px', borderRadius: 5, marginLeft: 5, verticalAlign: '2px',
+                  letterSpacing: '0.04em',
+                }}>{l.badge}</span>}
               </NavLink>
             ))}
             {user && (
