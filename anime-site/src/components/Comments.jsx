@@ -283,7 +283,7 @@ export default function Comments({ animeId, profileUserId, onCountChange }) {
                         />
                         {c.likeCount > 0 ? c.likeCount : 'нравится'}
                       </button>
-                      {user && user.id === c.author?.id && (
+                      {user && (user.id === c.author?.id || user.isAdmin || user.isMaster) && (
                         <>
                           <button onClick={() => startEdit(c)}>
                             <EditIcon width={13} height={13} style={{ display: 'inline', verticalAlign: '-2px', marginRight: 4 }} />

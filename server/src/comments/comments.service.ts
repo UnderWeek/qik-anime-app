@@ -122,7 +122,9 @@ export class CommentsService {
   async update(userId: number, id: number, dto: UpdateCommentDto) {
     const comment = await this.repo.findOne({ where: { id } });
     if (!comment) throw new NotFoundException('Комментарий не найден');
-    if (comment.user.id !== userId)
+    const actor = await this.users.findOne({ where: { id: userId } });
+    const canEdit = comment.user.id === userId || actor?.isAdmin || actor?.isMaster;
+    if (!canEdit)
       throw new ForbiddenException('Можно редактировать только свои комментарии');
     const body = (dto.body || '').trim();
     if (!body && !comment.imageUrl)
