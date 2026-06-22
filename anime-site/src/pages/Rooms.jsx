@@ -93,7 +93,12 @@ export default function Rooms() {
         <h1 className="section-title">Комнаты просмотра</h1>
       </div>
 
-      {!user ? (
+      {user && !user.isMaster && !user.isAdmin ? (
+        <div className="state">
+          <h2>Комнаты только для мастеров</h2>
+          <p style={{ color: 'var(--text-faint)' }}>Совместный просмотр доступен мастерам сообщества.</p>
+        </div>
+      ) : !user ? (
         <div className="state">
           <h2>Войдите в аккаунт</h2>
           <p>Комнаты и совместный просмотр доступны только авторизованным пользователям.</p>

@@ -38,6 +38,18 @@ export default function Admin() {
     }
   }
 
+  async function toggleMaster(id) {
+    try {
+      const res = await backend.adminToggleMaster(id)
+      setUsers((prev) => prev && {
+        ...prev,
+        items: prev.items.map((u) => u.id === id ? { ...u, isMaster: res.isMaster } : u),
+      })
+    } catch (e) {
+      alert(e.message || 'Ошибка')
+    }
+  }
+
   async function handleClaim(e) {
     e.preventDefault()
     if (!claimCode.trim()) return
@@ -117,6 +129,7 @@ export default function Admin() {
           page={userPage}
           onPage={setUserPage}
           onDelete={deleteUser}
+          onToggleMaster={toggleMaster}
         />
       )}
     </div>
@@ -150,7 +163,7 @@ function StatsView({ stats }) {
   )
 }
 
-function UsersView({ users, query, onQuery, page, onPage, onDelete }) {
+function UsersView({ users, query, onQuery, page, onPage, onDelete, onToggleMaster }) {
   if (!users) return <div className="comment-empty">Загрузка...</div>
 
   return (
@@ -173,6 +186,7 @@ function UsersView({ users, query, onQuery, page, onPage, onDelete }) {
               <th style={th}>Ник</th>
               <th style={th}>Email</th>
               <th style={th}>Админ</th>
+              <th style={th}>Мастер</th>
               <th style={th}>Серий</th>
               <th style={th}>Часов</th>
               <th style={th}>Дата</th>
@@ -186,6 +200,14 @@ function UsersView({ users, query, onQuery, page, onPage, onDelete }) {
                 <td style={td}><b>{u.username}</b></td>
                 <td style={{ ...td, color: 'var(--text-dim)' }}>{u.email}</td>
                 <td style={td}>{u.isAdmin ? '✅' : ''}</td>
+                <td style={td}>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => onToggleMaster(u.id)}
+                    style={{ fontSize: 12, color: u.isMaster ? '#4ade80' : 'var(--text-dim)' }}
+                    title={u.isMaster ? 'Убрать мастера' : 'Сделать мастером'}
+                  >{u.isMaster ? '✅' : '—'}</button>
+                </td>
                 <td style={td}>{u.watchedEpisodes}</td>
                 <td style={td}>{u.watchedHours}</td>
                 <td style={{ ...td, color: 'var(--text-dim)', fontSize: 13 }}>{new Date(u.createdAt).toLocaleDateString('ru-RU')}</td>

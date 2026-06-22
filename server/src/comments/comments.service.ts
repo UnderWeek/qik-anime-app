@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Comment } from './comment.entity';
 import { CommentLike } from './comment-like.entity';
+import { User } from '../users/user.entity';
 import { CreateCommentDto, UpdateCommentDto } from './dto';
 
 @Injectable()
@@ -17,6 +18,8 @@ export class CommentsService {
     private readonly repo: Repository<Comment>,
     @InjectRepository(CommentLike)
     private readonly likes: Repository<CommentLike>,
+    @InjectRepository(User)
+    private readonly users: Repository<User>,
   ) {}
 
   private base(c: Comment, likeCount = 0, likedByMe = false) {
@@ -121,9 +124,11 @@ export class CommentsService {
   }
 
   async remove(userId: number, id: number) {
-    const comment = await this.repo.findOne({ where: { id } });
+    const comment = await this.repo.findOne({ where: { id }, relations: ['user'] });
     if (!comment) throw new NotFoundException('Комментарий не найден');
-    if (comment.user.id !== userId)
+    const actor = await this.users.findOne({ where: { id: userId } });
+    const canDelete = comment.user.id === userId || actor?.isAdmin || actor?.isMaster;
+    if (!canDelete)
       throw new ForbiddenException('Можно удалять только свои комментарии');
     await this.repo.remove(comment);
     return { ok: true };

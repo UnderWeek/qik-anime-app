@@ -273,18 +273,20 @@ export default function Watch() {
             )}
           </div>
 
-          <div className="room-entry-row">
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={createRoomFromEpisode}
-              disabled={creatingRoom || !current}
-            >
-              {creatingRoom ? 'Создаем комнату...' : 'Смотреть вместе в комнате'}
-            </button>
-            <Link to="/rooms" className="btn btn-ghost btn-sm">
-              Все комнаты
-            </Link>
-          </div>
+          {(user?.isMaster || user?.isAdmin) && (
+            <div className="room-entry-row">
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={createRoomFromEpisode}
+                disabled={creatingRoom || !current}
+              >
+                {creatingRoom ? 'Создаем комнату...' : 'Смотреть вместе в комнате'}
+              </button>
+              <Link to="/rooms" className="btn btn-ghost btn-sm">
+                Все комнаты
+              </Link>
+            </div>
+          )}
 
           {user && current && (
             <div

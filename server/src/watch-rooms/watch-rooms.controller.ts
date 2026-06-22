@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { MasterOrAdminGuard } from '../auth/master-admin.guard';
 import { AuthUser, CurrentUser } from '../common/current-user.decorator';
 import {
   CreateWatchRoomDto,
@@ -25,7 +26,7 @@ import { WatchRoomsGateway } from './watch-rooms.gateway';
 import { WatchRoomsService } from './watch-rooms.service';
 
 @Controller('watch-rooms')
-@UseGuards(JwtAuthGuard)
+@UseGuards(MasterOrAdminGuard)
 export class WatchRoomsController {
   constructor(
     private readonly service: WatchRoomsService,

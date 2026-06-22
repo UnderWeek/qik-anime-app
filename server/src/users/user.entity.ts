@@ -56,6 +56,9 @@ export class User {
   @Column({ type: 'boolean', default: false })
   isAdmin: boolean;
 
+  @Column({ type: 'boolean', default: false })
+  isMaster: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

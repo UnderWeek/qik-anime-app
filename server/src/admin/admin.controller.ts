@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { AdminGuard } from '../auth/admin.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -32,6 +32,12 @@ export class AdminController {
       page ? +page : 1,
       limit ? +limit : 100,
     );
+  }
+
+  @Patch('users/:id/master')
+  @UseGuards(AdminGuard)
+  toggleMaster(@Param('id', ParseIntPipe) id: number) {
+    return this.service.toggleMaster(id);
   }
 
   @Delete('users/:id')

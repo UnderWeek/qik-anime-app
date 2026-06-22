@@ -5,6 +5,7 @@ export interface AuthUser {
   username: string;
   email: string;
   isAdmin?: boolean;
+  isMaster?: boolean;
 }
 
 export const CurrentUser = createParamDecorator(

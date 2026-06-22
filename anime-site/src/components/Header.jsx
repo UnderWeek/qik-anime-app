@@ -8,14 +8,14 @@ import NotificationBell from './NotificationBell.jsx';
 const links = [
   { to: '/catalog', label: 'Каталог' },
   { to: '/schedule', label: 'Расписание' },
-  { to: '/rooms', label: 'Комнаты' },
+  { to: '/rooms', label: 'Комнаты', master: true },
   { to: '/quiz', label: 'Квиз', badge: 'Beta' },
 ];
 
 const TAB_DEFS = {
   catalog: { to: '/catalog', label: 'Каталог', icon: GridIcon },
   schedule: { to: '/schedule', label: 'Расписание', icon: CalendarIcon },
-  rooms: { to: '/rooms', label: 'Комнаты', icon: RoomIcon },
+  rooms: { to: '/rooms', label: 'Комнаты', icon: RoomIcon, master: true },
   library: { to: '/library', label: 'Закладки', icon: BookmarkIcon },
   friends: { to: '/friends', label: 'Друзья', icon: UsersIcon, auth: true },
 };
@@ -66,7 +66,7 @@ export default function Header() {
   const mobileLinks = mobileOrder
     .map((key) => TAB_DEFS[key])
     .filter(Boolean)
-    .filter((l) => !l.auth || user);
+    .filter((l) => (!l.auth && !l.master) || (l.auth && user) || (l.master && (user?.isMaster || user?.isAdmin)));
 
   const profileActive = location.pathname.startsWith('/u/');
 
@@ -78,7 +78,7 @@ export default function Header() {
             <img src='/logo.png' className='logo-mark' alt='QIK Anime Logo' aria-hidden='true' />
           </NavLink>
           <nav className='nav'>
-            {links.map((l) => (
+            {links.filter(l => !l.master || user?.isMaster || user?.isAdmin).map((l) => (
               <NavLink key={l.to} to={l.to} end={l.end} className={({ isActive }) => (isActive ? 'active' : '')}>
                 {l.label}
                 {l.badge && <span style={{
@@ -118,7 +118,9 @@ export default function Header() {
                     <Link to='/library'><BookmarkIcon width={16} height={16} />Закладки</Link>
                     <Link to='/schedule'><CalendarIcon width={16} height={16} />Расписание</Link>
                     <Link to='/friends'><UsersIcon width={16} height={16} />Друзья</Link>
-                    <Link to='/rooms'><RoomIcon width={16} height={16} />Комнаты</Link>
+                    {(user?.isMaster || user?.isAdmin) && (
+                      <Link to='/rooms'><RoomIcon width={16} height={16} />Комнаты</Link>
+                    )}
                     {user.isAdmin && (
                       <Link to='/admin'><span style={{ display: 'inline-flex', width: 16, height: 16, alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>⚙</span>Админка</Link>
                     )}

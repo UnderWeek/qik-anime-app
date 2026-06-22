@@ -218,6 +218,8 @@ export const backend = {
   },
   adminDeleteUser: (id) =>
     request(`/admin/users/${id}`, { method: 'DELETE', auth: true }),
+  adminToggleMaster: (id) =>
+    request(`/admin/users/${id}/master`, { method: 'PATCH', auth: true }),
   adminClaim: (secret) =>
     request('/admin/claim', { method: 'POST', body: { secret }, auth: true }),
 

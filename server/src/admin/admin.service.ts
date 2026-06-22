@@ -62,6 +62,14 @@ export class AdminService {
     return { ok: true };
   }
 
+  async toggleMaster(id: number) {
+    const user = await this.users.findOne({ where: { id } });
+    if (!user) return null;
+    user.isMaster = !user.isMaster;
+    await this.users.save(user);
+    return { ok: true, isMaster: user.isMaster };
+  }
+
   async listUsers(q?: string, page = 1, limit = 100) {
     const where: any = {};
     if (q) {
@@ -70,7 +78,7 @@ export class AdminService {
 
     const [rows, total] = await this.users.findAndCount({
       where,
-      select: ['id', 'username', 'email', 'isAdmin', 'createdAt', 'watchedEpisodes', 'watchedSeconds'],
+      select: ['id', 'username', 'email', 'isAdmin', 'isMaster', 'createdAt', 'watchedEpisodes', 'watchedSeconds'],
       order: { id: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
@@ -82,6 +90,7 @@ export class AdminService {
         username: u.username,
         email: u.email,
         isAdmin: !!u.isAdmin,
+        isMaster: !!u.isMaster,
         watchedEpisodes: u.watchedEpisodes,
         watchedHours: Math.round((u.watchedSeconds / 3600) * 10) / 10,
         createdAt: u.createdAt,

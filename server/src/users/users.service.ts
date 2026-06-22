@@ -105,6 +105,7 @@ export class UsersService {
       avatarFrame: user.avatarFrame || null,
       bio: user.bio || '',
       isAdmin: !!user.isAdmin,
+      isMaster: !!user.isMaster,
       createdAt: user.createdAt,
     };
   }
