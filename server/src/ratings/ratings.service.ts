@@ -188,7 +188,7 @@ export class RatingsService {
       .addSelect('COUNT(*)', 'count')
       .where('r.type = :type', { type })
       .groupBy('r.animeId')
-      .having('COUNT(*) >= 2')
+      .having('COUNT(*) >= 1')
       .orderBy('AVG(r.score)', 'DESC')
       .limit(limit)
       .getRawMany();
@@ -198,6 +198,7 @@ export class RatingsService {
   async topUsers(limit = 20) {
     // Rank by level (derived from XP). XP ≈ watchedEpisodes*10 + watchedSeconds/60
     // + ratings*5 + comments*8 + friends*15 (bookmark XP omitted for simplicity).
+    // friendships uses requesterId/addresseeId columns — count both sides.
     const rows: any[] = await this.repo.manager.query(
       `SELECT u.id as userId,
               u.watchedEpisodes,
@@ -206,9 +207,15 @@ export class RatingsService {
               COALESCE(cc.c, 0) as commentCount,
               COALESCE(fc.c, 0) as friendCount
        FROM users u
-       LEFT JOIN (SELECT userId, COUNT(*) as c FROM ratings GROUP BY userId) rc ON rc.userId = u.id
-       LEFT JOIN (SELECT userId, COUNT(*) as c FROM comments GROUP BY userId) cc ON cc.userId = u.id
-       LEFT JOIN (SELECT userId, COUNT(*) as c FROM friendships WHERE status = 'accepted' GROUP BY userId) fc ON fc.userId = u.id
+       LEFT JOIN (SELECT "userId", COUNT(*) as c FROM ratings GROUP BY "userId") rc ON rc."userId" = u.id
+       LEFT JOIN (SELECT "userId", COUNT(*) as c FROM comments GROUP BY "userId") cc ON cc."userId" = u.id
+       LEFT JOIN (
+         SELECT uid, COUNT(*) as c FROM (
+           SELECT "requesterId" as uid FROM friendships WHERE status = 'accepted'
+           UNION ALL
+           SELECT "addresseeId" as uid FROM friendships WHERE status = 'accepted'
+         ) f GROUP BY uid
+       ) fc ON fc.uid = u.id
        ORDER BY (u.watchedEpisodes * 10 + CAST(u.watchedSeconds / 60 AS INTEGER)
                  + COALESCE(rc.c, 0) * 5 + COALESCE(cc.c, 0) * 8 + COALESCE(fc.c, 0) * 15) DESC
        LIMIT ?`,
