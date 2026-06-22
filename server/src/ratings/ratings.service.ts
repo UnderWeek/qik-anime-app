@@ -196,16 +196,25 @@ export class RatingsService {
   }
 
   async topUsers(limit = 20) {
-    // Rank by level (derived from XP). XP ≈ watchedEpisodes*10 + watchedSeconds/60
-    // + ratings*5 + comments*8 + friends*15 (bookmark XP omitted for simplicity).
-    // friendships uses requesterId/addresseeId columns — count both sides.
+    // Full XP matching computeXp(): watchedEpisodes*10 + watchedSeconds/60 +
+    // ratings*5 + comments*8 + bookmarkXp(per status) + friends*15.
+    // Also includes extra episodes/seconds from bookmarks (deduped against progress).
+    const AVG_EP_SECONDS = 1440; // 24 min per episode
     const rows: any[] = await this.repo.manager.query(
       `SELECT u.id as userId,
               u.watchedEpisodes,
               u.watchedSeconds,
               COALESCE(rc.c, 0) as ratingCount,
               COALESCE(cc.c, 0) as commentCount,
-              COALESCE(fc.c, 0) as friendCount
+              COALESCE(fc.c, 0) as friendCount,
+              COALESCE(bc.completed, 0) as bm_completed,
+              COALESCE(bc.watching, 0) as bm_watching,
+              COALESCE(bc.rewatching, 0) as bm_rewatching,
+              COALESCE(bc.planned, 0) as bm_planned,
+              COALESCE(bc.on_hold, 0) as bm_on_hold,
+              COALESCE(bc.dropped, 0) as bm_dropped,
+              COALESCE(bc.favorite, 0) as bm_favorite,
+              COALESCE(bc.extraEpisodes, 0) as bm_extraEpisodes
        FROM users u
        LEFT JOIN (SELECT "userId", COUNT(*) as c FROM ratings GROUP BY "userId") rc ON rc."userId" = u.id
        LEFT JOIN (SELECT "userId", COUNT(*) as c FROM comments GROUP BY "userId") cc ON cc."userId" = u.id
@@ -216,18 +225,54 @@ export class RatingsService {
            SELECT "addresseeId" as uid FROM friendships WHERE status = 'accepted'
          ) f GROUP BY uid
        ) fc ON fc.uid = u.id
+       LEFT JOIN (
+         SELECT b."userId",
+           SUM(CASE WHEN b.status = 'completed' THEN 1 ELSE 0 END) as completed,
+           SUM(CASE WHEN b.status = 'watching' THEN 1 ELSE 0 END) as watching,
+           SUM(CASE WHEN b.status = 'rewatching' THEN 1 ELSE 0 END) as rewatching,
+           SUM(CASE WHEN b.status = 'planned' THEN 1 ELSE 0 END) as planned,
+           SUM(CASE WHEN b.status = 'on_hold' THEN 1 ELSE 0 END) as on_hold,
+           SUM(CASE WHEN b.status = 'dropped' THEN 1 ELSE 0 END) as dropped,
+           SUM(CASE WHEN b.status = 'favorite' THEN 1 ELSE 0 END) as favorite,
+           SUM(CASE WHEN b.status IN ('completed','watching','rewatching')
+                 AND COALESCE(b."episodeCount", 0) > 0
+                 AND b."animeId" NOT IN (SELECT wp."animeId" FROM watch_progress wp WHERE wp."userId" = b."userId")
+             THEN CASE WHEN b.status = 'watching'
+                  THEN CASE WHEN CAST(COALESCE(b."episodeCount", 0) * 0.5 AS INTEGER) > 1
+                       THEN CAST(COALESCE(b."episodeCount", 0) * 0.5 AS INTEGER) ELSE 1 END
+                  ELSE COALESCE(b."episodeCount", 0) END
+             ELSE 0 END) as extraEpisodes
+         FROM bookmarks b
+         GROUP BY b."userId"
+       ) bc ON bc."userId" = u.id
        ORDER BY (u.watchedEpisodes * 10 + CAST(u.watchedSeconds / 60 AS INTEGER)
-                 + COALESCE(rc.c, 0) * 5 + COALESCE(cc.c, 0) * 8 + COALESCE(fc.c, 0) * 15) DESC
+                 + COALESCE(rc.c, 0) * 5 + COALESCE(cc.c, 0) * 8
+                 + COALESCE(bc.completed, 0) * 8 + COALESCE(bc.watching, 0) * 5
+                 + COALESCE(bc.rewatching, 0) * 5 + COALESCE(bc.planned, 0) * 2
+                 + COALESCE(bc.on_hold, 0) * 2 + COALESCE(bc.favorite, 0) * 3
+                 + COALESCE(bc.extraEpisodes, 0) * 10
+                 + COALESCE(fc.c, 0) * 15) DESC
        LIMIT ?`,
       [limit]
     );
 
     return rows.map((r: any) => {
+      const bookmarkXp =
+        (r.bm_completed || 0) * 8 +
+        (r.bm_watching || 0) * 5 +
+        (r.bm_rewatching || 0) * 5 +
+        (r.bm_planned || 0) * 2 +
+        (r.bm_on_hold || 0) * 2 +
+        (r.bm_dropped || 0) * 0 +
+        (r.bm_favorite || 0) * 3;
+      const extraXp = (r.bm_extraEpisodes || 0) * 10 + (r.bm_extraEpisodes || 0) * AVG_EP_SECONDS / 60;
       const xp =
         (r.watchedEpisodes || 0) * 10 +
         Math.floor((r.watchedSeconds || 0) / 60) +
         (r.ratingCount || 0) * 5 +
         (r.commentCount || 0) * 8 +
+        bookmarkXp +
+        Math.floor(extraXp) +
         (r.friendCount || 0) * 15;
       const level = levelForXp(xp).level;
       return { userId: Number(r.userId), xp, level };
