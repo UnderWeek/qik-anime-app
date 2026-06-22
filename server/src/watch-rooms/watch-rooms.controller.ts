@@ -52,6 +52,26 @@ export class WatchRoomsController {
     return snap;
   }
 
+  @Get('search-anilibria')
+  async searchAnilibria(@Query('q') q: string) {
+    if (!q?.trim()) return [];
+    return this.anilibria.search(q.trim(), 10);
+  }
+
+  @Get('anilibria-episode/:id')
+  async anilibriaEpisode(@Param('id') id: string) {
+    const ep = await this.anilibria.episode(id);
+    if (!ep) return null;
+    return {
+      id: ep.id,
+      ordinal: ep.ordinal,
+      name: ep.name,
+      hls_720: ep.hls_720,
+      hls_1080: ep.hls_1080,
+      duration: ep.duration,
+    };
+  }
+
   @Get(':id')
   get(
     @CurrentUser() user: AuthUser,
@@ -125,26 +145,6 @@ export class WatchRoomsController {
     @Body() dto: InviteToRoomDto,
   ) {
     return this.service.invite(roomId, user.id, dto);
-  }
-
-  @Get('search-anilibria')
-  async searchAnilibria(@Query('q') q: string) {
-    if (!q?.trim()) return [];
-    return this.anilibria.search(q.trim(), 10);
-  }
-
-  @Get('anilibria-episode/:id')
-  async anilibriaEpisode(@Param('id') id: string) {
-    const ep = await this.anilibria.episode(id);
-    if (!ep) return null;
-    return {
-      id: ep.id,
-      ordinal: ep.ordinal,
-      name: ep.name,
-      hls_720: ep.hls_720,
-      hls_1080: ep.hls_1080,
-      duration: ep.duration,
-    };
   }
 
   @Delete(':id')
