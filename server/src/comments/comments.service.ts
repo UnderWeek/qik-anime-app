@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, Not, Repository } from 'typeorm';
 import { Comment } from './comment.entity';
 import { CommentLike } from './comment-like.entity';
 import { User } from '../users/user.entity';
@@ -84,6 +84,16 @@ export class CommentsService {
   // number of comments authored by a user (for profile stats)
   countByUser(userId: number) {
     return this.repo.count({ where: { user: { id: userId } } });
+  }
+
+  // recent comments authored by a user (anime comments, not profile wall)
+  async listByUser(userId: number, viewerId?: number, limit = 20) {
+    const rows = await this.repo.find({
+      where: { user: { id: userId }, animeId: Not(0) },
+      order: { createdAt: 'DESC' },
+      take: limit,
+    });
+    return this.withLikes(rows, viewerId);
   }
 
   // number of comments on an anime (for the QIK-native comment counter)

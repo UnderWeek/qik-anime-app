@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useLocation } from 'react-router-dom'
 import { useApi } from '../hooks/useApi.js'
 import { api, poster } from '../api/client.js'
 import { backend } from '../api/backend.js'
@@ -24,6 +24,7 @@ function fmtNum(n) {
 
 export default function AnimeDetail() {
   const { url } = useParams()
+  const location = useLocation()
   const { user, requireAuth } = useAuth()
   const [suggestOpen, setSuggestOpen] = useState(false)
   const [posterZoom, setPosterZoom] = useState(null)
@@ -42,6 +43,14 @@ export default function AnimeDetail() {
       .then((n) => setCommentCount(typeof n === 'number' ? n : 0))
       .catch(() => {})
   }, [anime?.anime_id])
+
+  // Scroll to comments section when navigated with #comments hash
+  useEffect(() => {
+    if (location.hash === '#comments' && !loading && anime) {
+      const el = document.getElementById('comments')
+      if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
+    }
+  }, [location.hash, loading, anime])
 
   if (loading) {
     return (
@@ -188,7 +197,7 @@ export default function AnimeDetail() {
             )}
 
             <Section title="Комментарии">
-              <Comments animeId={anime.anime_id} onCountChange={setCommentCount} />
+              <div id="comments"><Comments animeId={anime.anime_id} onCountChange={setCommentCount} /></div>
             </Section>
           </div>
 

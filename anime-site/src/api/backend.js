@@ -99,6 +99,7 @@ export const backend = {
   listComments: (animeId) => request(`/comments/anime/${animeId}`, { auth: true }),
   commentCount: (animeId) => request(`/comments/anime/${animeId}/count`),
   profileComments: (userId) => request(`/comments/profile/${userId}`, { auth: true }),
+  userComments: (userId) => request(`/comments/user/${userId}`, { auth: true }),
   addComment: (payload) =>
     request('/comments', { method: 'POST', body: payload, auth: true }),
   updateComment: (id, body) =>

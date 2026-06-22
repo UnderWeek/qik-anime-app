@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { backend, uploadUrl } from '../api/backend.js'
-import { fixUrl, upgradePoster } from '../api/client.js'
+import { api, fixUrl, upgradePoster } from '../api/client.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { frameColor } from '../utils/frames.js'
@@ -425,6 +425,9 @@ export default function Profile() {
         <button className={`subtab ${tab === 'friends' ? 'active' : ''}`} onClick={() => setTab('friends')}>
           Друзья ({stats.friends})
         </button>
+        <button className={`subtab ${tab === 'comments' ? 'active' : ''}`} onClick={() => setTab('comments')}>
+          Комментарии
+        </button>
         <button className={`subtab ${tab === 'wall' ? 'active' : ''}`} onClick={() => setTab('wall')}>
           Стена
         </button>
@@ -434,6 +437,7 @@ export default function Profile() {
       {tab === 'history' && <WatchHistory uid={uid} />}
       {tab === 'bookmarks' && <UserBookmarks uid={uid} />}
       {tab === 'friends' && <UserFriends uid={uid} />}
+      {tab === 'comments' && <UserComments uid={uid} />}
       {tab === 'wall' && (
         <div className="profile-wall">
           <Comments profileUserId={uid} />
@@ -594,6 +598,71 @@ function UserFriends({ uid }) {
         </div>
       ))}
     </div>
+  )
+}
+
+function UserComments({ uid }) {
+  const [items, setItems] = useState(null)
+  const [animeMap, setAnimeMap] = useState({})
+
+  useEffect(() => {
+    backend.userComments(uid)
+      .then(async (r) => {
+        const list = Array.isArray(r) ? r : []
+        setItems(list)
+        // Fetch anime info for all unique animeIds
+        const ids = [...new Set(list.map((c) => c.animeId).filter(Boolean))]
+        if (ids.length) {
+          const map = {}
+          await Promise.all(
+            ids.map(async (id) => {
+              try {
+                const a = await api.anime(id)
+                if (a) map[id] = a
+              } catch {}
+            })
+          )
+          setAnimeMap(map)
+        }
+      })
+      .catch(() => setItems([]))
+  }, [uid])
+
+  if (!items) return <div className="comment-empty">Загрузка…</div>
+  if (items.length === 0) return <div className="comment-empty">Комментариев пока нет.</div>
+
+  return (
+    <>
+      <div style={{ fontSize: 13, color: 'var(--text-faint)', marginBottom: 16, lineHeight: 1.5 }}>
+        Комментарии, которые пользователь оставил на страницах аниме.
+      </div>
+      <div className="history-list">
+        {items.map((c) => {
+        const a = animeMap[c.animeId]
+        const img = a ? (a.poster?.medium || a.poster?.small) : null
+        const title = a?.title || `Аниме #${c.animeId}`
+        const url = a?.anime_url || c.animeId
+        return (
+          <Link key={c.id} to={`/anime/${url}#comments`} className="history-row" style={{ alignItems: 'flex-start' }}>
+            <div className="history-poster">
+              {img ? (
+                <img src={fixUrl(img)} alt={title} loading="lazy" />
+              ) : (
+                <div className="skel" style={{ width: '100%', height: '100%' }} />
+              )}
+            </div>
+            <div className="history-info" style={{ flex: 1 }}>
+              <div className="history-title" style={{ fontWeight: 600 }}>
+                {title}
+              </div>
+              {c.body && <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.45 }}>{c.body}</div>}
+            </div>
+            <div className="history-time">{historyTime(c.createdAt)}</div>
+          </Link>
+        )
+      })}
+      </div>
+    </>
   )
 }
 

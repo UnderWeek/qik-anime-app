@@ -45,6 +45,16 @@ export class CommentsController {
     return this.service.listForProfile(userId, user?.id);
   }
 
+  // recent anime comments authored by a user
+  @UseGuards(OptionalJwtAuthGuard)
+  @Get('user/:userId')
+  userComments(
+    @Param('userId', ParseIntPipe) userId: number,
+    @CurrentUser() user: AuthUser | null,
+  ) {
+    return this.service.listByUser(userId, user?.id);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateCommentDto) {
