@@ -33,7 +33,7 @@ export default function Friends() {
     setLoading(true)
     Promise.all([backend.listFriends(), backend.pendingFriends()])
       .then(([f, p]) => {
-        setFriends(Array.isArray(f) ? f : [])
+        setFriends(Array.isArray(f) ? f.filter(Boolean) : [])
         setPending(p || { incoming: [], outgoing: [] })
       })
       .catch(() => {})
@@ -107,9 +107,9 @@ export default function Friends() {
     )
   }
 
-  const friendIds = new Set(friends.map((f) => f.id))
-  const outgoingIds = new Set(pending.outgoing.map((p) => p.user.id))
-  const incomingCount = pending.incoming.length
+  const friendIds = new Set(friends.map((f) => f?.id).filter(Boolean))
+  const outgoingIds = new Set((pending.outgoing || []).map((p) => p?.user?.id).filter(Boolean))
+  const incomingCount = (pending.incoming || []).length
 
   return (
     <div className="container page">
