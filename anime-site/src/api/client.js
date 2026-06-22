@@ -3,19 +3,8 @@
 // Base server: https://api.yani.tv
 
 const BASE_URL = 'https://api.yani.tv'
+const IMGPROXY_URL = 'https://imgproxy.yani.tv'
 const STATIC_URL = 'https://static.yani.tv'
-
-// Backend origin for proxying blocked CDN images (static.yani.tv is blocked in Russia)
-const BACKEND_ORIGIN = (() => {
-  const env = import.meta.env.VITE_QIK_API_URL?.trim()
-  if (env) return env.replace(/\/api\/?$/, '')
-  if (typeof window !== 'undefined' && window.location?.hostname) {
-    const { protocol, hostname } = window.location
-    if (import.meta.env.DEV) return `${protocol}//${hostname}:3001`
-    return `${protocol}//${hostname}`
-  }
-  return 'http://localhost:3001'
-})()
 
 // The X-Application token is required by the docs for production usage.
 // The public endpoints respond without it, but if you have your own token
@@ -65,15 +54,13 @@ async function request(path, { params, ...options } = {}) {
   return json.response !== undefined ? json.response : json
 }
 
-// Normalize protocol-relative poster URLs (//static.yani.tv/...)
-// static.yani.tv is blocked for some users → route through our backend proxy
+// Normalize poster URLs. static.yani.tv is blocked for some users,
+// so we rewrite to imgproxy.yani.tv which resolves to the same CDN.
 export function fixUrl(url) {
   if (!url) return ''
   if (url.startsWith('//')) url = `https:${url}`
   if (url.startsWith('/')) url = `${STATIC_URL}${url}`
-  if (/^https?:\/\/(static|imgproxy)\.yani\.tv\//i.test(url)) {
-    return `${BACKEND_ORIGIN}/api/proxy/image?url=${encodeURIComponent(url)}`
-  }
+  url = url.replace(/^https?:\/\/static\.yani\.tv\//i, `${IMGPROXY_URL}/`)
   return url
 }
 
