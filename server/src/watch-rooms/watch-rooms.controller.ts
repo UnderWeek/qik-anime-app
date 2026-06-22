@@ -72,6 +72,11 @@ export class WatchRoomsController {
     };
   }
 
+  @Get('anilibria-release/:id')
+  async anilibriaRelease(@Param('id') id: string) {
+    return this.anilibria.releaseEpisodes(id);
+  }
+
   @Get(':id')
   get(
     @CurrentUser() user: AuthUser,

@@ -452,7 +452,7 @@ export default function RoomWatch() {
     setVideoLoading(true)
     setAnimeVideos([])
     try {
-      const full = await fetch(`https://www.anilibria.top/api/v1/anime/releases/${release.id}?include=episodes`).then(r => r.json())
+      const full = await backend.anilibriaRelease(release.id)
       const eps = Array.isArray(full?.episodes) ? full.episodes : []
       setAnimeVideos(eps)
       if (!eps.length) showToast('Нет эпизодов')

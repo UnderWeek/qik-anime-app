@@ -47,6 +47,24 @@ export class AnilibriaService {
     }
   }
 
+  async releaseEpisodes(idOrAlias: string) {
+    const rel = await this.release(idOrAlias);
+    if (!rel) return null;
+    return {
+      id: rel.id,
+      name: rel.name,
+      alias: rel.alias,
+      year: rel.year,
+      poster: rel.poster,
+      episodes: (rel.episodes || []).map((ep: any) => ({
+        id: ep.id,
+        ordinal: ep.ordinal,
+        name: ep.name,
+        duration: ep.duration,
+      })),
+    };
+  }
+
   async episode(episodeId: string): Promise<AnilibriaEpisode | null> {
     try {
       const resp = await fetch(
