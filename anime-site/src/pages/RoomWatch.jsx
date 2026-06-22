@@ -99,11 +99,25 @@ export default function RoomWatch() {
     const video = videoRef.current
     if (!video || !iframeSrc?.includes('.m3u8')) return
 
+    console.log('[HLS] loading', iframeSrc)
     if (Hls.isSupported()) {
       const hls = new Hls({
+        debug: true,
         xhrSetup: (xhr) => {
           xhr.withCredentials = false
         },
+      })
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        console.error('[HLS-ERROR]', data.type, data.details, data.fatal)
+        if (data.fatal) {
+          console.error('[HLS-FATAL] swapping to native video')
+          hls.destroy()
+          video.src = iframeSrc
+        }
+      })
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        console.log('[HLS] manifest parsed, playing')
+        video.play().catch(e => console.log('[HLS] play rejected', e.message))
       })
       hls.loadSource(iframeSrc)
       hls.attachMedia(video)
@@ -732,6 +746,8 @@ export default function RoomWatch() {
                 <video
                   ref={videoRef}
                   controls
+                  playsInline
+                  crossOrigin="anonymous"
                   style={{ width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: 14 }}
                 />
               ) : (
