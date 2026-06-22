@@ -117,8 +117,23 @@ export default function QuizEmoji() {
     )
   }
 
+  function backToSelect() {
+    setState('select')
+    setResultMsg('')
+  }
+
   return (
     <div>
+      {(state !== 'select' && state !== 'idle') && (
+        <button className="btn btn-ghost btn-sm" onClick={backToSelect} style={{ marginBottom: 16 }}>
+          ← К выбору сложности
+        </button>
+      )}
+      {(state === 'idle') && (
+        <button className="btn btn-ghost btn-sm" onClick={() => { setState('select'); setResultMsg('') }} style={{ marginBottom: 16 }}>
+          ← Назад
+        </button>
+      )}
       <div style={{ fontSize: 13, color: 'var(--text-faint)', marginBottom: 20, marginTop: -8 }}>
         Счёт: {score} · Раунд: {round} · Угадано: {score}/{totalPlayed || 0}
       </div>
