@@ -7,6 +7,7 @@ import { User } from '../users/user.entity';
 import { WatchRoomMessage } from './watch-room-message.entity';
 import { WatchRoomParticipant } from './watch-room-participant.entity';
 import { WatchRoom } from './watch-room.entity';
+import { AnilibriaService } from './anilibria.service';
 import { WatchRoomsController } from './watch-rooms.controller';
 import { WatchRoomsGateway } from './watch-rooms.gateway';
 import { WatchRoomsService } from './watch-rooms.service';
@@ -20,7 +21,7 @@ import { WatchRoomsService } from './watch-rooms.service';
     NotificationsModule,
   ],
   controllers: [WatchRoomsController],
-  providers: [WatchRoomsService, WatchRoomsGateway],
+  providers: [WatchRoomsService, WatchRoomsGateway, AnilibriaService],
   exports: [WatchRoomsService, WatchRoomsGateway],
 })
 export class WatchRoomsModule {}

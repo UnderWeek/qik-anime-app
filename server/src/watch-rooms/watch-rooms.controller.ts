@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -19,6 +20,7 @@ import {
   SetWatchRoomVideoDto,
   UpdateWatchRoomStateDto,
 } from './dto';
+import { AnilibriaService } from './anilibria.service';
 import { WatchRoomsGateway } from './watch-rooms.gateway';
 import { WatchRoomsService } from './watch-rooms.service';
 
@@ -28,6 +30,7 @@ export class WatchRoomsController {
   constructor(
     private readonly service: WatchRoomsService,
     private readonly gateway: WatchRoomsGateway,
+    private readonly anilibria: AnilibriaService,
   ) {}
 
   @Get()
@@ -122,6 +125,26 @@ export class WatchRoomsController {
     @Body() dto: InviteToRoomDto,
   ) {
     return this.service.invite(roomId, user.id, dto);
+  }
+
+  @Get('search-anilibria')
+  async searchAnilibria(@Query('q') q: string) {
+    if (!q?.trim()) return [];
+    return this.anilibria.search(q.trim(), 10);
+  }
+
+  @Get('anilibria-episode/:id')
+  async anilibriaEpisode(@Param('id') id: string) {
+    const ep = await this.anilibria.episode(id);
+    if (!ep) return null;
+    return {
+      id: ep.id,
+      ordinal: ep.ordinal,
+      name: ep.name,
+      hls_720: ep.hls_720,
+      hls_1080: ep.hls_1080,
+      duration: ep.duration,
+    };
   }
 
   @Delete(':id')

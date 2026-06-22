@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { io } from 'socket.io-client'
-import { api, poster } from '../api/client.js'
 import { BACKEND_ORIGIN, backend, getToken, uploadUrl } from '../api/backend.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import Avatar from '../components/Avatar.jsx'
 import Lightbox from '../components/Lightbox.jsx'
-import { ArrowLeft, CloseIcon, ImageIcon, UsersIcon, UserPlusIcon, StarIcon, PlayIcon } from '../components/icons.jsx'
+import { ArrowLeft, CloseIcon, ImageIcon, UsersIcon, UserPlusIcon, PlayIcon } from '../components/icons.jsx'
 import { sendPlayerCommand, subscribePlayerEvents } from '../utils/playerApi.js'
 
 function timeAgo(iso) {
@@ -16,10 +15,6 @@ function timeAgo(iso) {
   if (diff < 3600) return `${Math.floor(diff / 60)} мин назад`
   if (diff < 86400) return `${Math.floor(diff / 3600)} ч назад`
   return d.toLocaleDateString('ru-RU')
-}
-
-function animePosterUrl(anime) {
-  return poster(anime, 'big') || poster(anime, 'medium') || poster(anime, 'small') || ''
 }
 
 export default function RoomWatch() {
@@ -42,7 +37,6 @@ export default function RoomWatch() {
   const [selectedAnime, setSelectedAnime] = useState(null)
   const [animeVideos, setAnimeVideos] = useState([])
   const [videoLoading, setVideoLoading] = useState(false)
-  const [selectedDub, setSelectedDub] = useState(null)
   const [videoId, setVideoId] = useState(null)
   const [pushingVideo, setPushingVideo] = useState(false)
 
@@ -57,6 +51,7 @@ export default function RoomWatch() {
   const inviteRef = useRef(null)
   const fileRef = useRef(null)
   const iframeRef = useRef(null)
+  const videoRef = useRef(null)
   const socketRef = useRef(null)
 
   // ---- sync state ----
@@ -78,29 +73,15 @@ export default function RoomWatch() {
   // ---- episode filtering ----
   const playerEpisodes = useMemo(() => {
     return (Array.isArray(animeVideos) ? animeVideos : [])
-      .filter((v) => !!v?.iframe_url)
   }, [animeVideos])
 
-  const dubbings = useMemo(() => {
-    const seen = new Set()
-    const out = []
-    playerEpisodes.forEach((v) => {
-      const d = v.data?.dubbing || 'Озвучка'
-      if (!seen.has(d)) { seen.add(d); out.push(d) }
-    })
-    return out
-  }, [playerEpisodes])
-
   const episodes = useMemo(
-    () =>
-      playerEpisodes
-        .filter((v) => (v.data?.dubbing || 'Озвучка') === selectedDub)
-        .sort((a, b) => (a.index || 0) - (b.index || 0)),
-    [playerEpisodes, selectedDub]
+    () => [...playerEpisodes].sort((a, b) => (a.ordinal || 0) - (b.ordinal || 0)),
+    [playerEpisodes]
   )
 
   const activeEpisode = useMemo(
-    () => episodes.find((ep) => String(ep.video_id) === String(videoId)) || episodes[0] || null,
+    () => episodes.find((ep) => String(ep.id) === String(videoId)) || episodes[0] || null,
     [episodes, videoId]
   )
 
@@ -123,13 +104,19 @@ export default function RoomWatch() {
       setState(snap.state)
       if (snap.state.iframeUrl && snap.state.iframeUrl !== iframeSrc) {
         loadIframeUrl(snap.state.iframeUrl)
-      } else if (snap.state.iframeUrl && iframeRef.current?.contentWindow) {
+      } else if (snap.state.iframeUrl && (iframeRef.current?.contentWindow || videoRef.current)) {
         // Same URL — apply sync state to already-loaded player
         suppressRef.current = Date.now() + 1500
         const t = snap.state.currentTime || 0
         const p = !!snap.state.isPaused
-        sendPlayerCommand(iframeRef, 'seekTo', Math.floor(t))
-        sendPlayerCommand(iframeRef, p ? 'pause' : 'play')
+        if (videoRef.current) {
+          videoRef.current.currentTime = t
+          if (p) videoRef.current.pause()
+          else videoRef.current.play()
+        } else {
+          sendPlayerCommand(iframeRef, 'seekTo', Math.floor(t))
+          sendPlayerCommand(iframeRef, p ? 'pause' : 'play')
+        }
         localTimeRef.current = t
         localPausedRef.current = p
         localTickAtRef.current = Date.now()
@@ -205,10 +192,18 @@ export default function RoomWatch() {
   }, [navigate, roomId, showToast])
 
   function togglePlayPause() {
-    if (!iframeRef.current) return
+    const video = videoRef.current
+    const iframe = iframeRef.current
     const next = !localPausedRef.current
-    suppressRef.current = Date.now() + 1500
-    sendPlayerCommand(iframeRef, next ? 'pause' : 'play')
+
+    if (video) {
+      if (next) video.pause()
+      else video.play()
+    } else if (iframe) {
+      suppressRef.current = Date.now() + 1500
+      sendPlayerCommand(iframeRef, next ? 'pause' : 'play')
+    }
+
     localPausedRef.current = next
     localTickAtRef.current = Date.now()
     setLocalPaused(next)
@@ -247,16 +242,34 @@ export default function RoomWatch() {
       const targetTime = remote.currentTime || 0
       const targetPaused = !!remote.isPaused
       const drift = Math.abs(localTimeRef.current - targetTime)
-      if (drift > 1) {
-        suppressRef.current = Date.now() + 1500
-        sendPlayerCommand(iframeRef, 'seekTo', Math.floor(targetTime))
-      }
-      if (targetPaused !== localPausedRef.current) {
-        suppressRef.current = Date.now() + 1500
-        sendPlayerCommand(iframeRef, targetPaused ? 'pause' : 'play')
-        localPausedRef.current = targetPaused
-        localTickAtRef.current = Date.now()
-        setLocalPaused(targetPaused)
+
+      // HTML5 video: direct control
+      if (videoRef.current) {
+        const v = videoRef.current
+        if (drift > 1) {
+          suppressRef.current = Date.now() + 1500
+          v.currentTime = targetTime
+        }
+        if (targetPaused !== localPausedRef.current) {
+          suppressRef.current = Date.now() + 1500
+          if (targetPaused) v.pause()
+          else v.play()
+          localPausedRef.current = targetPaused
+          localTickAtRef.current = Date.now()
+          setLocalPaused(targetPaused)
+        }
+      } else if (iframeRef.current) {
+        if (drift > 1) {
+          suppressRef.current = Date.now() + 1500
+          sendPlayerCommand(iframeRef, 'seekTo', Math.floor(targetTime))
+        }
+        if (targetPaused !== localPausedRef.current) {
+          suppressRef.current = Date.now() + 1500
+          sendPlayerCommand(iframeRef, targetPaused ? 'pause' : 'play')
+          localPausedRef.current = targetPaused
+          localTickAtRef.current = Date.now()
+          setLocalPaused(targetPaused)
+        }
       }
       localTimeRef.current = targetTime
       localTickAtRef.current = Date.now()
@@ -294,14 +307,62 @@ export default function RoomWatch() {
   const stateRef = useRef(null)
   useEffect(() => { stateRef.current = state }, [state])
 
+  const isM3u8 = state?.iframeUrl?.includes('.m3u8')
+
   useEffect(() => {
-    if (!state?.iframeUrl || !iframeRef.current) return undefined
+    if (!state?.iframeUrl) return undefined
     setLocalPaused(true)
     localTimeRef.current = state.currentTime || 0
     localPausedRef.current = true
     localTickAtRef.current = Date.now()
     setClockSeconds(Math.floor(state.currentTime || 0))
 
+    // HTML5 video events (AniLibria)
+    if (isM3u8) {
+      const video = videoRef.current
+      if (!video) return undefined
+
+      function onTimeUpdate() {
+        const t = video.currentTime
+        if (Date.now() < suppressRef.current) return
+        localTimeRef.current = t
+        localTickAtRef.current = Date.now()
+        setClockSeconds(Math.floor(t))
+      }
+      function onPlayEvent() {
+        localPausedRef.current = false
+        localTickAtRef.current = Date.now()
+        setLocalPaused(false)
+        if (isHostRef.current) {
+          sendState({ currentTime: Math.floor(video.currentTime), isPaused: false }, true)
+        }
+      }
+      function onPauseEvent() {
+        localPausedRef.current = true
+        setLocalPaused(true)
+        if (isHostRef.current) {
+          sendState({ currentTime: Math.floor(video.currentTime), isPaused: true }, true)
+        }
+      }
+      function onSeeked() {
+        localTimeRef.current = video.currentTime
+        localTickAtRef.current = Date.now()
+        setClockSeconds(Math.floor(video.currentTime))
+      }
+
+      video.addEventListener('timeupdate', onTimeUpdate)
+      video.addEventListener('play', onPlayEvent)
+      video.addEventListener('pause', onPauseEvent)
+      video.addEventListener('seeked', onSeeked)
+      return () => {
+        video.removeEventListener('timeupdate', onTimeUpdate)
+        video.removeEventListener('play', onPlayEvent)
+        video.removeEventListener('pause', onPauseEvent)
+        video.removeEventListener('seeked', onSeeked)
+      }
+    }
+
+    // PostMessage events (iframe/Kodik)
     const unsub = subscribePlayerEvents(iframeRef, (event) => {
       if (Date.now() < suppressRef.current) return
 
@@ -331,7 +392,7 @@ export default function RoomWatch() {
 
     playerUnsubRef.current = unsub
     return () => { unsub(); playerUnsubRef.current = null }
-  }, [sendState, state?.iframeUrl])
+  }, [isM3u8, sendState, state?.iframeUrl])
 
   // Host heartbeat every second while playing
   useEffect(() => {
@@ -358,14 +419,6 @@ export default function RoomWatch() {
   )
 
   useEffect(() => {
-    if (dubbings.length) {
-      setSelectedDub((prev) => (dubbings.includes(prev) ? prev : dubbings[0]))
-    } else {
-      setSelectedDub(null)
-    }
-  }, [dubbings])
-
-  useEffect(() => {
     if (episodes.length) {
       setVideoId((prev) =>
         episodes.some((ep) => String(ep.video_id) === String(prev))
@@ -377,38 +430,6 @@ export default function RoomWatch() {
     }
   }, [episodes])
 
-  // Auto-load episodes for the current room anime
-  useEffect(() => {
-    const aid = state?.animeId
-    if (!aid) return
-    if (selectedAnime && selectedAnime.anime_id !== aid) return
-    if (selectedAnime?.anime_id === aid && animeVideos.length > 0) return
-
-    let cancelled = false
-    async function load() {
-      setVideoLoading(true)
-      try {
-        const raw = await api.videos(aid)
-        if (cancelled) return
-        const list = Array.isArray(raw) ? raw.filter((v) => !!v?.iframe_url) : []
-        setAnimeVideos(list)
-        setSelectedAnime({
-          anime_id: aid,
-          anime_url: state.animeUrl,
-          title: state.animeTitle,
-          poster: { medium: state.animePoster },
-        })
-        if (state.videoId) setVideoId(String(state.videoId))
-      } catch {
-        if (!cancelled) setAnimeVideos([])
-      } finally {
-        if (!cancelled) setVideoLoading(false)
-      }
-    }
-    load()
-    return () => { cancelled = true }
-  }, [state?.animeId])
-
   // ---- Actions ----
   async function runSearch(e) {
     e.preventDefault()
@@ -416,7 +437,7 @@ export default function RoomWatch() {
     if (!q) return
     setSearching(true)
     try {
-      const res = await api.search(q, { limit: 12 })
+      const res = await backend.searchAnilibria(q)
       setSearchResults(Array.isArray(res) ? res : [])
     } catch {
       setSearchResults([])
@@ -426,15 +447,15 @@ export default function RoomWatch() {
     }
   }
 
-  async function pickAnime(anime) {
-    setSelectedAnime(anime)
+  async function pickAnime(release) {
+    setSelectedAnime(release)
     setVideoLoading(true)
     setAnimeVideos([])
     try {
-      const raw = await api.videos(anime.anime_id)
-      const list = Array.isArray(raw) ? raw.filter((v) => !!v?.iframe_url) : []
-      setAnimeVideos(list)
-      if (!list.length) showToast('Для этого аниме нет доступных плееров')
+      const full = await fetch(`https://www.anilibria.top/api/v1/anime/releases/${release.id}?include=episodes`).then(r => r.json())
+      const eps = Array.isArray(full?.episodes) ? full.episodes : []
+      setAnimeVideos(eps)
+      if (!eps.length) showToast('Нет эпизодов')
     } catch {
       setAnimeVideos([])
       showToast('Не удалось загрузить серии')
@@ -448,28 +469,36 @@ export default function RoomWatch() {
       showToast('Управление плеером доступно только ведущему')
       return
     }
-    if (!selectedAnime || !episode?.iframe_url) {
+    if (!selectedAnime || !episode?.id) {
       showToast('Выберите серию для комнаты')
       return
     }
 
-    const dubName = episode.data?.dubbing || 'Озвучка'
-
-    const payload = {
-      animeId: selectedAnime.anime_id,
-      animeUrl: selectedAnime.anime_url,
-      animeTitle: selectedAnime.title,
-      animePoster: animePosterUrl(selectedAnime) || state?.animePoster || '',
-      videoId: String(episode.video_id || ''),
-      episodeNumber: String(episode.number || episode.index || ''),
-      dubbing: dubName,
-      iframeUrl: episode.iframe_url,
-    }
-
+    // Get streaming URL from AniLibria
     setPushingVideo(true)
     try {
+      const epData = await backend.anilibriaEpisode(episode.id)
+      if (!epData?.hls_720 && !epData?.hls_1080) {
+        showToast('Нет доступного стрима для этого эпизода')
+        setPushingVideo(false)
+        return
+      }
+
+      const streamUrl = epData.hls_720 || epData.hls_1080
+
+      const payload = {
+        animeId: selectedAnime.id,
+        animeUrl: selectedAnime.alias || String(selectedAnime.id),
+        animeTitle: selectedAnime.name?.main || selectedAnime.name || '',
+        animePoster: (selectedAnime.poster?.optimized?.src || selectedAnime.poster?.src) || state?.animePoster || '',
+        videoId: episode.id,
+        episodeNumber: String(episode.ordinal || ''),
+        dubbing: 'AniLibria',
+        iframeUrl: streamUrl,
+      }
+
       await backend.setWatchRoomVideo(roomId, payload)
-      setVideoId(String(episode.video_id))
+      setVideoId(episode.id)
       showToast('Плеер комнаты обновлён')
     } catch (err) {
       showToast(err.message || 'Не удалось обновить плеер')
@@ -672,13 +701,22 @@ export default function RoomWatch() {
 
           <div className="room-player-wrap player-wrap">
             {state?.iframeUrl ? (
-              <iframe
-                ref={iframeRef}
-                src={iframeSrc}
-                title="Room player — Kodik"
-                allowFullScreen
-                allow="autoplay; fullscreen; encrypted-media"
-              />
+              state.iframeUrl.includes('.m3u8') ? (
+                <video
+                  ref={videoRef}
+                  src={iframeSrc}
+                  controls
+                  style={{ width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: 14 }}
+                />
+              ) : (
+                <iframe
+                  ref={iframeRef}
+                  src={iframeSrc}
+                  title="Room player — Kodik"
+                  allowFullScreen
+                  allow="autoplay; fullscreen; encrypted-media"
+                />
+              )
             ) : (
               <div className="state" style={{ padding: 20 }}>
                 Выберите аниме и серию в блоке ниже.
@@ -722,28 +760,23 @@ export default function RoomWatch() {
 
             {!!searchResults.length && (
               <div className="room-search-results">
-                {searchResults.map((a) => {
-                  const img = poster(a, 'big') || poster(a, 'medium') || poster(a, 'small')
-                  const rate = a.rating?.average
+                {searchResults.map((r) => {
+                  const img = r.poster?.optimized?.src || r.poster?.src
                   return (
                     <button
-                      key={a.anime_id || a.anime_url}
-                      className={`room-search-item ${selectedAnime?.anime_id === a.anime_id ? 'active' : ''}`}
-                      onClick={() => pickAnime(a)}
+                      key={r.id}
+                      className={`room-search-item ${selectedAnime?.id === r.id ? 'active' : ''}`}
+                      onClick={() => pickAnime(r)}
                       type="button"
                     >
                       <div className="room-search-poster">
                         {img ? <img src={img} alt="" /> : <div className="room-search-no-poster" />}
                       </div>
                       <div className="room-search-info">
-                        <div className="room-search-title">{a.title}</div>
+                        <div className="room-search-title">{r.name?.main || r.name}</div>
                         <div className="room-search-meta">
-                          {a.year && <span>{a.year}</span>}
-                          {rate > 0 && (
-                            <span className="room-search-rate">
-                              <StarIcon width={11} height={11} /> {rate.toFixed(1)}
-                            </span>
-                          )}
+                          {r.year && <span>{r.year}</span>}
+                          {r.season?.value && <span>{r.season.value}</span>}
                         </div>
                       </div>
                     </button>
@@ -755,13 +788,13 @@ export default function RoomWatch() {
             {selectedAnime && (
               <div className="room-selected-anime">
                 <div>
-                  <b>{selectedAnime.title}</b>
+                  <b>{selectedAnime.name?.main || selectedAnime.name}</b>
                   <div style={{ color: 'var(--text-faint)', fontSize: 13 }}>
                     {videoLoading
                       ? 'Загружаем серии...'
                       : playerEpisodes.length
                         ? `Доступно серий: ${playerEpisodes.length}`
-                        : 'Нет доступных плееров'}
+                        : 'Нет доступных серий'}
                   </div>
                 </div>
               </div>
@@ -769,28 +802,17 @@ export default function RoomWatch() {
 
             {playerEpisodes.length > 0 && (
               <div className="room-episode-picker">
-                {dubbings.length > 1 && (
-                  <div className="control-group" style={{ maxWidth: 280 }}>
-                    <div className="control-label">Озвучка</div>
-                    <select className="select" value={selectedDub || ''} onChange={(e) => setSelectedDub(e.target.value)}>
-                      {dubbings.map((d) => (
-                        <option key={d} value={d}>{d}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
                 <div className="control-group" style={{ flexBasis: '100%' }}>
                   <div className="control-label">Серия</div>
                   <div className="episode-grid">
                     {episodes.map((ep) => (
                       <button
-                        key={String(ep.video_id)}
-                        className={`ep-btn ${String(videoId) === String(ep.video_id) ? 'active' : ''}`}
+                        key={ep.id}
+                        className={`ep-btn ${videoId === ep.id ? 'active' : ''}`}
                         type="button"
-                        onClick={() => setVideoId(String(ep.video_id))}
+                        onClick={() => setVideoId(ep.id)}
                       >
-                        {ep.number}
+                        {ep.ordinal}
                       </button>
                     ))}
                   </div>

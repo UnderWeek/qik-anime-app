@@ -174,6 +174,10 @@ export const backend = {
   removeNotification: (id) =>
     request(`/notifications/${id}`, { method: 'DELETE', auth: true }),
 
+  // ---- anilibria ----
+  searchAnilibria: (q) => request(`/watch-rooms/search-anilibria?q=${encodeURIComponent(q)}`, { auth: true }),
+  anilibriaEpisode: (id) => request(`/watch-rooms/anilibria-episode/${id}`, { auth: true }),
+
   // ---- watch rooms ----
   listWatchRooms: () => request('/watch-rooms', { auth: true }),
   createWatchRoom: (payload = {}) =>
