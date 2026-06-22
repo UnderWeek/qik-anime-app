@@ -61,6 +61,9 @@ export class AnilibriaService {
         ordinal: ep.ordinal,
         name: ep.name,
         duration: ep.duration,
+        hls_480: ep.hls_480,
+        hls_720: ep.hls_720,
+        hls_1080: ep.hls_1080,
       })),
     };
   }

@@ -507,17 +507,15 @@ export default function RoomWatch() {
       return
     }
 
-    // Get streaming URL from AniLibria
+    // Streaming URL is already in episode data from AniLibria
+    const streamUrl = episode.hls_720 || episode.hls_1080 || episode.hls_480
+    if (!streamUrl) {
+      showToast('Нет доступного стрима для этого эпизода')
+      return
+    }
+
     setPushingVideo(true)
     try {
-      const epData = await backend.anilibriaEpisode(episode.id)
-      if (!epData?.hls_720 && !epData?.hls_1080) {
-        showToast('Нет доступного стрима для этого эпизода')
-        setPushingVideo(false)
-        return
-      }
-
-      const streamUrl = epData.hls_720 || epData.hls_1080
 
       const payload = {
         animeId: selectedAnime.id,
