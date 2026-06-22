@@ -7,6 +7,7 @@ import Avatar from '../components/Avatar.jsx'
 import Lightbox from '../components/Lightbox.jsx'
 import { ArrowLeft, CloseIcon, ImageIcon, UsersIcon, UserPlusIcon, PlayIcon } from '../components/icons.jsx'
 import { sendPlayerCommand, subscribePlayerEvents } from '../utils/playerApi.js'
+import Hls from 'hls.js'
 
 function timeAgo(iso) {
   const d = new Date(iso)
@@ -85,11 +86,33 @@ export default function RoomWatch() {
     [episodes, videoId]
   )
 
+  const hlsRef = useRef(null)
+
   function loadIframeUrl(url) {
     if (!url) { setIframeSrc(''); return }
     setIframeSrc(url)
     if (iframeRef.current) iframeRef.current.src = url
   }
+
+  // Init HLS.js for .m3u8 streams
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video || !iframeSrc?.includes('.m3u8')) return
+
+    if (Hls.isSupported()) {
+      const hls = new Hls()
+      hls.loadSource(iframeSrc)
+      hls.attachMedia(video)
+      hlsRef.current = hls
+      return () => { hls.destroy(); hlsRef.current = null }
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = iframeSrc
+    }
+
+    return () => {
+      if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null }
+    }
+  }, [iframeSrc])
 
   // ---- applySnapshot ----
   const applySnapshot = useCallback((snap) => {
@@ -704,7 +727,6 @@ export default function RoomWatch() {
               state.iframeUrl.includes('.m3u8') ? (
                 <video
                   ref={videoRef}
-                  src={iframeSrc}
                   controls
                   style={{ width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: 14 }}
                 />
