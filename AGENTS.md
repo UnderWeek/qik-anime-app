@@ -145,7 +145,7 @@ cd ../server && npm ci --omit=dev && npm run build && pm2 reload anime-api
 
 ### Roles
 - **User** — базовый аккаунт (закладки, оценки, комментарии, друзья)
-- **Master** — модерация комментариев, доступ к комнатам просмотра
+- **Master** — модерация комментариев (редактирование и удаление любых), доступ к комнатам просмотра
 - **Admin** — всё что у мастера + админка, статистика, назначение мастеров
 
 ### Key Patterns
@@ -154,3 +154,7 @@ cd ../server && npm ci --omit=dev && npm run build && pm2 reload anime-api
 - **Watch Rooms — видео**: AniLibria API → HLS `.m3u8` стримы → HLS.js в HTML5 `<video>`
 - **Watch Rooms — синхронизация**: host события play/pause → HTTP PATCH `/watch-rooms/:id/state` → WebSocket `room:state` → viewer применяет
 - **Watch Rooms — плеер**: `<video>` всегда в DOM, overlay «Выберите аниме» когда нет URL. HLS инициализируется при изменении `iframeSrc`
+- **Постеры**: `static.yani.tv` заблокирован в РФ → `fixUrl()` заменяет на `imgproxy.yani.tv` (тот же CDN, другой домен)
+- **Рейтинги OP/ED**: сущность `OpeningRating` (уник. индекс user+animeId+type), виджет на странице аниме, лидерборды на `/ratings`
+- **Страница /ratings**: 4 подвкладки (аниме/опенинги/эндинги/пользователи), доступ из меню аватара. Пользователи ranked по XP→уровню
+- **Профиль — вкладка «Комментарии»**: последние комментарии пользователя к аниме, при клике переход на страницу аниме с прокруткой к #comments
