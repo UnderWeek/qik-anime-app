@@ -18,6 +18,8 @@ const TAB_DEFS = {
   rooms: { to: '/rooms', label: 'Комнаты', icon: RoomIcon, master: true },
   library: { to: '/library', label: 'Закладки', icon: BookmarkIcon },
   friends: { to: '/friends', label: 'Друзья', icon: UsersIcon, auth: true },
+  ratings: { to: '/ratings', label: 'Рейтинги', icon: StarIcon },
+  chats: { to: '/chats', label: 'Чаты', icon: MessageIcon, auth: true },
 };
 
 const DEFAULT_MOBILE_ORDER = ['catalog', 'rooms', 'library', 'friends'];

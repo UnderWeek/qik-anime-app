@@ -2,10 +2,11 @@ import { useState, useRef } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme, ACCENT_PRESETS } from '../context/ThemeContext.jsx'
 import { backend } from '../api/backend.js'
-import { GridIcon, CalendarIcon, UsersIcon, BookmarkIcon, SunIcon, MoonIcon, MessageIcon, RoomIcon } from '../components/icons.jsx'
+import { GridIcon, CalendarIcon, UsersIcon, BookmarkIcon, SunIcon, MoonIcon, MessageIcon, RoomIcon, StarIcon } from '../components/icons.jsx'
 import SEO from '../components/SEO.jsx'
 
 const MOBILE_KEY = 'qik_mobile_tabs'
+const MAX_TABS = 5
 
 const ALL_MOBILE_TABS = [
   { key: 'catalog', label: 'Каталог', icon: GridIcon },
@@ -13,6 +14,7 @@ const ALL_MOBILE_TABS = [
   { key: 'rooms', label: 'Комнаты', icon: RoomIcon },
   { key: 'library', label: 'Закладки', icon: BookmarkIcon },
   { key: 'friends', label: 'Друзья', icon: UsersIcon },
+  { key: 'ratings', label: 'Рейтинги', icon: StarIcon },
   { key: 'chats', label: 'Чаты', icon: MessageIcon },
 ]
 
@@ -108,7 +110,14 @@ export default function Settings() {
 
   function toggleTab(key) {
     setTabs((prev) => {
-      const next = prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+      const active = prev.includes(key)
+      if (active) {
+        const next = prev.filter((k) => k !== key)
+        saveMobileTabs(next)
+        return next
+      }
+      if (prev.length >= MAX_TABS) return prev
+      const next = [...prev, key]
       saveMobileTabs(next)
       return next
     })
@@ -216,16 +225,17 @@ export default function Settings() {
         </div>
       </section>
 
-      {/* Mobile nav tabs */}
-      <section style={{ marginBottom: 32 }}>
+      {/* Mobile nav tabs — only on touch devices */}
+      <section style={{ marginBottom: 32 }} className="settings-mobile-nav">
         <h2 style={{ fontSize: 18, marginBottom: 14 }}>Нижняя панель навигации</h2>
         <p style={{ color: 'var(--text-faint)', fontSize: 13, marginBottom: 12 }}>
-          Выберите вкладки для нижней панели на телефоне
+          Выберите до {MAX_TABS} вкладок для нижней панели на телефоне
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 400 }}>
           {ALL_MOBILE_TABS.map((t) => {
             const Icon = t.icon
             const active = tabs.includes(t.key)
+            const locked = !active && tabs.length >= MAX_TABS
             return (
               <div
                 key={t.key}
@@ -237,18 +247,22 @@ export default function Settings() {
                   borderRadius: 12,
                   border: '1px solid var(--border)',
                   background: active ? 'var(--surface-2)' : 'var(--surface)',
-                  opacity: active ? 1 : 0.45,
+                  opacity: locked ? 0.3 : active ? 1 : 0.5,
                 }}
               >
-                <label style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, cursor: 'pointer', fontSize: 14 }}>
-                  <input type="checkbox" checked={active} onChange={() => toggleTab(t.key)} />
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, cursor: locked ? 'not-allowed' : 'pointer', fontSize: 14 }}>
+                  <input type="checkbox" checked={active} onChange={() => toggleTab(t.key)} disabled={locked} />
                   <Icon width={18} height={18} />
                   <span>{t.label}</span>
                 </label>
+                {locked && <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>лимит</span>}
               </div>
             )
           })}
         </div>
+        <p style={{ color: 'var(--text-faint)', fontSize: 12, marginTop: 10 }}>
+          Выбрано: {tabs.length}/{MAX_TABS} · Профиль закреплён всегда
+        </p>
       </section>
 
       {/* Import */}
