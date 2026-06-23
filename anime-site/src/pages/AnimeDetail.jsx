@@ -78,7 +78,7 @@ export default function AnimeDetail() {
     )
   }
 
-  const bg = poster(anime, 'fullsize') || poster(anime, 'huge') || poster(anime, 'big')
+  const bg = poster(anime, 'big') || poster(anime, 'fullsize') || poster(anime, 'huge')
   const img = poster(anime, 'big') || poster(anime, 'medium')
   const rate = anime.rating?.average
   const recList = Array.isArray(recs) ? recs : []

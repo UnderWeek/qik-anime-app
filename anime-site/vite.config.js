@@ -13,7 +13,6 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
-          utils: ['hls.js', 'socket.io-client'],
         },
       },
     },

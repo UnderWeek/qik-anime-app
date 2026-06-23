@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
 import Header from './components/Header.jsx'
@@ -14,13 +15,19 @@ import Library from './pages/Library.jsx'
 import Settings from './pages/Settings.jsx'
 import Profile from './pages/Profile.jsx'
 import Friends from './pages/Friends.jsx'
-import Chats from './pages/Chats.jsx'
-import Rooms from './pages/Rooms.jsx'
-import RoomWatch from './pages/RoomWatch.jsx'
-import Admin from './pages/Admin.jsx'
-import Quiz from './pages/Quiz.jsx'
 import Ratings from './pages/Ratings.jsx'
 import NotFound from './pages/NotFound.jsx'
+
+// Lazy: hls.js + socket.io only loaded when navigating to rooms/chats
+const Chats = lazy(() => import('./pages/Chats.jsx'))
+const Rooms = lazy(() => import('./pages/Rooms.jsx'))
+const RoomWatch = lazy(() => import('./pages/RoomWatch.jsx'))
+const Admin = lazy(() => import('./pages/Admin.jsx'))
+const Quiz = lazy(() => import('./pages/Quiz.jsx'))
+
+function LazyFallback() {
+  return <div className="container page"><div style={{ padding: 40, textAlign: 'center', color: 'var(--text-faint)' }}>Загрузка…</div></div>
+}
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -44,14 +51,14 @@ export default function App() {
           <Route path="/library" element={<Library />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/friends" element={<Friends />} />
-          <Route path="/chats" element={<Chats />} />
-          <Route path="/rooms" element={<Rooms />} />
-          <Route path="/rooms/:id" element={<RoomWatch />} />
+          <Route path="/chats" element={<Suspense fallback={<LazyFallback />}><Chats /></Suspense>} />
+          <Route path="/rooms" element={<Suspense fallback={<LazyFallback />}><Rooms /></Suspense>} />
+          <Route path="/rooms/:id" element={<Suspense fallback={<LazyFallback />}><RoomWatch /></Suspense>} />
           <Route path="/u/:id" element={<Profile />} />
           <Route path="/anime/:url" element={<AnimeDetail />} />
           <Route path="/anime/:url/watch" element={<Watch />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/quiz" element={<Quiz />} />
+          <Route path="/admin" element={<Suspense fallback={<LazyFallback />}><Admin /></Suspense>} />
+          <Route path="/quiz" element={<Suspense fallback={<LazyFallback />}><Quiz /></Suspense>} />
           <Route path="/ratings" element={<Ratings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

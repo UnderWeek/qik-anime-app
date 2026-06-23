@@ -32,7 +32,7 @@ export default function ContinueWatching() {
             <Link key={it.id} to={`/anime/${it.animeUrl || it.animeId}/watch?ep=${encodeURIComponent(it.episodeNumber)}`} className="card">
               <div className="card-poster">
                 {it.animePoster ? (
-                  <img src={upgradePoster(it.animePoster, 'big')} alt={it.animeTitle} loading="lazy" />
+                  <img src={upgradePoster(it.animePoster, 'medium')} alt={it.animeTitle} loading="lazy" />
                 ) : (
                   <div className="skel" style={{ width: '100%', height: '100%' }} />
                 )}

@@ -56,10 +56,10 @@ export default function Hero({ items = [] }) {
     <div className="hero" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
       {slides.map((a, idx) => {
         const url = a.anime_url || a.url
-        const bg = poster(a, 'fullsize')
+        const bg = poster(a, 'big')
         return (
           <div className={`hero-slide ${idx === i ? 'active' : ''}`} key={url || idx}>
-            <img className="hero-bg" src={bg} alt="" aria-hidden />
+            <img className="hero-bg" src={bg} alt="" aria-hidden fetchPriority={idx === i ? 'high' : undefined} loading={idx === i ? undefined : 'lazy'} />
             <div className="hero-overlay" />
             <div className="hero-content">
               <div className="hero-tag">
