@@ -5,5 +5,10 @@ Disallow: /settings
 Disallow: /friends
 Disallow: /chats
 Disallow: /admin
+Disallow: /profile/
+Disallow: /anime/*/watch
+Disallow: /room/
+Disallow: /quiz
+Disallow: /api/
 
 Sitemap: https://quickik.ru/sitemap.xml

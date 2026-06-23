@@ -4,13 +4,18 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="QIK Anime — минималистичный каталог аниме: закладки, рейтинг, комментарии, комнаты совместного просмотра" />
-    <meta name="keywords" content="аниме, смотреть аниме онлайн, каталог аниме, аниме бесплатно" />
+    <meta name="theme-color" content="#0c0c11" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f6f6fb" media="(prefers-color-scheme: light)" />
+    <meta name="description" content="QIK Anime — смотреть аниме онлайн, каталог с фильтрами по жанрам и годам, рейтинги опенингов и эндингов, закладки, комментарии" />
+    <meta name="keywords" content="аниме, смотреть аниме онлайн, каталог аниме, аниме бесплатно, рейтинг аниме, закладки аниме, опенинги, эндинги, аниме онлайн" />
     <title>QIK Anime — смотреть аниме онлайн</title>
     <link rel="canonical" href="https://quickik.ru" />
 
+    <link rel="preconnect" href="https://imgproxy.yani.tv" crossorigin />
+    <link rel="preconnect" href="https://quickik.ru" />
+
     <meta property="og:title" content="QIK Anime — смотреть аниме онлайн" />
-    <meta property="og:description" content="QIK Anime — минималистичный каталог аниме: закладки, рейтинг, комментарии, комнаты совместного просмотра" />
+    <meta property="og:description" content="QIK Anime — смотреть аниме онлайн, каталог с фильтрами по жанрам и годам, рейтинги опенингов и эндингов, закладки, комментарии" />
     <meta property="og:image" content="https://quickik.ru/og-image.png" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="QIK Anime" />
@@ -18,11 +23,25 @@
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="QIK Anime — смотреть аниме онлайн" />
-    <meta name="twitter:description" content="QIK Anime — минималистичный каталог аниме: закладки, рейтинг, комментарии, комнаты совместного просмотра" />
+    <meta name="twitter:description" content="QIK Anime — смотреть аниме онлайн, каталог с фильтрами по жанрам и годам, рейтинги опенингов и эндингов, закладки, комментарии" />
     <meta name="twitter:image" content="https://quickik.ru/og-image.png" />
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <div style="max-width:600px;margin:60px auto;padding:20px;font-family:sans-serif;color:#333">
+        <h1>QIK Anime</h1>
+        <p>Минималистичный каталог аниме: смотреть онлайн, закладки, рейтинги, комментарии.</p>
+        <ul style="line-height:2">
+          <li><a href="/">Главная</a> — тренды и новинки</li>
+          <li><a href="/catalog">Каталог</a> — поиск по жанрам и годам</li>
+          <li><a href="/schedule">Расписание</a> — выход серий по дням</li>
+          <li><a href="/ratings">Рейтинги</a> — топ аниме, опенингов, эндингов</li>
+          <li><a href="/search">Поиск</a> — найти аниме по названию</li>
+        </ul>
+        <p style="margin-top:20px;font-size:14px;color:#666">Для полного функционала включите JavaScript.</p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useApi } from '../hooks/useApi.js'
 import { api } from '../api/client.js'
 import AnimeCard, { CardSkeleton } from '../components/AnimeCard.jsx'
-import SEO from '../components/SEO.jsx'
+import SEO, { breadcrumbJsonLd } from '../components/SEO.jsx'
 
 const DAYS = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота']
 const DAYS_SHORT = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
@@ -27,9 +27,10 @@ export default function Schedule() {
   return (
     <div className="container page">
       <SEO
-        title="Расписание выхода аниме"
-        description="Расписание выхода новых серий аниме по дням недели. Узнайте, когда выйдет следующая серия."
+        title="Расписание выхода аниме на неделю"
+        description="Расписание выхода новых серий аниме по дням недели. Следите за онгоингами, узнайте когда выйдет следующая серия."
         canonical="https://quickik.ru/schedule"
+        jsonLd={breadcrumbJsonLd([{ name: 'Главная', url: '/' }, { name: 'Расписание' }], 'https://quickik.ru')}
       />
 
       <div className="section-head" style={{ marginBottom: 24 }}>

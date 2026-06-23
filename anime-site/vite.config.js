@@ -7,4 +7,16 @@ export default defineConfig({
     port: 5173,
     host: true,
   },
+  build: {
+    target: 'es2020',
+    cssMinify: 'lightningcss',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          utils: ['hls.js', 'socket.io-client'],
+        },
+      },
+    },
+  },
 })

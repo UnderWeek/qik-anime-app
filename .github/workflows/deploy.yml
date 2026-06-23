@@ -20,6 +20,10 @@ jobs:
             anime-site/package-lock.json
             server/package-lock.json
 
+      - name: Generate sitemap
+        working-directory: anime-site
+        run: node scripts/generate-sitemap.mjs
+
       - name: Build frontend
         working-directory: anime-site
         run: |
@@ -78,3 +82,8 @@ jobs:
 
           echo "--- reload ---"
           ssh $SSH_OPTS "$SSH_USER@$SSH_HOST" 'cp -r /root/qik-anime/anime-site/dist/* /var/www/quickik.ru/ && cd /root/qik-anime/server && npm ci --omit=dev && pm2 reload anime-api && echo ok'
+
+      - name: Ping search engines
+        run: |
+          curl -s -o /dev/null -w "Google: %{http_code}\n" "https://www.google.com/ping?sitemap=https%3A%2F%2Fquickik.ru%2Fsitemap.xml"
+          curl -s -o /dev/null -w "Yandex: %{http_code}\n" "https://webmaster.yandex.ru/ping?sitemap=https%3A%2F%2Fquickik.ru%2Fsitemap.xml"

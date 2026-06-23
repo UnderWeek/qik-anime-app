@@ -4,7 +4,7 @@ import { api } from '../api/client.js'
 import { useApi } from '../hooks/useApi.js'
 import AnimeCard, { CardSkeleton } from '../components/AnimeCard.jsx'
 import { CloseIcon, SearchIcon } from '../components/icons.jsx'
-import SEO from '../components/SEO.jsx'
+import SEO, { breadcrumbJsonLd, itemListJsonLd } from '../components/SEO.jsx'
 
 const SORTS = [
   { v: 'rating', label: 'По рейтингу' },
@@ -429,6 +429,13 @@ export default function Catalog() {
         title="Каталог аниме"
         description="Каталог аниме с фильтрами по жанрам, типу, статусу, году и рейтингу. Найдите своё следующее аниме."
         canonical="https://quickik.ru/catalog"
+        jsonLd={[
+          breadcrumbJsonLd([
+            { name: 'Главная', url: '/' },
+            { name: 'Каталог' },
+          ], 'https://quickik.ru'),
+          ...(items.length > 0 ? [itemListJsonLd(items, 'https://quickik.ru')] : []),
+        ]}
       />
 
       <div className="section-head catalog-page-head" style={{ marginBottom: 22 }}>

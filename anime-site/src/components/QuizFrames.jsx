@@ -173,7 +173,7 @@ export default function QuizFrames() {
                     disabled={state === 'reveal'}
                   >
                     <div className="room-search-poster">
-                      {img ? <img src={img} alt="" /> : <div className="room-search-no-poster" />}
+                      {img ? <img src={img} alt={a.title || ''} loading="lazy" /> : <div className="room-search-no-poster" />}
                     </div>
                     <div className="room-search-info">
                       <div className="room-search-title">{a.title}</div>

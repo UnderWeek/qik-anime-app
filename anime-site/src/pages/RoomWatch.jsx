@@ -405,7 +405,7 @@ export default function RoomWatch() {
                   const img = r.poster?.optimized?.src || r.poster?.src
                   return (
                     <button key={r.id} className={`room-search-item ${selectedAnime?.id === r.id ? 'active' : ''}`} onClick={() => pickAnime(r)} type="button">
-                      <div className="room-search-poster">{img ? <img src={img} alt="" /> : <div className="room-search-no-poster" />}</div>
+                      <div className="room-search-poster">{img ? <img src={img} alt={r.name?.main || r.name || ''} loading="lazy" /> : <div className="room-search-no-poster" />}</div>
                       <div className="room-search-info">
                         <div className="room-search-title">{r.name?.main || r.name}</div>
                         <div className="room-search-meta">{r.year && <span>{r.year}</span>}{r.season?.value && <span>{r.season.value}</span>}</div>

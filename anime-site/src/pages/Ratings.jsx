@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { backend, uploadUrl } from '../api/backend.js'
 import { api, fixUrl } from '../api/client.js'
-import SEO from '../components/SEO.jsx'
+import SEO, { breadcrumbJsonLd } from '../components/SEO.jsx'
 import Avatar from '../components/Avatar.jsx'
 import { StarIcon } from '../components/icons.jsx'
 
@@ -75,7 +75,12 @@ export default function Ratings() {
 
   return (
     <div className="container page">
-      <SEO title="Рейтинги" description="Топ аниме, опенингов, эндингов и пользователей по оценкам." canonical="https://quickik.ru/ratings" />
+      <SEO
+        title="Рейтинги"
+        description="Топ аниме, опенингов, эндингов и пользователей по оценкам — лучшие аниме по версии сообщества QIK Anime."
+        canonical="https://quickik.ru/ratings"
+        jsonLd={breadcrumbJsonLd([{ name: 'Главная', url: '/' }, { name: 'Рейтинги' }], 'https://quickik.ru')}
+      />
 
       <div className="subtabs" style={{ marginBottom: 20 }}>
         {TABS.map((t) => (
@@ -123,7 +128,7 @@ export default function Ratings() {
               <td>
                 <Link to={`/anime/${r.anime?.anime_url || r.animeId}`} style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'inherit', textDecoration: 'none' }}>
                   {r.anime && (r.anime.poster?.small || r.anime.poster?.medium) ? (
-                    <img src={fixUrl(r.anime.poster?.small || r.anime.poster?.medium)} alt="" style={{ width: 36, height: 52, objectFit: 'cover', borderRadius: 6 }} />
+                    <img src={fixUrl(r.anime.poster?.small || r.anime.poster?.medium)} alt={r.anime?.title || ''} loading="lazy" style={{ width: 36, height: 52, objectFit: 'cover', borderRadius: 6 }} />
                   ) : (
                     <div style={{ width: 36, height: 52, borderRadius: 6, background: 'var(--surface-2)' }} />
                   )}

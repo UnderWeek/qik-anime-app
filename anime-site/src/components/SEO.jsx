@@ -4,7 +4,7 @@ const SITE_NAME = 'QIK Anime'
 const SITE_URL = 'https://quickik.ru'
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`
 const DEFAULT_DESCRIPTION =
-  'QIK Anime — минималистичный каталог аниме: закладки, рейтинг, комментарии, комнаты совместного просмотра'
+  'QIK Anime — смотреть аниме онлайн, каталог с фильтрами по жанрам и годам, рейтинги опенингов и эндингов, закладки, комментарии'
 
 export default function SEO({
   title,
@@ -21,7 +21,7 @@ export default function SEO({
     <Helmet>
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
-      <meta name="keywords" content="аниме, смотреть аниме онлайн, каталог аниме, аниме бесплатно" />
+      <meta name="keywords" content="аниме, смотреть аниме онлайн, каталог аниме, аниме бесплатно, рейтинг аниме, закладки аниме, опенинги, эндинги, аниме онлайн" />
 
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={description} />
@@ -37,6 +37,8 @@ export default function SEO({
       <meta name="twitter:image" content={image} />
 
       {canonical && <link rel="canonical" href={canonical} />}
+      <link rel="alternate" hreflang="ru" href={canonical || SITE_URL} />
+      <link rel="alternate" hreflang="x-default" href={canonical || SITE_URL} />
 
       {jsonLd && (
         <script type="application/ld+json">{JSON.stringify(jsonLd, null, 2)}</script>
@@ -94,5 +96,43 @@ export function websiteJsonLd(siteUrl) {
       },
       'query-input': 'required name=search_term_string',
     },
+  }
+}
+
+export function breadcrumbJsonLd(items, siteUrl) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((item, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: item.name,
+      item: item.url ? `${siteUrl}${item.url}` : undefined,
+    })),
+  }
+}
+
+export function itemListJsonLd(items, siteUrl) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    itemListElement: items.map((item, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: `${siteUrl}/anime/${item.anime_url || item.animeId || item.url}`,
+      name: item.title || item.name,
+      image: item.poster || item.image || undefined,
+    })),
+  }
+}
+
+export function organizationJsonLd(siteUrl) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: SITE_NAME,
+    url: siteUrl,
+    logo: `${siteUrl}/favicon.svg`,
+    sameAs: [],
   }
 }

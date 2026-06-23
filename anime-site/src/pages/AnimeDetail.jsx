@@ -14,7 +14,7 @@ import SuggestModal from '../components/SuggestModal.jsx'
 import Lightbox from '../components/Lightbox.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { PlayIcon, ArrowLeft, UsersIcon } from '../components/icons.jsx'
-import SEO, { animeJsonLd } from '../components/SEO.jsx'
+import SEO, { animeJsonLd, breadcrumbJsonLd } from '../components/SEO.jsx'
 
 function fmtNum(n) {
   if (!n && n !== 0) return '—'
@@ -105,7 +105,14 @@ export default function AnimeDetail() {
         url={`https://quickik.ru/anime/${url}`}
         type="video.tv_show"
         canonical={`https://quickik.ru/anime/${url}`}
-        jsonLd={animeJsonLd(anime, 'https://quickik.ru')}
+        jsonLd={[
+          animeJsonLd(anime, 'https://quickik.ru'),
+          breadcrumbJsonLd([
+            { name: 'Главная', url: '/' },
+            { name: 'Каталог', url: '/catalog' },
+            { name: anime.title },
+          ], 'https://quickik.ru'),
+        ]}
       />
 
       <div className="detail-hero">
