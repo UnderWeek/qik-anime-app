@@ -75,7 +75,7 @@ export default function Header() {
       <header className='header'>
         <div className='header-inner'>
           <NavLink to='/' className='logo' aria-label='QIK Anime'>
-            <img src='/logo.png' className='logo-mark' alt='QIK Anime Logo' aria-hidden='true' />
+            <img src='/logonew.png' className='logo-mark' alt='QIK Anime Logo' aria-hidden='true' />
           </NavLink>
           <nav className='nav'>
             {links.filter(l => !l.master || user?.isMaster || user?.isAdmin).map((l) => (
