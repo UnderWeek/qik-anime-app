@@ -6,7 +6,7 @@ import { GridIcon, CalendarIcon, UsersIcon, BookmarkIcon, SunIcon, MoonIcon, Mes
 import SEO from '../components/SEO.jsx'
 
 const MOBILE_KEY = 'qik_mobile_tabs'
-const MAX_TABS = 5
+const MAX_TABS = 4
 
 const ALL_MOBILE_TABS = [
   { key: 'catalog', label: 'Каталог', icon: GridIcon },
@@ -104,6 +104,7 @@ export default function Settings() {
   const { user, ready, openAuth } = useAuth()
   const { accent, setAccent, theme, toggle } = useTheme()
   const [tabs, setTabs] = useState(loadMobileTabs)
+  const [tabsSaved, setTabsSaved] = useState(true)
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
   const fileRef = useRef(null)
@@ -111,16 +112,16 @@ export default function Settings() {
   function toggleTab(key) {
     setTabs((prev) => {
       const active = prev.includes(key)
-      if (active) {
-        const next = prev.filter((k) => k !== key)
-        saveMobileTabs(next)
-        return next
-      }
+      if (active) return prev.filter((k) => k !== key)
       if (prev.length >= MAX_TABS) return prev
-      const next = [...prev, key]
-      saveMobileTabs(next)
-      return next
+      return [...prev, key]
     })
+    setTabsSaved(false)
+  }
+
+  function applyTabs() {
+    saveMobileTabs(tabs)
+    setTabsSaved(true)
   }
 
   async function handleFile(e) {
@@ -259,6 +260,18 @@ export default function Settings() {
               </div>
             )
           })}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14 }}>
+          <button
+            className="btn btn-primary"
+            onClick={applyTabs}
+            disabled={tabsSaved}
+            style={{ padding: '8px 20px', fontSize: 14 }}
+          >
+            Применить
+          </button>
+          {tabsSaved && <span style={{ fontSize: 13, color: 'var(--accent-2)' }}>✓ Сохранено</span>}
+          {!tabsSaved && <span style={{ fontSize: 13, color: 'var(--text-faint)' }}>Есть несохранённые изменения</span>}
         </div>
         <p style={{ color: 'var(--text-faint)', fontSize: 12, marginTop: 10 }}>
           Выбрано: {tabs.length}/{MAX_TABS} · Профиль закреплён всегда
