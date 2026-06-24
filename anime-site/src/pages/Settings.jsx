@@ -15,7 +15,7 @@ const ALL_MOBILE_TABS = [
   { key: 'library', label: 'Закладки', icon: BookmarkIcon },
   { key: 'friends', label: 'Друзья', icon: UsersIcon },
   { key: 'ratings', label: 'Рейтинги', icon: StarIcon },
-  { key: 'chats', label: 'Чаты', icon: MessageIcon },
+  { key: 'quiz', label: 'Квиз', icon: StarIcon },
 ]
 
 const DEFAULT_TABS = ['catalog', 'rooms', 'library', 'friends']
@@ -121,7 +121,7 @@ export default function Settings() {
 
   function applyTabs() {
     saveMobileTabs(tabs)
-    setTabsSaved(true)
+    window.location.reload()
   }
 
   async function handleFile(e) {
