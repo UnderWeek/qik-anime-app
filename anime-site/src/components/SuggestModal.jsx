@@ -16,7 +16,7 @@ export default function SuggestModal({ anime, posterUrl, onClose }) {
   useEffect(() => {
     backend
       .listFriends()
-      .then((r) => setFriends(Array.isArray(r) ? r : []))
+      .then((r) => setFriends(Array.isArray(r) ? r.filter(Boolean) : []))
       .catch(() => setFriends([]))
   }, [])
 

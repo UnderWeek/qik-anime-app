@@ -128,9 +128,11 @@ export class FriendsService {
       .andWhere('(req.id = :id OR addr.id = :id)', { id: userId })
       .getMany();
 
-    return rows.map((f) =>
-      this.pub(f.requester.id === userId ? f.addressee : f.requester),
-    );
+    return rows
+      .map((f) =>
+        this.pub(f.requester.id === userId ? f.addressee : f.requester),
+      )
+      .filter(Boolean);
   }
 
   // incoming + outgoing pending requests for the current user
