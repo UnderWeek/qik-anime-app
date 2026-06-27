@@ -59,6 +59,9 @@ export class User {
   @Column({ type: 'boolean', default: false })
   isMaster: boolean;
 
+  @Column({ type: 'datetime', nullable: true })
+  lastSeenAt: Date | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

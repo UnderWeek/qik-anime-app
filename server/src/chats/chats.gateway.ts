@@ -1,4 +1,6 @@
 import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import {
   ConnectedSocket,
   MessageBody,
@@ -10,6 +12,7 @@ import {
 } from '@nestjs/websockets';
 import { Socket, Server } from 'socket.io';
 import { JWT_SECRET } from '../auth/jwt.strategy';
+import { User } from '../users/user.entity';
 
 function chatChannel(chatId: number) {
   return `chat:${chatId}`;
@@ -26,7 +29,11 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private readonly usersBySocket = new Map<string, number>();
 
-  constructor(private readonly jwt: JwtService) {}
+  constructor(
+    private readonly jwt: JwtService,
+    @InjectRepository(User)
+    private readonly usersRepo: Repository<User>,
+  ) {}
 
   private extractToken(client: Socket) {
     const authToken = client.handshake.auth?.token;
@@ -54,6 +61,7 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const userId = Number(payload?.sub || 0);
       if (!userId) throw new Error('invalid_user');
       this.usersBySocket.set(client.id, userId);
+      this.usersRepo.update(userId, { lastSeenAt: new Date() }).catch(() => {});
       client.emit('chat:ready', { userId });
     } catch {
       client.emit('chat:error', { message: 'invalid_token' });
@@ -62,6 +70,10 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   handleDisconnect(client: Socket) {
+    const userId = this.usersBySocket.get(client.id);
+    if (userId) {
+      this.usersRepo.update(userId, { lastSeenAt: new Date() }).catch(() => {});
+    }
     this.usersBySocket.delete(client.id);
   }
 

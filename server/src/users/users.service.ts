@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Like, Repository } from 'typeorm';
 import { User } from './user.entity';
@@ -14,7 +14,9 @@ import {
   levelForXp,
 } from '../common/gamification';
 import { frameById, framesForLevel } from '../common/frames';
-import { BadRequestException } from '@nestjs/common';
+
+export const ONLINE_THRESHOLD_SECONDS = 300; // 5 min — window where user is considered online
+const LAST_SEEN_THROTTLE_MS = 180_000; // 3 min — minimum interval between DB writes
 
 @Injectable()
 export class UsersService {
@@ -49,6 +51,16 @@ export class UsersService {
     return this.repo.findOne({
       where: [{ email: login }, { username: login }],
     });
+  }
+
+  async touchLastSeen(user: User): Promise<void> {
+    const now = new Date();
+    if (user.lastSeenAt) {
+      const elapsed = now.getTime() - new Date(user.lastSeenAt).getTime();
+      if (elapsed < LAST_SEEN_THROTTLE_MS) return;
+    }
+    user.lastSeenAt = now;
+    await this.repo.save(user, { listeners: false });
   }
 
   create(data: Partial<User>) {
@@ -107,6 +119,7 @@ export class UsersService {
       isAdmin: !!user.isAdmin,
       isMaster: !!user.isMaster,
       createdAt: user.createdAt,
+      lastSeenAt: user.lastSeenAt || null,
     };
   }
 
@@ -126,6 +139,7 @@ export class UsersService {
         avatarColor: u.avatarColor,
         avatarUrl: u.avatarUrl || null,
         avatarFrame: u.avatarFrame || null,
+        lastSeenAt: u.lastSeenAt || null,
       }));
   }
 

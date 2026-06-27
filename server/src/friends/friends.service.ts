@@ -28,6 +28,7 @@ export class FriendsService {
           avatarColor: u.avatarColor,
           avatarUrl: u.avatarUrl || null,
           avatarFrame: u.avatarFrame || null,
+          lastSeenAt: u.lastSeenAt || null,
         }
       : null;
   }

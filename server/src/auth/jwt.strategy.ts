@@ -24,6 +24,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: JwtPayload) {
     const user = await this.users.findById(payload.sub);
     if (!user) throw new UnauthorizedException();
+    // fire-and-forget: update lastSeenAt without blocking the response
+    this.users.touchLastSeen(user).catch(() => {});
     return { id: user.id, username: user.username, email: user.email, isAdmin: user.isAdmin, isMaster: user.isMaster };
   }
 }

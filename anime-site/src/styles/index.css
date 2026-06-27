@@ -2882,3 +2882,31 @@ input {
     transform: perspective(600px) rotateX(0) translateY(0);
   }
 }
+
+/* ---------- online status indicator ---------- */
+.avatar-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.online-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #4ade80;
+  border: 2px solid var(--surface);
+  box-sizing: content-box;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* offset for avatars with frame rings (larger) */
+.avatar-wrap:has(.avatar-frame) .online-dot {
+  width: 13px;
+  height: 13px;
+}

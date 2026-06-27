@@ -41,6 +41,7 @@ export class CommentsService {
             avatarColor: c.user.avatarColor,
             avatarUrl: c.user.avatarUrl || null,
             avatarFrame: c.user.avatarFrame || null,
+            lastSeenAt: c.user.lastSeenAt || null,
           }
         : null,
     };

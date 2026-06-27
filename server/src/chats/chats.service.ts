@@ -34,6 +34,7 @@ export class ChatsService {
           username: u.username,
           avatarColor: u.avatarColor,
           avatarUrl: u.avatarUrl || null,
+          lastSeenAt: u.lastSeenAt || null,
         }
       : null;
   }

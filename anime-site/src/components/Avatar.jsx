@@ -1,11 +1,13 @@
 import { uploadUrl } from '../api/backend.js'
 import { frameColor } from '../utils/frames.js'
+import { lastSeen } from '../utils/time.js'
 
 export default function Avatar({ user, size = 34 }) {
   if (!user) return null
   const letter = (user.username || '?').charAt(0).toUpperCase()
   const bg = user.avatarColor || '#b8a6f0'
   const frame = user.avatarFrame && user.avatarFrame !== 'none' ? frameColor(user.avatarFrame) : null
+  const status = user.lastSeenAt ? lastSeen(user.lastSeenAt) : null
 
   const inner = (
     <span
@@ -30,21 +32,33 @@ export default function Avatar({ user, size = 34 }) {
     </span>
   )
 
-  if (!frame) return inner
-
-  // wrap with a gradient ring
-  const pad = Math.max(2, Math.round(size * 0.07))
-  return (
+  const avatarEl = !frame ? inner : (
     <span
       className="avatar-frame"
       style={{
         background: frame,
-        padding: pad,
-        width: size + pad * 2,
-        height: size + pad * 2,
+        padding: Math.max(2, Math.round(size * 0.07)),
+        width: size + Math.max(2, Math.round(size * 0.07)) * 2,
+        height: size + Math.max(2, Math.round(size * 0.07)) * 2,
       }}
     >
       {inner}
+    </span>
+  )
+
+  if (!status?.online) return avatarEl
+
+  const pad = frame ? Math.max(2, Math.round(size * 0.07)) : 0
+  const totalSize = size + pad * 2
+
+  return (
+    <span
+      className="avatar-wrap"
+      title={status.label || undefined}
+      style={{ position: 'relative', display: 'inline-flex', width: totalSize, height: totalSize }}
+    >
+      {avatarEl}
+      <span className="online-dot" />
     </span>
   )
 }

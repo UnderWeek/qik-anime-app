@@ -61,6 +61,7 @@ export class NotificationsService {
             avatarColor: n.actor.avatarColor,
             avatarUrl: n.actor.avatarUrl || null,
             avatarFrame: n.actor.avatarFrame || null,
+            lastSeenAt: n.actor.lastSeenAt || null,
           }
         : null,
     };

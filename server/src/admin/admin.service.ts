@@ -78,7 +78,7 @@ export class AdminService {
 
     const [rows, total] = await this.users.findAndCount({
       where,
-      select: ['id', 'username', 'email', 'isAdmin', 'isMaster', 'createdAt', 'watchedEpisodes', 'watchedSeconds'],
+      select: ['id', 'username', 'email', 'isAdmin', 'isMaster', 'createdAt', 'watchedEpisodes', 'watchedSeconds', 'lastSeenAt'],
       order: { id: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
@@ -94,6 +94,7 @@ export class AdminService {
         watchedEpisodes: u.watchedEpisodes,
         watchedHours: Math.round((u.watchedSeconds / 3600) * 10) / 10,
         createdAt: u.createdAt,
+        lastSeenAt: u.lastSeenAt || null,
       })),
       total,
       page,
