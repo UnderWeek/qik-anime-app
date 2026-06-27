@@ -36,19 +36,42 @@ export function AuthProvider({ children }) {
     showToast._t = window.setTimeout(() => setToast(null), 2600)
   }, [])
 
+  // One-shot push setup: must be called from a user gesture (click) so the
+  // browser shows the permission prompt. Safe to call multiple times — skips
+  // if already subscribed or permission denied.
+  const setupPush = useCallback(async () => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+    try {
+      const reg = await navigator.serviceWorker.ready
+      let sub = await reg.pushManager.getSubscription()
+      if (sub) return // already subscribed
+      const perm = await Notification.requestPermission()
+      if (perm !== 'granted') return
+      const { publicKey } = await backend.pushKey()
+      if (!publicKey) return
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      })
+      await backend.pushSubscribe(sub.toJSON())
+    } catch { /* silent */ }
+  }, [])
+
   const login = useCallback(async (login, password) => {
     const res = await backend.login({ login, password })
     setToken(res.token)
     setUser(res.user)
+    setupPush() // user gesture → permission prompt
     return res.user
-  }, [])
+  }, [setupPush])
 
   const register = useCallback(async (payload) => {
     const res = await backend.register(payload)
     setToken(res.token)
     setUser(res.user)
+    setupPush() // user gesture → permission prompt
     return res.user
-  }, [])
+  }, [setupPush])
 
   const logout = useCallback(() => {
     // Unsubscribe from push before clearing user
@@ -67,25 +90,24 @@ export function AuthProvider({ children }) {
     showToast('Вы вышли из аккаунта')
   }, [showToast])
 
-  // Sync push subscription when user is logged in
+  // On session restore: silently re-subscribe if permission was already granted.
+  // Will not trigger a permission prompt (permission is already 'granted').
   useEffect(() => {
     if (!user || !('serviceWorker' in navigator) || !('PushManager' in window)) return
-    const timer = setTimeout(() => {
-      navigator.serviceWorker.ready.then(async (reg) => {
-        let sub = await reg.pushManager.getSubscription()
-        if (sub) return // already subscribed
-        try {
-          const { publicKey } = await backend.pushKey()
-          if (!publicKey) return
-          sub = await reg.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(publicKey),
-          })
-          await backend.pushSubscribe(sub.toJSON())
-        } catch { /* silent */ }
-      })
-    }, 2000) // wait for SW to be fully ready
-    return () => clearTimeout(timer)
+    if (Notification.permission !== 'granted') return
+    navigator.serviceWorker.ready.then(async (reg) => {
+      const sub = await reg.pushManager.getSubscription()
+      if (sub) return
+      try {
+        const { publicKey } = await backend.pushKey()
+        if (!publicKey) return
+        const newSub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey),
+        })
+        await backend.pushSubscribe(newSub.toJSON())
+      } catch { /* silent */ }
+    })
   }, [user])
 
   const requireAuth = useCallback(() => {
