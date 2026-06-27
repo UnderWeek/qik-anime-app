@@ -4,7 +4,6 @@ import { CurrentUser, AuthUser } from '../common/current-user.decorator';
 import { PushService, getVapidPublicKey } from './push.service';
 
 @Controller('push')
-@UseGuards(JwtAuthGuard)
 export class PushController {
   constructor(private readonly push: PushService) {}
 
@@ -14,6 +13,7 @@ export class PushController {
   }
 
   @Post('subscribe')
+  @UseGuards(JwtAuthGuard)
   subscribe(
     @CurrentUser() user: AuthUser,
     @Body() body: { endpoint: string; keys: { p256dh: string; auth: string } },
@@ -22,6 +22,7 @@ export class PushController {
   }
 
   @Delete('subscribe')
+  @UseGuards(JwtAuthGuard)
   unsubscribe(
     @CurrentUser() user: AuthUser,
     @Body() body: { endpoint: string },

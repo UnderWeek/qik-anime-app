@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Notification, NotificationType } from './notification.entity';
@@ -6,6 +6,8 @@ import { PushService } from '../push/push.service';
 
 @Injectable()
 export class NotificationsService {
+  private readonly logger = new Logger(NotificationsService.name);
+
   constructor(
     @InjectRepository(Notification)
     private readonly repo: Repository<Notification>,
@@ -44,7 +46,12 @@ export class NotificationsService {
     // Fire-and-forget push to recipient devices
     const payload = PushService.notificationPayload(saved);
     if (payload) {
-      this.push.sendToUser(params.recipientId, payload).catch(() => {});
+      this.logger.log(`Queueing push for user=${params.recipientId} type=${params.type}`);
+      this.push.sendToUser(params.recipientId, payload).catch((err) => {
+        this.logger.error(`Push rejected for user=${params.recipientId}: ${err?.message || err}`);
+      });
+    } else {
+      this.logger.warn(`No push payload for type=${params.type}`);
     }
     return saved;
   }

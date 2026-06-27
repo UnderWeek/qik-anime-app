@@ -84,7 +84,10 @@ export class PushService {
     const existing = await this.repo.findOne({
       where: { user: { id: userId }, endpoint: sub.endpoint },
     });
-    if (existing) return { ok: true };
+    if (existing) {
+      this.logger.log(`Device already subscribed: user=${userId}`);
+      return { ok: true };
+    }
 
     const row = this.repo.create({
       user: { id: userId } as any,
@@ -92,6 +95,7 @@ export class PushService {
       keys: JSON.stringify(sub.keys),
     });
     await this.repo.save(row);
+    this.logger.log(`Device subscribed: user=${userId} endpoint=${sub.endpoint.slice(0, 60)}...`);
     return { ok: true };
   }
 
@@ -109,8 +113,12 @@ export class PushService {
     }
 
     const subs = await this.repo.find({ where: { user: { id: userId } } });
-    if (!subs.length) return;
+    if (!subs.length) {
+      this.logger.log(`No devices for user=${userId}, push skipped`);
+      return;
+    }
 
+    this.logger.log(`Sending push to user=${userId} subs=${subs.length} title="${payload.title}" body="${payload.body.slice(0, 60)}"`);
     const data = JSON.stringify(payload);
 
     for (const sub of subs) {
@@ -122,9 +130,11 @@ export class PushService {
           },
           data,
         );
+        this.logger.log(`Push sent to user=${userId} ok`);
       } catch (err: any) {
         // 410 Gone — subscription expired, remove it
         if (err.statusCode === 410 || err.statusCode === 404) {
+          this.logger.warn(`Push sub expired for user=${userId}, removing`);
           await this.repo.remove(sub);
         } else {
           this.logger.warn(`Push failed for user ${userId}: ${err.message}`);
