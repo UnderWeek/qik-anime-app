@@ -1,24 +1,74 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { resolve } from 'path';
 import { Repository } from 'typeorm';
 import * as webpush from 'web-push';
 import { PushSubscriptionEntity } from './push-subscription.entity';
 import { Notification } from '../notifications/notification.entity';
+import { APP_ROOT } from '../common/runtime-paths';
+
+const VAPID_FILE = resolve(APP_ROOT, 'vapid.json');
 
 let vapidConfigured = false;
 
 function ensureVapid() {
   if (vapidConfigured) return;
-  const publicKey = process.env.VAPID_PUBLIC_KEY;
-  const privateKey = process.env.VAPID_PRIVATE_KEY;
+  const logger = new Logger('PushService');
+
+  // 1. Env vars take priority
+  let publicKey = process.env.VAPID_PUBLIC_KEY;
+  let privateKey = process.env.VAPID_PRIVATE_KEY;
+
+  // 2. Fall back to vapid.json file
+  if (!publicKey || !privateKey) {
+    try {
+      if (existsSync(VAPID_FILE)) {
+        const saved = JSON.parse(readFileSync(VAPID_FILE, 'utf-8'));
+        publicKey = saved.publicKey;
+        privateKey = saved.privateKey;
+      }
+    } catch { /* ignore */ }
+  }
+
+  // 3. Auto-generate and persist
+  if (!publicKey || !privateKey) {
+    const keys = webpush.generateVAPIDKeys();
+    publicKey = keys.publicKey;
+    privateKey = keys.privateKey;
+    try {
+      writeFileSync(VAPID_FILE, JSON.stringify(keys));
+    } catch { /* can't persist — will regenerate next restart */ }
+    logger.warn('VAPID keys auto-generated and saved to vapid.json. Add them to .env for production.');
+  }
+
   if (publicKey && privateKey) {
     webpush.setVapidDetails('mailto:admin@quickik.ru', publicKey, privateKey);
     vapidConfigured = true;
+  } else {
+    logger.error('Push notifications disabled: no VAPID keys configured');
   }
 }
 
+let _cachedPublicKey: string | null = null;
+
+function loadPublicKey(): string | null {
+  if (_cachedPublicKey !== null) return _cachedPublicKey;
+  const env = process.env.VAPID_PUBLIC_KEY;
+  if (env) { _cachedPublicKey = env; return env; }
+  try {
+    if (existsSync(VAPID_FILE)) {
+      const saved = JSON.parse(readFileSync(VAPID_FILE, 'utf-8'));
+      _cachedPublicKey = saved.publicKey || null;
+      return _cachedPublicKey;
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
 export function getVapidPublicKey(): string | null {
-  return process.env.VAPID_PUBLIC_KEY || null;
+  ensureVapid();
+  return loadPublicKey();
 }
 
 @Injectable()
@@ -53,7 +103,10 @@ export class PushService {
   /** Send a push notification to all devices of a user. */
   async sendToUser(userId: number, payload: { title: string; body: string; url: string }) {
     ensureVapid();
-    if (!vapidConfigured) return;
+    if (!vapidConfigured) {
+      this.logger.error('Cannot send push: VAPID keys not configured');
+      return;
+    }
 
     const subs = await this.repo.find({ where: { user: { id: userId } } });
     if (!subs.length) return;

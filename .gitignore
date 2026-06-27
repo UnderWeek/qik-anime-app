@@ -64,6 +64,7 @@ server/coverage/
 # ========================
 server/uploads/
 server/tmp/
+server/vapid.json
 
 # ========================
 # Vercel
