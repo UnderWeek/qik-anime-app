@@ -1,6 +1,13 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { backend, getToken, setToken } from '../api/backend.js'
 
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const rawData = atob(base64)
+  return new Uint8Array([...rawData].map((c) => c.charCodeAt(0)))
+}
+
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
@@ -44,10 +51,42 @@ export function AuthProvider({ children }) {
   }, [])
 
   const logout = useCallback(() => {
+    // Unsubscribe from push before clearing user
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then((reg) => {
+        reg.pushManager.getSubscription().then((sub) => {
+          if (sub) {
+            backend.pushUnsubscribe(sub.endpoint).catch(() => {})
+            sub.unsubscribe().catch(() => {})
+          }
+        })
+      })
+    }
     setToken(null)
     setUser(null)
     showToast('Вы вышли из аккаунта')
   }, [showToast])
+
+  // Sync push subscription when user is logged in
+  useEffect(() => {
+    if (!user || !('serviceWorker' in navigator) || !('PushManager' in window)) return
+    const timer = setTimeout(() => {
+      navigator.serviceWorker.ready.then(async (reg) => {
+        let sub = await reg.pushManager.getSubscription()
+        if (sub) return // already subscribed
+        try {
+          const { publicKey } = await backend.pushKey()
+          if (!publicKey) return
+          sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicKey),
+          })
+          await backend.pushSubscribe(sub.toJSON())
+        } catch { /* silent */ }
+      })
+    }, 2000) // wait for SW to be fully ready
+    return () => clearTimeout(timer)
+  }, [user])
 
   const requireAuth = useCallback(() => {
     if (!user) {

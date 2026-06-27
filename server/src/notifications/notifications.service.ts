@@ -2,12 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Notification, NotificationType } from './notification.entity';
+import { PushService } from '../push/push.service';
 
 @Injectable()
 export class NotificationsService {
   constructor(
     @InjectRepository(Notification)
     private readonly repo: Repository<Notification>,
+    private readonly push: PushService,
   ) {}
 
   // Create a notification. Skips self-notifications.
@@ -38,7 +40,13 @@ export class NotificationsService {
       roomCode: params.roomCode ?? null,
       chatId: params.chatId ?? null,
     });
-    return this.repo.save(n);
+    const saved = await this.repo.save(n);
+    // Fire-and-forget push to recipient devices
+    const payload = PushService.notificationPayload(saved);
+    if (payload) {
+      this.push.sendToUser(params.recipientId, payload).catch(() => {});
+    }
+    return saved;
   }
 
   private toPublic(n: Notification) {

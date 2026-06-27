@@ -254,6 +254,11 @@ export const backend = {
   chatMessages: (chatId) => request(`/chats/${chatId}/messages`, { auth: true }),
   sendChatMessage: (chatId, payload) =>
     request(`/chats/${chatId}/messages`, { method: 'POST', body: payload, auth: true }),
+
+  // ---- push ----
+  pushKey: () => request('/push/key'),
+  pushSubscribe: (sub) => request('/push/subscribe', { method: 'POST', body: sub, auth: true }),
+  pushUnsubscribe: (endpoint) => request('/push/subscribe', { method: 'DELETE', body: { endpoint }, auth: true }),
 }
 
 export default backend
