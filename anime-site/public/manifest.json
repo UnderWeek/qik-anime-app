@@ -1,0 +1,25 @@
+{
+  "name": "QIK Anime — смотреть аниме онлайн",
+  "short_name": "QIK Anime",
+  "description": "Каталог аниме с фильтрами по жанрам и годам, рейтинги опенингов и эндингов, закладки, комментарии",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0c0c11",
+  "theme_color": "#0c0c11",
+  "orientation": "portrait-primary",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "/logonew.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logonew.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

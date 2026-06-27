@@ -20,3 +20,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </HelmetProvider>
   </React.StrictMode>
 )
+
+// Register PWA service worker (production only)
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {})
+}
