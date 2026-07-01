@@ -255,6 +255,12 @@ export const backend = {
   sendChatMessage: (chatId, payload) =>
     request(`/chats/${chatId}/messages`, { method: 'POST', body: payload, auth: true }),
 
+  // ---- search history ----
+  searchHistory: () => request('/search-history', { auth: true }),
+  saveSearch: (query) => request('/search-history', { method: 'POST', body: { query }, auth: true }),
+  deleteSearch: (id) => request(`/search-history/${id}`, { method: 'DELETE', auth: true }),
+  clearSearchHistory: () => request('/search-history/clear', { method: 'DELETE', auth: true }),
+
   // ---- push ----
   pushKey: () => request('/push/key'),
   pushSubscribe: (sub) => request('/push/subscribe', { method: 'POST', body: sub, auth: true }),

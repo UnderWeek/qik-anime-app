@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
 import { SearchIcon, BookmarkIcon, LogoutIcon, UserIcon, ChevronDown, UsersIcon, GridIcon, CalendarIcon, MessageIcon, RoomIcon, CloseIcon, StarIcon } from './icons.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import { backend } from '../api/backend.js';
 import Avatar from './Avatar.jsx';
 import NotificationBell from './NotificationBell.jsx';
 
@@ -39,20 +40,50 @@ export default function Header() {
   const [q, setQ] = useState('');
   const [menu, setMenu] = useState(false);
   const [mobileOrder, setMobileOrder] = useState(readMobileOrder);
+  const [history, setHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, openAuth, logout } = useAuth();
   const menuRef = useRef(null);
+  const searchRef = useRef(null);
 
   function submit(e) {
     e.preventDefault();
     const term = q.trim();
-    if (term) navigate(`/search?q=${term}`);
+    if (term && user) {
+      backend.saveSearch(term).catch(() => {});
+    }
+    setShowHistory(false);
+    navigate(term ? `/search?q=${encodeURIComponent(term)}` : '/search');
+  }
+
+  const loadHistory = useCallback(() => {
+    if (!user) return;
+    backend.searchHistory().then(setHistory).catch(() => {});
+  }, [user]);
+
+  function removeHistoryItem(id, e) {
+    e.stopPropagation();
+    backend.deleteSearch(id).then(() => {
+      setHistory((prev) => prev.filter((h) => h.id !== id));
+    }).catch(() => {});
+  }
+
+  function clearHistory(e) {
+    e.stopPropagation();
+    backend.clearSearchHistory().then(() => setHistory([])).catch(() => {});
+  }
+
+  function onSearchFocus() {
+    loadHistory();
+    setShowHistory(true);
   }
 
   useEffect(() => {
     function onClick(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) setMenu(false);
+      if (searchRef.current && !searchRef.current.contains(e.target)) setShowHistory(false);
     }
     document.addEventListener('mousedown', onClick);
     return () => document.removeEventListener('mousedown', onClick);
@@ -97,13 +128,52 @@ export default function Header() {
               </>
             )}
           </nav>
-          <form className='header-search' onSubmit={submit}>
+          <form className='header-search' ref={searchRef} onSubmit={submit}>
             <SearchIcon />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder='Поиск...' aria-label='Поиск' />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              onFocus={onSearchFocus}
+              placeholder='Поиск...'
+              aria-label='Поиск'
+              autoComplete='off'
+            />
             {q && (
               <button type="button" className="search-clear" onClick={() => setQ('')} aria-label="Очистить">
                 <CloseIcon width={14} height={14} />
               </button>
+            )}
+            {showHistory && user && (
+              <div className="search-dropdown">
+                {history.length === 0 ? (
+                  <div className="search-dropdown-empty">Нет недавних запросов</div>
+                ) : (
+                  <>
+                    <div className="search-dropdown-head">
+                      <span>Недавние запросы</span>
+                      <button type="button" className="search-dropdown-clear" onClick={clearHistory}>Очистить</button>
+                    </div>
+                    {history.map((h) => (
+                      <button
+                        key={h.id}
+                        type="button"
+                        className="search-dropdown-item"
+                        onClick={() => { setQ(h.query); setShowHistory(false); navigate(`/search?q=${encodeURIComponent(h.query)}`); }}
+                      >
+                        <SearchIcon width={14} height={14} />
+                        <span className="search-dropdown-text">{h.query}</span>
+                        <span
+                          className="search-dropdown-remove"
+                          onClick={(e) => removeHistoryItem(h.id, e)}
+                          title="Удалить"
+                        >
+                          <CloseIcon width={11} height={11} />
+                        </span>
+                      </button>
+                    ))}
+                  </>
+                )}
+              </div>
             )}
           </form>
           <div className='header-notif'>

@@ -18,6 +18,7 @@ import { WatchRoomMessage } from './watch-rooms/watch-room-message.entity';
 import { Chat } from './chats/chat.entity';
 import { ChatMessage } from './chats/chat-message.entity';
 import { PushSubscriptionEntity } from './push/push-subscription.entity';
+import { SearchHistory } from './search-history/search-history.entity';
 
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
@@ -35,6 +36,7 @@ import { AdminModule } from './admin/admin.module';
 import { QuizModule } from './quiz/quiz.module';
 import { ProxyModule } from './proxy/proxy.module';
 import { PushModule } from './push/push.module';
+import { SearchHistoryModule } from './search-history/search-history.module';
 import { DB_PATH, UPLOAD_DIR_ABSOLUTE } from './common/runtime-paths';
 
 @Module({
@@ -67,6 +69,7 @@ import { DB_PATH, UPLOAD_DIR_ABSOLUTE } from './common/runtime-paths';
         Chat,
         ChatMessage,
         PushSubscriptionEntity,
+        SearchHistory,
       ],
       synchronize: true, // dev convenience; auto-creates tables
     }),
@@ -86,6 +89,7 @@ import { DB_PATH, UPLOAD_DIR_ABSOLUTE } from './common/runtime-paths';
     QuizModule,
     ProxyModule,
     PushModule,
+    SearchHistoryModule,
   ],
 })
 export class AppModule {}
