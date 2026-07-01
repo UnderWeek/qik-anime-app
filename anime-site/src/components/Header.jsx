@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
-import { SearchIcon, BookmarkIcon, LogoutIcon, UserIcon, ChevronDown, UsersIcon, GridIcon, CalendarIcon, MessageIcon, RoomIcon, CloseIcon, StarIcon, SettingsIcon } from './icons.jsx';
+import { SearchIcon, BookmarkIcon, LogoutIcon, UserIcon, ChevronDown, UsersIcon, GridIcon, CalendarIcon, MessageIcon, RoomIcon, CloseIcon, StarIcon, SettingsIcon, ShieldIcon } from './icons.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
-import { backend } from '../api/backend.js';
+import { backend, uploadUrl } from '../api/backend.js';
 import Avatar from './Avatar.jsx';
 import NotificationBell from './NotificationBell.jsx';
 
@@ -187,7 +187,7 @@ export default function Header() {
                 <button className='account-btn' onClick={() => setMenu((m) => !m)}><Avatar user={user} /><span className='name'>{user.username}</span><ChevronDown width={15} height={15} /></button>
                 {menu && (
                   <div className='account-menu'>
-                    <div className='who'><b>{user.username}</b><span>{user.email}</span></div>
+                    <div className={`who${user.bannerUrl ? ' who--banner' : ''}`} style={user.bannerUrl ? { backgroundImage: `url(${uploadUrl(user.bannerUrl)})` } : undefined}><b>{user.username}</b><span>{user.email}</span></div>
                     <Link to={`/u/${user.id}`}><UserIcon width={16} height={16} />Профиль</Link>
                     <Link to='/library'><BookmarkIcon width={16} height={16} />Закладки</Link>
                     <Link to='/ratings'><StarIcon width={16} height={16} />Рейтинги</Link>
@@ -197,9 +197,9 @@ export default function Header() {
                       <Link to='/rooms'><RoomIcon width={16} height={16} />Комнаты</Link>
                     )}
                     {user.isAdmin && (
-                      <Link to='/admin'><span style={{ display: 'inline-flex', width: 16, height: 16, alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>⚙</span>Админка</Link>
+                      <Link to='/admin'><ShieldIcon width={16} height={16} />Админка</Link>
                     )}
-                    <Link to='/settings'><span style={{ display: 'inline-flex', width: 16, height: 16, alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>⚙</span>Настройки</Link>
+                    <Link to='/settings'><SettingsIcon width={16} height={16} />Настройки</Link>
                     <button onClick={() => { logout(); setMenu(false); }}><LogoutIcon width={16} height={16} />Выйти</button>
                   </div>
                 )}

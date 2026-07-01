@@ -46,7 +46,7 @@ export default function Profile() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
-  const [tab, setTab] = useState('overview')
+  const [openSection, setOpenSection] = useState(null)
 
   // editing
   const [editing, setEditing] = useState(false)
@@ -417,40 +417,81 @@ export default function Profile() {
       </div>
 
       {/* genre breakdown pie chart */}
-      <GenreChart uid={uid} />
+      <GenreSection uid={uid} open={openSection === 'genres'} onToggle={() => setOpenSection(openSection === 'genres' ? null : 'genres')} />
 
-      {/* tabs */}
-      <div className="subtabs">
-        <button className={`subtab ${tab === 'overview' ? 'active' : ''}`} onClick={() => setTab('overview')}>
-          Достижения
-        </button>
-        <button className={`subtab ${tab === 'history' ? 'active' : ''}`} onClick={() => setTab('history')}>
-          История
-        </button>
-        <button className={`subtab ${tab === 'bookmarks' ? 'active' : ''}`} onClick={() => setTab('bookmarks')}>
-          Закладки
-        </button>
-        <button className={`subtab ${tab === 'friends' ? 'active' : ''}`} onClick={() => setTab('friends')}>
-          Друзья ({stats.friends})
-        </button>
-        <button className={`subtab ${tab === 'comments' ? 'active' : ''}`} onClick={() => setTab('comments')}>
-          Комментарии
-        </button>
-        <button className={`subtab ${tab === 'wall' ? 'active' : ''}`} onClick={() => setTab('wall')}>
-          Стена
-        </button>
-      </div>
+      {/* achievements */}
+      <ProfileSection
+        icon={<TrophyIcon />}
+        title="Достижения"
+        count={`${achievementsUnlocked}/${achievements.length}`}
+        open={openSection === 'achievements'}
+        onToggle={() => setOpenSection(openSection === 'achievements' ? null : 'achievements')}
+        preview={
+          <div className="ach-grid" style={{ marginTop: 0 }}>
+            {achievements.filter(a => a.unlocked).slice(0, 4).map(a => (
+              <div key={a.id} className="ach unlocked" style={{ padding: '8px 12px' }}>
+                <div className="ach-icon" style={{ fontSize: 18 }}>{a.icon}</div>
+                <div className="ach-info"><b style={{ fontSize: 13 }}>{a.title}</b></div>
+              </div>
+            ))}
+          </div>
+        }
+      >
+        <AchievementsGrid achievements={achievements} />
+      </ProfileSection>
 
-      {tab === 'overview' && <AchievementsGrid achievements={achievements} />}
-      {tab === 'history' && <WatchHistory uid={uid} />}
-      {tab === 'bookmarks' && <UserBookmarks uid={uid} />}
-      {tab === 'friends' && <UserFriends uid={uid} />}
-      {tab === 'comments' && <UserComments uid={uid} />}
-      {tab === 'wall' && (
-        <div className="profile-wall">
-          <Comments profileUserId={uid} />
-        </div>
-      )}
+      {/* history */}
+      <ProfileSection
+        icon={<ClockIcon />}
+        title="История просмотров"
+        open={openSection === 'history'}
+        onToggle={() => setOpenSection(openSection === 'history' ? null : 'history')}
+      >
+        <WatchHistory uid={uid} />
+      </ProfileSection>
+
+      {/* bookmarks */}
+      <ProfileSection
+        icon={<BookmarkIcon />}
+        title="Закладки"
+        count={String(stats.bookmarks)}
+        open={openSection === 'bookmarks'}
+        onToggle={() => setOpenSection(openSection === 'bookmarks' ? null : 'bookmarks')}
+      >
+        <UserBookmarks uid={uid} />
+      </ProfileSection>
+
+      {/* friends */}
+      <ProfileSection
+        icon={<UsersIcon />}
+        title="Друзья"
+        count={String(stats.friends)}
+        open={openSection === 'friends'}
+        onToggle={() => setOpenSection(openSection === 'friends' ? null : 'friends')}
+        preview={stats.friends > 0 ? <FriendsPreview uid={uid} /> : null}
+      >
+        <UserFriends uid={uid} />
+      </ProfileSection>
+
+      {/* comments */}
+      <ProfileSection
+        icon={<MessageIcon />}
+        title="Комментарии"
+        open={openSection === 'comments'}
+        onToggle={() => setOpenSection(openSection === 'comments' ? null : 'comments')}
+      >
+        <UserComments uid={uid} />
+      </ProfileSection>
+
+      {/* wall */}
+      <ProfileSection
+        icon={<MessageIcon />}
+        title="Стена"
+        open={openSection === 'wall'}
+        onToggle={() => setOpenSection(openSection === 'wall' ? null : 'wall')}
+      >
+        <Comments profileUserId={uid} />
+      </ProfileSection>
     </div>
   )
 }
@@ -481,6 +522,87 @@ function AchievementsGrid({ achievements }) {
   )
 }
 
+function ProfileSection({ icon, title, count, open, onToggle, preview, children }) {
+  return (
+    <section className="profile-section">
+      <div className="profile-section-head">
+        <h3>{icon}{title}{count != null && <span style={{ fontSize: 14, color: 'var(--text-faint)', fontWeight: 400 }}>{count}</span>}</h3>
+        <button className="profile-section-toggle" onClick={onToggle}>
+          {open ? 'Свернуть ▲' : 'Развернуть ▼'}
+        </button>
+      </div>
+      {!open && preview && <div className="profile-section-preview">{preview}</div>}
+      {open && <div className="profile-section-body">{children}</div>}
+    </section>
+  )
+}
+
+function GenreSection({ uid, open, onToggle }) {
+  const [data, setData] = useState(null)
+  useEffect(() => {
+    backend.genreBreakdown(uid).then(setData).catch(() => setData({ total: 0, items: [] }))
+  }, [uid])
+
+  if (!data || data.total === 0) return null
+
+  const top3 = data.items.slice(0, 3)
+  const colors = ['#b8a6f0', '#a6e3d0', '#f7c9d9']
+
+  return (
+    <section className="profile-section">
+      <div className="profile-section-head">
+        <h3><StarIcon />Любимые жанры</h3>
+        <button className="profile-section-toggle" onClick={onToggle}>
+          {open ? 'Свернуть ▲' : 'Развернуть ▼'}
+        </button>
+      </div>
+      {!open && (
+        <div className="profile-section-preview">
+          <div className="genre-preview">
+            {top3.map((g, i) => (
+              <span key={g.name} className="genre-chip" style={{ background: colors[i] }}>
+                {g.name} {g.percent}%
+              </span>
+            ))}
+            {data.items.length > 3 && (
+              <span style={{ fontSize: 13, color: 'var(--text-faint)' }}>
+                + ещё {data.items.length - 3}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+      {open && (
+        <div className="profile-section-body">
+          <GenreChart uid={uid} data={data} />
+        </div>
+      )}
+    </section>
+  )
+}
+
+function FriendsPreview({ uid }) {
+  const [items, setItems] = useState(null)
+  useEffect(() => {
+    backend.userFriends(uid).then(r => setItems((Array.isArray(r) ? r : []).slice(0, 6))).catch(() => setItems([]))
+  }, [uid])
+
+  if (!items || items.length === 0) return null
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div className="preview-avatars">
+        {items.slice(0, 5).map(f => (
+          <Avatar key={f.id} user={f} size={36} />
+        ))}
+      </div>
+      <span style={{ fontSize: 13, color: 'var(--text-faint)' }}>
+        {items.length === 6 ? '…' : ''}
+      </span>
+    </div>
+  )
+}
+
 const BOOKMARK_FILTERS = [
   { key: '', label: 'Все' },
   { key: 'watching', label: 'Смотрю' },
@@ -493,35 +615,55 @@ const BOOKMARK_FILTERS = [
 ]
 
 function UserBookmarks({ uid }) {
-  const [items, setItems] = useState(null)
+  const [allItems, setAllItems] = useState(null)
   const [filter, setFilter] = useState('')
 
   useEffect(() => {
-    backend.userBookmarks(uid, filter || undefined)
-      .then((r) => setItems(Array.isArray(r) ? r : []))
-      .catch(() => setItems([]))
-  }, [uid, filter])
+    backend.userBookmarks(uid)
+      .then((r) => setAllItems(Array.isArray(r) ? r : []))
+      .catch(() => setAllItems([]))
+  }, [uid])
 
-  if (!items) return <div className="comment-empty">Загрузка…</div>
+  if (!allItems) return <div className="comment-empty">Загрузка…</div>
+
+  const counts = {}
+  for (const b of allItems) {
+    const s = b.status || ''
+    counts[s] = (counts[s] || 0) + 1
+  }
+  const totalAll = allItems.length
+  const favoriteCount = allItems.filter(b => b.isFavorite).length
+
+  const filtered = filter
+    ? filter === 'favorite'
+      ? allItems.filter(b => b.isFavorite)
+      : allItems.filter(b => b.status === filter)
+    : allItems
 
   return (
     <>
       <div className="chips" style={{ marginBottom: 18 }}>
-        {BOOKMARK_FILTERS.map((f) => (
-          <button
-            key={f.key}
-            className={`chip ${filter === f.key ? 'active' : ''}`}
-            onClick={() => setFilter(f.key)}
-          >
-            {f.label}
-          </button>
-        ))}
+        {BOOKMARK_FILTERS.map((f) => {
+          let n = 0
+          if (f.key === '') n = totalAll
+          else if (f.key === 'favorite') n = favoriteCount
+          else n = counts[f.key] || 0
+          return (
+            <button
+              key={f.key}
+              className={`chip ${filter === f.key ? 'active' : ''}`}
+              onClick={() => setFilter(f.key)}
+            >
+              {f.label} <span className="chip-count">{n}</span>
+            </button>
+          )
+        })}
       </div>
-      {items.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className="comment-empty">{filter ? 'Нет закладок с этим статусом.' : 'Закладок пока нет.'}</div>
       ) : (
       <div className="grid">
-        {items.map((b) => (
+        {filtered.map((b) => (
           <Link key={b.animeId} to={`/anime/${b.animeUrl || b.animeId}`} className="card">
             <div className="card-poster">
               {b.animePoster ? (
@@ -681,11 +823,14 @@ const PIE_COLORS = [
   '#ff9bb3', '#9be8c2',
 ]
 
-function GenreChart({ uid }) {
-  const [data, setData] = useState(null)
+function GenreChart({ uid, data: prefetched }) {
+  const [fetched, setFetched] = useState(null)
+  const data = prefetched || fetched
+
   useEffect(() => {
-    backend.genreBreakdown(uid).then(setData).catch(() => setData({ total: 0, items: [] }))
-  }, [uid])
+    if (prefetched) return
+    backend.genreBreakdown(uid).then(setFetched).catch(() => setFetched({ total: 0, items: [] }))
+  }, [uid, prefetched])
 
   if (!data || data.total === 0) return null
 

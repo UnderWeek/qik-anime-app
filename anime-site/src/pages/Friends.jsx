@@ -177,13 +177,13 @@ export default function Friends() {
                 </Link>
                 <div className="fr-actions">
                   <button className="btn btn-ghost btn-sm btn-icon" onClick={() => startChat(f.id)} title="Написать">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                   </button>
                   <Link to={`/u/${f.id}`} className="btn btn-ghost btn-sm btn-icon" title="Профиль">
                     <UserIcon width={20} height={20} />
                   </Link>
                   <button className="btn btn-danger btn-sm btn-icon" onClick={() => removeFriend(f.id)} title="Удалить">
-                    <TrashIcon width={18} height={18} />
+                    <TrashIcon width={20} height={20} />
                   </button>
                 </div>
               </div>
@@ -207,10 +207,10 @@ export default function Friends() {
                   </Link>
                   <div className="fr-actions">
                     <button className="btn btn-primary btn-sm" onClick={() => accept(p.requestId)}>
-                      <CheckIcon width={15} height={15} /> Принять
+                      <CheckIcon width={17} height={17} /> Принять
                     </button>
                     <button className="btn btn-danger btn-sm" onClick={() => rejectRequest(p.user.id)}>
-                      <CloseIcon width={15} height={15} /> Отклонить
+                      <CloseIcon width={17} height={17} /> Отклонить
                     </button>
                   </div>
                 </div>
@@ -231,7 +231,7 @@ export default function Friends() {
                   </Link>
                   <div className="fr-actions">
                     <button className="btn btn-danger btn-sm" onClick={() => cancelRequest(p.user.id)}>
-                      <CloseIcon width={15} height={15} /> Отозвать
+                      <CloseIcon width={17} height={17} /> Отозвать
                     </button>
                   </div>
                 </div>
@@ -272,15 +272,15 @@ export default function Friends() {
                     <div className="fr-actions">
                       {isFriend ? (
                         <span className="btn btn-ghost btn-sm" style={{ cursor: 'default' }}>
-                          <CheckIcon width={15} height={15} /> В друзьях
+                          <CheckIcon width={17} height={17} /> В друзьях
                         </span>
                       ) : isOutgoing ? (
                         <button className="btn btn-ghost btn-sm" onClick={() => cancelRequest(r.id)}>
-                          <CheckIcon width={15} height={15} /> Заявка отправлена
+                          <CheckIcon width={17} height={17} /> Заявка отправлена
                         </button>
                       ) : (
                         <button className="btn btn-primary btn-sm" onClick={() => sendRequest(r.id)}>
-                          <UserPlusIcon width={15} height={15} /> Добавить
+                          <UserPlusIcon width={17} height={17} /> Добавить
                         </button>
                       )}
                     </div>
