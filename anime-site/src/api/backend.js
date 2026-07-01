@@ -234,6 +234,9 @@ export const backend = {
     request(`/admin/users/${id}/master`, { method: 'PATCH', auth: true }),
   adminClaim: (secret) =>
     request('/admin/claim', { method: 'POST', body: { secret }, auth: true }),
+  adminServer: () => request('/admin/server', { auth: true }),
+  adminAudit: (page = 1) => request(`/admin/audit?page=${page}&limit=50`, { auth: true }),
+  adminRegistrations: (days = 30) => request(`/admin/registrations?days=${days}`, { auth: true }),
 
   // ---- quiz ----
   quizQuestion: (exclude) => {

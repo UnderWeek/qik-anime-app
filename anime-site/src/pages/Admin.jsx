@@ -111,12 +111,21 @@ export default function Admin() {
 
       <h1 style={{ marginBottom: 24 }}>Админка</h1>
 
-      <div className="subtabs" style={{ marginBottom: 24 }}>
+      <div className="subtabs" style={{ marginBottom: 24, flexWrap: 'wrap' }}>
         <button className={`subtab ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>
           Статистика
         </button>
         <button className={`subtab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>
           Пользователи
+        </button>
+        <button className={`subtab ${tab === 'server' ? 'active' : ''}`} onClick={() => setTab('server')}>
+          Сервер
+        </button>
+        <button className={`subtab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>
+          Аудит
+        </button>
+        <button className={`subtab ${tab === 'chart' ? 'active' : ''}`} onClick={() => setTab('chart')}>
+          График
         </button>
       </div>
 
@@ -132,6 +141,9 @@ export default function Admin() {
           onToggleMaster={toggleMaster}
         />
       )}
+      {tab === 'server' && <ServerView />}
+      {tab === 'audit' && <AuditView />}
+      {tab === 'chart' && <ChartView />}
     </div>
   )
 }
@@ -233,6 +245,164 @@ function UsersView({ users, query, onQuery, page, onPage, onDelete, onToggleMast
         </div>
       )}
     </>
+  )
+}
+
+function ServerView() {
+  const [data, setData] = useState(null)
+  useEffect(() => {
+    backend.adminServer().then(setData).catch(() => setData(null))
+    const iv = setInterval(() => backend.adminServer().then(setData).catch(() => {}), 10000)
+    return () => clearInterval(iv)
+  }, [])
+
+  if (!data) return <div className="comment-empty">Загрузка...</div>
+
+  const memPct = data.memory.percent
+  const memColor = memPct > 85 ? '#ff6b6b' : memPct > 60 ? '#f0b86c' : '#6cdb8a'
+
+  const uptime = data.uptime
+  const days = Math.floor(uptime / 86400)
+  const hours = Math.floor((uptime % 86400) / 3600)
+  const mins = Math.floor((uptime % 3600) / 60)
+
+  return (
+    <div style={{ display: 'grid', gap: 20 }}>
+      {/* memory */}
+      <div className="stat-card" style={{ padding: 20 }}>
+        <h3 style={{ margin: '0 0 14px', fontSize: 16 }}>Память</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ flex: 1, height: 14, background: 'var(--surface-2)', borderRadius: 7, overflow: 'hidden' }}>
+            <div style={{
+              width: `${memPct}%`, height: '100%', background: memColor,
+              borderRadius: 7, transition: 'width 0.5s ease',
+            }} />
+          </div>
+          <span style={{ fontSize: 18, fontWeight: 700, color: memColor, whiteSpace: 'nowrap' }}>{memPct}%</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 13, color: 'var(--text-dim)' }}>
+          <span>Занято {data.memory.used} MB</span>
+          <span>Свободно {data.memory.free} MB из {data.memory.total} MB</span>
+        </div>
+      </div>
+
+      {/* CPU + uptime */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
+        <div className="stat-card" style={{ padding: 18, textAlign: 'center' }}>
+          <div className="l" style={{ marginBottom: 4 }}>CPU</div>
+          <div className="v" style={{ fontSize: 22 }}>{data.cpu.model}</div>
+          <div style={{ fontSize: 13, color: 'var(--text-dim)', marginTop: 6 }}>
+            {data.cpu.cores} ядер · нагрузка {data.cpu.loadAvg.map(v => v.toFixed(1)).join(' / ')}
+          </div>
+        </div>
+        <div className="stat-card" style={{ padding: 18, textAlign: 'center' }}>
+          <div className="l" style={{ marginBottom: 4 }}>Аптайм</div>
+          <div className="v" style={{ fontSize: 24 }}>{days}д {hours}ч {mins}м</div>
+          <div style={{ fontSize: 13, color: 'var(--text-dim)', marginTop: 6 }}>
+            {data.platform} · Node {data.nodeVersion}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AuditView() {
+  const [data, setData] = useState(null)
+  const [page, setPage] = useState(1)
+
+  useEffect(() => {
+    backend.adminAudit(page).then(setData).catch(() => setData(null))
+  }, [page])
+
+  if (!data) return <div className="comment-empty">Загрузка...</div>
+  if (data.items.length === 0) return <div className="comment-empty">Лог пуст.</div>
+
+  const labels = {
+    delete_user: 'Удаление',
+    promote_master: 'Назначение мастера',
+    demote_master: 'Снятие мастера',
+    claim: 'Получение админки',
+  }
+
+  return (
+    <>
+      <div style={{ overflowX: 'auto' }}>
+        <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+          <thead>
+            <tr>
+              <th style={th}>Время</th>
+              <th style={th}>Админ</th>
+              <th style={th}>Действие</th>
+              <th style={th}>Цель</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.items.map((a) => (
+              <tr key={a.id}>
+                <td style={{ ...td, color: 'var(--text-dim)', fontSize: 13, whiteSpace: 'nowrap' }}>
+                  {new Date(a.createdAt).toLocaleString('ru-RU')}
+                </td>
+                <td style={td}>{a.adminName}</td>
+                <td style={td}>{labels[a.action] || a.action}</td>
+                <td style={td}>{a.target || '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {data.pages > 1 && (
+        <div style={{ marginTop: 16, display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
+          <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>←</button>
+          <span style={{ fontSize: 14, color: 'var(--text-dim)' }}>{page} / {data.pages}</span>
+          <button className="btn btn-ghost btn-sm" disabled={page >= data.pages} onClick={() => setPage(page + 1)}>→</button>
+        </div>
+      )}
+    </>
+  )
+}
+
+function ChartView() {
+  const [data, setData] = useState(null)
+
+  useEffect(() => {
+    backend.adminRegistrations(30).then(setData).catch(() => setData(null))
+  }, [])
+
+  if (!data) return <div className="comment-empty">Загрузка...</div>
+  if (data.length === 0) return <div className="comment-empty">Нет данных.</div>
+
+  const maxCount = Math.max(...data.map(d => d.count), 1)
+  const barWidth = Math.max(8, Math.floor(280 / data.length))
+
+  return (
+    <div className="stat-card" style={{ padding: 20 }}>
+      <h3 style={{ margin: '0 0 18px', fontSize: 16 }}>Регистрации за 30 дней</h3>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 160, overflowX: 'auto' }}>
+        {data.map((d) => {
+          const h = Math.max(3, Math.round((d.count / maxCount) * 100))
+          return (
+            <div key={d.day} style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+              <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{d.count || ''}</span>
+              <div
+                style={{
+                  width: barWidth,
+                  height: `${h}%`,
+                  background: 'var(--accent-grad)',
+                  borderRadius: '3px 3px 0 0',
+                  minHeight: 3,
+                  transition: 'height 0.3s ease',
+                }}
+                title={`${d.day}: ${d.count}`}
+              />
+              <span style={{ fontSize: 9, color: 'var(--text-dim)', transform: 'rotate(-45deg)', transformOrigin: 'top left', marginTop: 4, whiteSpace: 'nowrap' }}>
+                {d.day.slice(5)}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 

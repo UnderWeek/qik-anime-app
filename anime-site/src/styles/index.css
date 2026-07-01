@@ -3778,6 +3778,10 @@ input {
   width: 42px;
   height: 42px;
 }
+.fr-actions--inline {
+  width: auto !important;
+  margin-left: auto !important;
+}
 
 /* ---------- mobile sticky save button ---------- */
 @media (max-width: 768px) {

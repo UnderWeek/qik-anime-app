@@ -36,13 +36,40 @@ export class AdminController {
 
   @Patch('users/:id/master')
   @UseGuards(AdminGuard)
-  toggleMaster(@Param('id', ParseIntPipe) id: number) {
-    return this.service.toggleMaster(id);
+  toggleMaster(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: any,
+  ) {
+    return this.service.toggleMaster(id, user.id, user.username);
   }
 
   @Delete('users/:id')
   @UseGuards(AdminGuard)
-  deleteUser(@Param('id', ParseIntPipe) id: number) {
-    return this.service.deleteUser(id);
+  deleteUser(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: any,
+  ) {
+    return this.service.deleteUser(id, user.id, user.username);
+  }
+
+  @Get('server')
+  @UseGuards(AdminGuard)
+  server() {
+    return this.service.getServerStats();
+  }
+
+  @Get('audit')
+  @UseGuards(AdminGuard)
+  audit(@Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.service.getAuditLogs(
+      page ? +page : 1,
+      limit ? +limit : 50,
+    );
+  }
+
+  @Get('registrations')
+  @UseGuards(AdminGuard)
+  registrations(@Query('days') days?: string) {
+    return this.service.getRegistrationStats(days ? +days : 30);
   }
 }

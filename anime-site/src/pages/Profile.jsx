@@ -683,7 +683,6 @@ function UserBookmarks({ uid }) {
 }
 
 function UserFriends({ uid }) {
-  const navigate = useNavigate()
   const { user, showToast, openAuth } = useAuth()
   const [items, setItems] = useState(null)
   const [friends, setFriends] = useState(new Set())
@@ -692,7 +691,6 @@ function UserFriends({ uid }) {
     backend.userFriends(uid).then((r) => setItems(Array.isArray(r) ? r : [])).catch(() => setItems([]))
   }, [uid])
 
-  // Load current user's friend IDs so we know who's already a friend
   useEffect(() => {
     if (!user) { setFriends(new Set()); return }
     backend.listFriends().then((r) => {
@@ -708,14 +706,6 @@ function UserFriends({ uid }) {
     } catch (e) { showToast(e.message || 'Ошибка') }
   }
 
-  async function writeMessage(targetId) {
-    if (!user) return openAuth('login')
-    try {
-      await backend.startChat(targetId)
-      navigate('/chats')
-    } catch (e) { showToast(e.message || 'Ошибка') }
-  }
-
   const isSelf = user?.id === uid
 
   if (!items) return <div className="comment-empty">Загрузка…</div>
@@ -728,12 +718,9 @@ function UserFriends({ uid }) {
           <Avatar user={f} size={42} />
           <Link to={`/u/${f.id}`} className="fr-name">{f.username}</Link>
           {user && user.id !== f.id && (
-            <div className="fr-actions">
-              <button className="btn btn-ghost btn-sm" onClick={() => writeMessage(f.id)} title="Написать">
-                <MessageIcon width={13} height={13} />
-              </button>
+            <div className="fr-actions fr-actions--inline">
               {isSelf ? (
-                <button className="btn btn-ghost btn-sm" onClick={async () => {
+                <button className="btn btn-ghost btn-sm btn-icon" onClick={async () => {
                   try { await backend.removeFriend(f.id); showToast('Удалён из друзей'); setFriends((s) => { const n = new Set(s); n.delete(f.id); return n }) } catch (e) { showToast(e.message || 'Ошибка') }
                 }} title="Удалить из друзей">
                   <TrashIcon width={13} height={13} />
