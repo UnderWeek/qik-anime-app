@@ -85,13 +85,17 @@ export default function AnimeDetail() {
   const desc = anime.description?.replace(/<[^>]+>/g, '').substring(0, 300) || ''
   const shareImage = img || 'https://quickik.ru/og-image.png'
 
+  const studio = anime.studios?.[0]
+  const studioSlug = studio?.url ? studio.url.replace(/^\/catalog\/studio\//, '') : ''
+  const studioLink = studio?.id ? `/catalog?studio_ids=${studio.id}&studio_slug=${studioSlug}&studio_label=${encodeURIComponent(studio.title)}` : null
+
   const info = [
     ['Тип', anime.type?.name],
     ['Статус', anime.anime_status?.title],
     ['Год', anime.year],
     ['Эпизоды', anime.episodes?.aired ? `${anime.episodes.aired}${anime.episodes.count ? ` из ${anime.episodes.count}` : ''}` : null],
     ['Возраст', anime.min_age?.title_long || anime.min_age?.title],
-    ['Студия', anime.studios?.[0]?.title],
+    ['Студия', studio?.title, studioLink],
     ['Озвучка', anime.translates?.map((t) => t.title).join(', ')],
     ['Первоисточник', anime.original],
   ].filter(([, v]) => v)
@@ -213,10 +217,12 @@ export default function AnimeDetail() {
             <RatingWidget animeId={anime.anime_id} />
             <OpeningRatingWidget animeId={anime.anime_id} />
             <div className="info-card">
-              {info.map(([k, v]) => (
+              {info.map(([k, v, link]) => (
                 <div className="info-row" key={k}>
                   <span className="k">{k}</span>
-                  <span className="v">{v}</span>
+                  <span className="v">
+                    {link ? <Link to={link} className="info-link">{v}</Link> : v}
+                  </span>
                 </div>
               ))}
               <div className="info-row">

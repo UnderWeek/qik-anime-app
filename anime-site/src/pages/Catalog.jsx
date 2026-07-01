@@ -78,6 +78,18 @@ export default function Catalog() {
   const epTo = params.get('ep_to') || ''
   const minRating = params.get('min_rating') || ''
   const q = params.get('q') || ''
+  const studioIds = readArr(params, 'studio_ids')
+  const studioLabel = params.get('studio_label') || ''
+  const studioSlug = params.get('studio_slug') || ''
+  const [studioInfo, setStudioInfo] = useState(null)
+
+  useEffect(() => {
+    if (studioSlug) {
+      api.studio(studioSlug).then((r) => setStudioInfo(r)).catch(() => setStudioInfo(null))
+    } else {
+      setStudioInfo(null)
+    }
+  }, [studioSlug])
 
   // multi params
   const types = readArr(params, 'types')
@@ -123,6 +135,7 @@ export default function Catalog() {
           ep_from: epFrom || undefined,
           ep_to: epTo || undefined,
           min_rating: minRating || undefined,
+          studio_ids: studioIds.length ? studioIds.map(Number) : undefined,
           q: q || undefined,
         })
         if (id !== reqId.current) return
@@ -209,7 +222,8 @@ export default function Catalog() {
     (toYear ? 1 : 0) +
     (epFrom ? 1 : 0) +
     (epTo ? 1 : 0) +
-    (minRating ? 1 : 0)
+    (minRating ? 1 : 0) +
+    studioIds.length
 
   const filteredGenres = genres.filter((g) =>
     g.title.toLowerCase().includes(genreQuery.toLowerCase())
@@ -490,6 +504,33 @@ export default function Catalog() {
             </div>
           ) : (
             <>
+              {studioInfo && (
+                <div className="studio-header">
+                  <div className="studio-header-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 21h18"/>
+                      <path d="M5 21V7l8-4v18"/>
+                      <path d="M19 21V11l-6-4"/>
+                      <path d="M9 9v.01"/><path d="M9 12v.01"/><path d="M9 15v.01"/><path d="M9 18v.01"/>
+                    </svg>
+                  </div>
+                  <div className="studio-header-info">
+                    <h2>{studioInfo.title}</h2>
+                    <p>Аниме студии {studioInfo.title}</p>
+                  </div>
+                  <button
+                    className="studio-header-close"
+                    onClick={() => {
+                      const p = new URLSearchParams(params)
+                      p.delete('studio_ids')
+                      p.delete('studio_label')
+                      p.delete('studio_slug')
+                      setParams(p, { replace: true })
+                    }}
+                    title="Убрать фильтр"
+                  >×</button>
+                </div>
+              )}
               <div className="grid">
                 {items.map((a, idx) => (
                   <AnimeCard key={`${a.anime_id}-${idx}`} anime={a} />

@@ -1,5 +1,5 @@
 // YummyAnime API client
-// Docs: https://old.yummyani.me/api/swagger
+// Swagger: server/docs/yummyanime-api.json
 // Base server: https://api.yani.tv
 
 const BASE_URL = 'https://api.yani.tv'
@@ -152,6 +152,8 @@ export const api = {
   recommendations: (id) => request(`/anime/${id}/recommendations`),
 
   trailers: (id) => request(`/anime/${id}/trailers`),
+
+  studio: (url) => request(`/anime/studio/${url}`),
 }
 
 export default api
