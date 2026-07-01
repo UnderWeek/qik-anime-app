@@ -31,7 +31,7 @@ const PASTELS = ['#A8D8C9', '#F7C9D9', '#C9D6F0', '#F5E1A4', '#D9C2F0', '#BFE3D0
 function fmtHours(seconds) {
   const h = seconds / 3600
   if (h < 1) return `${Math.round(seconds / 60)} мин`
-  return `${h.toFixed(1)} ч`
+  return `${h.toFixed(1)} ч`
 }
 
 export default function Profile() {
@@ -250,11 +250,7 @@ export default function Profile() {
           </div>
 
           <div className="profile-actions">
-            {isSelf ? (
-              <button className="btn btn-ghost btn-sm profile-edit-btn" onClick={() => setEditing((e) => !e)}>
-                <EditIcon width={15} height={15} /> {editing ? 'Отмена' : 'Редактировать'}
-              </button>
-            ) : (
+            {!isSelf && (
               <>
                 {friendStatus === 'friends' && (
                   <button className="btn btn-danger btn-sm" onClick={removeFriend}>
@@ -283,7 +279,7 @@ export default function Profile() {
 
         {/* edit form */}
         {editing && (
-          <div style={{ marginTop: 18 }}>
+          <div className="edit-form" style={{ marginTop: 18 }}>
             <div className="field">
               <label>О себе</label>
               <textarea
@@ -363,23 +359,29 @@ export default function Profile() {
               </button>
             )}
 
-            <button className="btn btn-primary" onClick={saveProfile}>Сохранить</button>
+            <button className="btn btn-primary profile-save-btn" onClick={saveProfile}>Сохранить</button>
           </div>
         )}
 
         {/* level */}
         <div className="level-block">
-          <div className="level-row">
-            <span className="level-badge">
+          <div className="level-head">
+            <div className="level-badge">
               <span className="lvl">Уровень {level.level}</span>
-              <span style={{ color: 'var(--text-faint)', fontWeight: 600 }}>{data.xp} XP</span>
-            </span>
-            <span style={{ color: 'var(--text-faint)' }}>
-              {level.xpInLevel} / {level.xpForNext} до {level.level + 1} ур.
-            </span>
+            </div>
+            {isSelf && (
+              <button className="btn btn-ghost btn-sm profile-edit-btn" onClick={() => setEditing((e) => !e)} title={editing ? 'Отмена' : 'Редактировать'}>
+                <EditIcon width={15} height={15} />
+                <span className="edit-btn-label">{editing ? 'Отмена' : 'Редактировать'}</span>
+              </button>
+            )}
           </div>
           <div className="level-bar">
             <div className="level-bar-fill" style={{ width: `${Math.round(level.progress * 100)}%` }} />
+          </div>
+          <div className="level-meta">
+            <span>{level.xpInLevel} / {level.xpForNext} до {level.level + 1} ур.</span>
+            <span className="level-xp">{data.xp} XP</span>
           </div>
         </div>
       </div>

@@ -59,7 +59,7 @@ export default function Hero({ items = [] }) {
         const bg = poster(a, 'big')
         return (
           <div className={`hero-slide ${idx === i ? 'active' : ''}`} key={url || idx}>
-            <img className="hero-bg" src={bg} alt="" aria-hidden fetchPriority={idx === i ? 'high' : undefined} loading={idx === i ? undefined : 'lazy'} />
+            <img className="hero-bg" src={bg} alt="" aria-hidden fetchpriority={idx === i ? 'high' : undefined} loading={idx === i ? undefined : 'lazy'} />
             <div className="hero-overlay" />
             <div className="hero-content">
               <div className="hero-tag">

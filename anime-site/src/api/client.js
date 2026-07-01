@@ -54,14 +54,67 @@ async function request(path, { params, ...options } = {}) {
   return json.response !== undefined ? json.response : json
 }
 
-// Normalize poster URLs. static.yani.tv is blocked for some users,
-// so we rewrite to imgproxy.yani.tv which resolves to the same CDN.
-export function fixUrl(url) {
+// Check if user wants all posters proxied through our backend
+function useProxy() {
+  try { return localStorage.getItem('qik_proxy_images') === '1' } catch { return false }
+}
+
+// Normalize poster URLs. If proxy mode is on, route through backend proxy.
+export function fixUrl(url, query) {
   if (!url) return ''
   if (url.startsWith('//')) url = `https:${url}`
   if (url.startsWith('/')) url = `${STATIC_URL}${url}`
-  url = url.replace(/^https?:\/\/static\.yani\.tv\//i, `${IMGPROXY_URL}/`)
+  if (useProxy() && /yani\.tv/i.test(url)) {
+    let proxyUrl = `/api/proxy/image?url=${encodeURIComponent(url)}`
+    if (query) proxyUrl += `&q=${encodeURIComponent(query)}`
+    return proxyUrl
+  }
   return url
+}
+
+// Build fallback chain for a failed static.yani.tv image.
+// Returns [imgproxy_url, backend_proxy_url].
+function buildChain(originalUrl) {
+  const chain = []
+  if (/static\.yani\.tv/i.test(originalUrl)) {
+    chain.push(originalUrl.replace(/^https?:\/\/static\.yani\.tv\//i, `${IMGPROXY_URL}/`))
+  }
+  chain.push(`/api/proxy/image?url=${encodeURIComponent(originalUrl)}`)
+  return chain
+}
+
+// Global image error fallback — tries next CDN in chain on load failure.
+export function initImageFallback() {
+  document.addEventListener('error', (e) => {
+    const img = e.target
+    if (!img || img.tagName !== 'IMG') return
+    const src = img.getAttribute('src')
+    if (!src || !/yani\.tv/i.test(src)) return
+
+    let step = parseInt(img.getAttribute('data-fb-step') || '0', 10)
+    if (step < 0) return // already exhausted all fallbacks
+
+    // First failure: save original URL, build chain
+    let chain
+    if (step === 0) {
+      img.setAttribute('data-fb-orig', src)
+      chain = buildChain(src)
+      img.setAttribute('data-fb-chain', JSON.stringify(chain))
+    } else {
+      chain = JSON.parse(img.getAttribute('data-fb-chain') || '[]')
+    }
+
+    // Move to next fallback
+    step++
+    const nextUrl = chain[step - 1]
+    if (!nextUrl) {
+      img.setAttribute('data-fb-step', '-1') // exhausted
+      return
+    }
+
+    img.setAttribute('data-fb-step', String(step))
+    img.setAttribute('src', nextUrl)
+  }, true)
 }
 
 const POSTER_SIZES = ['mega', 'huge', 'fullsize', 'big', 'medium', 'small']
@@ -69,10 +122,12 @@ const POSTER_SIZES = ['mega', 'huge', 'fullsize', 'big', 'medium', 'small']
 export function poster(obj, size = 'medium') {
   if (!obj || !obj.poster) return ''
   const p = obj.poster
+  const alias = obj.anime_url || obj.url || obj.alias || ''
+  const title = obj.title || obj.name || ''
   // Try requested size first, then chain from largest to smallest
-  if (p[size]) return fixUrl(p[size])
+  if (p[size]) return fixUrl(p[size], alias || title)
   for (const s of POSTER_SIZES) {
-    if (p[s]) return fixUrl(p[s])
+    if (p[s]) return fixUrl(p[s], alias || title)
   }
   return ''
 }

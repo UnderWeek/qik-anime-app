@@ -5,7 +5,10 @@ import { HelmetProvider } from 'react-helmet-async'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { ThemeProvider } from './context/ThemeContext.jsx'
+import { initImageFallback } from './api/client.js'
 import './styles/index.css'
+
+initImageFallback()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

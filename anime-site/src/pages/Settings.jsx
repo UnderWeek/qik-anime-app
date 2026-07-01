@@ -216,6 +216,25 @@ export default function Settings() {
 
       <h1 style={{ marginBottom: 28 }}>Настройки</h1>
 
+      {/* Proxy toggle */}
+      <section style={{ marginBottom: 32 }}>
+        <h2 style={{ fontSize: 18, marginBottom: 14 }}>Загрузка постеров</h2>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', fontSize: 14 }}>
+          <input
+            type="checkbox"
+            checked={localStorage.getItem('qik_proxy_images') === '1'}
+            onChange={(e) => {
+              localStorage.setItem('qik_proxy_images', e.target.checked ? '1' : '0')
+              window.location.reload()
+            }}
+          />
+          <span>Проксировать постеры через сервер</span>
+        </label>
+        <p style={{ color: 'var(--text-faint)', fontSize: 12, marginTop: 6, marginLeft: 28 }}>
+          Включите, если постеры не грузятся (актуально для РФ)
+        </p>
+      </section>
+
       {/* Theme toggle */}
       <section style={{ marginBottom: 32 }}>
         <h2 style={{ fontSize: 18, marginBottom: 14 }}>Тема</h2>

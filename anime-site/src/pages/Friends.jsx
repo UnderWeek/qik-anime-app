@@ -94,6 +94,28 @@ export default function Friends() {
     }
   }
 
+  async function cancelRequest(id) {
+    if (!window.confirm('Отозвать заявку?')) return
+    try {
+      await backend.removeFriend(id)
+      showToast('Заявка отозвана')
+      load()
+    } catch (e) {
+      showToast(e.message || 'Ошибка')
+    }
+  }
+
+  async function rejectRequest(id) {
+    if (!window.confirm('Отклонить заявку?')) return
+    try {
+      await backend.removeFriend(id)
+      showToast('Заявка отклонена')
+      load()
+    } catch (e) {
+      showToast(e.message || 'Ошибка')
+    }
+  }
+
   if (ready && !user) {
     return (
       <div className="container page">
@@ -187,8 +209,8 @@ export default function Friends() {
                     <button className="btn btn-primary btn-sm" onClick={() => accept(p.requestId)}>
                       <CheckIcon width={15} height={15} /> Принять
                     </button>
-                    <button className="btn btn-danger btn-sm" onClick={() => removeFriend(p.user.id)}>
-                      <CloseIcon width={15} height={15} />
+                    <button className="btn btn-danger btn-sm" onClick={() => rejectRequest(p.user.id)}>
+                      <CloseIcon width={15} height={15} /> Отклонить
                     </button>
                   </div>
                 </div>
@@ -208,8 +230,8 @@ export default function Friends() {
                     <span className="fr-name">{p.user.username}</span>
                   </Link>
                   <div className="fr-actions">
-                    <button className="btn btn-ghost btn-sm" onClick={() => removeFriend(p.user.id)}>
-                      Отменить
+                    <button className="btn btn-danger btn-sm" onClick={() => cancelRequest(p.user.id)}>
+                      <CloseIcon width={15} height={15} /> Отозвать
                     </button>
                   </div>
                 </div>
@@ -253,7 +275,9 @@ export default function Friends() {
                           <CheckIcon width={15} height={15} /> В друзьях
                         </span>
                       ) : isOutgoing ? (
-                        <span className="btn btn-ghost btn-sm" style={{ cursor: 'default' }}>Заявка отправлена</span>
+                        <button className="btn btn-ghost btn-sm" onClick={() => cancelRequest(r.id)}>
+                          <CheckIcon width={15} height={15} /> Заявка отправлена
+                        </button>
                       ) : (
                         <button className="btn btn-primary btn-sm" onClick={() => sendRequest(r.id)}>
                           <UserPlusIcon width={15} height={15} /> Добавить
