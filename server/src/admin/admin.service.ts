@@ -4,6 +4,9 @@ import { Repository, Like } from 'typeorm';
 import { User } from '../users/user.entity';
 import { AuditLog } from './audit-log.entity';
 import * as os from 'os';
+import { execSync } from 'child_process';
+import { statSync } from 'fs';
+import { DB_PATH, UPLOAD_DIR_ABSOLUTE } from '../common/runtime-paths';
 
 @Injectable()
 export class AdminService {
@@ -91,23 +94,77 @@ export class AdminService {
     return { ok: true, isMaster: user.isMaster };
   }
 
+  private memHistory: number[] = [];
+
   async getServerStats() {
     const freemem = os.freemem();
     const totalmem = os.totalmem();
     const usedmem = totalmem - freemem;
+    const memPercent = Math.round((usedmem / totalmem) * 100);
+
+    // ring buffer: last 30 readings
+    this.memHistory.push(memPercent);
+    if (this.memHistory.length > 30) this.memHistory.shift();
+
+    // CPU: loadavg[0] / cores * 100 ≈ current utilization %
+    const cores = os.cpus().length;
+    const cpuPercent = Math.round((os.loadavg()[0] / cores) * 100);
+
+    // Disk: try df on Linux, fall back to DB + uploads size
+    let disk: { total: number; used: number; free: number; percent: number; note?: string } = { total: 0, used: 0, free: 0, percent: 0 };
+    try {
+      if (process.platform === 'linux') {
+        const out = execSync('df -k /', { encoding: 'utf8', timeout: 3000 });
+        const lines = out.trim().split('\n');
+        if (lines[1]) {
+          const parts = lines[1].split(/\s+/);
+          const total = parseInt(parts[1], 10);
+          const used = parseInt(parts[2], 10);
+          const free = parseInt(parts[3], 10);
+          if (total > 0) {
+            disk = {
+              total: Math.round(total / 1024),
+              used: Math.round(used / 1024),
+              free: Math.round(free / 1024),
+              percent: Math.round((used / total) * 100),
+            };
+          }
+        }
+      }
+    } catch { /* fallback below */ }
+
+    // Fallback: measure our own data
+    if (disk.total === 0) {
+      try {
+        const dbSize = statSync(DB_PATH).size;
+        const uploadsSize = statSync(UPLOAD_DIR_ABSOLUTE, { throwIfNoEntry: false })?.isDirectory()
+          ? getDirSize(UPLOAD_DIR_ABSOLUTE)
+          : 0;
+        disk = {
+          total: Math.round(totalmem / 1024 / 1024),
+          used: Math.round((dbSize + uploadsSize) / 1024 / 1024),
+          free: 0,
+          percent: 0,
+          note: 'данные приложения',
+        };
+      } catch { disk = { total: 0, used: 0, free: 0, percent: 0 }; }
+    }
 
     return {
       memory: {
         total: Math.round(totalmem / 1024 / 1024),
         used: Math.round(usedmem / 1024 / 1024),
         free: Math.round(freemem / 1024 / 1024),
-        percent: Math.round((usedmem / totalmem) * 100),
+        percent: memPercent,
+        history: [...this.memHistory],
       },
       cpu: {
+        percent: cpuPercent,
         loadAvg: os.loadavg().map((v) => Math.round(v * 100) / 100),
-        cores: os.cpus().length,
+        cores,
         model: os.cpus()[0]?.model || 'unknown',
       },
+      disk,
       uptime: Math.round(os.uptime()),
       platform: os.platform(),
       nodeVersion: process.version,
@@ -172,4 +229,21 @@ export class AdminService {
       pages: Math.ceil(total / limit),
     };
   }
+}
+
+function getDirSize(dir: string): number {
+  const { readdirSync, statSync } = require('fs');
+  const { join } = require('path');
+  let size = 0;
+  try {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        size += getDirSize(p);
+      } else if (entry.isFile()) {
+        size += statSync(p).size;
+      }
+    }
+  } catch { /* ignore */ }
+  return size;
 }

@@ -258,9 +258,6 @@ function ServerView() {
 
   if (!data) return <div className="comment-empty">Загрузка...</div>
 
-  const memPct = data.memory.percent
-  const memColor = memPct > 85 ? '#ff6b6b' : memPct > 60 ? '#f0b86c' : '#6cdb8a'
-
   const uptime = data.uptime
   const days = Math.floor(uptime / 86400)
   const hours = Math.floor((uptime % 86400) / 3600)
@@ -268,41 +265,89 @@ function ServerView() {
 
   return (
     <div style={{ display: 'grid', gap: 20 }}>
-      {/* memory */}
-      <div className="stat-card" style={{ padding: 20 }}>
-        <h3 style={{ margin: '0 0 14px', fontSize: 16 }}>Память</h3>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ flex: 1, height: 14, background: 'var(--surface-2)', borderRadius: 7, overflow: 'hidden' }}>
-            <div style={{
-              width: `${memPct}%`, height: '100%', background: memColor,
-              borderRadius: 7, transition: 'width 0.5s ease',
-            }} />
-          </div>
-          <span style={{ fontSize: 18, fontWeight: 700, color: memColor, whiteSpace: 'nowrap' }}>{memPct}%</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 13, color: 'var(--text-dim)' }}>
-          <span>Занято {data.memory.used} MB</span>
-          <span>Свободно {data.memory.free} MB из {data.memory.total} MB</span>
-        </div>
+      {/* CPU + RAM gauges */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
+        <GaugeCard
+          label="CPU"
+          value={data.cpu.percent}
+          color={data.cpu.percent > 85 ? '#ff6b6b' : data.cpu.percent > 60 ? '#f0b86c' : '#6cdb8a'}
+          detail={`${data.cpu.cores} ядер · ${data.cpu.loadAvg[0].toFixed(1)} / ${data.cpu.loadAvg[1].toFixed(1)} / ${data.cpu.loadAvg[2].toFixed(1)}`}
+          sub={data.cpu.model}
+        />
+        <GaugeCard
+          label="RAM"
+          value={data.memory.percent}
+          color={data.memory.percent > 85 ? '#ff6b6b' : data.memory.percent > 60 ? '#f0b86c' : '#6cdb8a'}
+          detail={`${data.memory.used} / ${data.memory.total} MB`}
+          sub={`Свободно ${data.memory.free} MB`}
+          history={data.memory.history}
+        />
+        {data.disk && data.disk.total > 0 && (
+          <GaugeCard
+            label={data.disk.note || 'Диск'}
+            value={data.disk.percent || 0}
+            color={data.disk.percent > 85 ? '#ff6b6b' : data.disk.percent > 60 ? '#f0b86c' : '#6cdb8a'}
+            detail={`${data.disk.used} / ${data.disk.total} MB`}
+            sub={data.disk.note ? '' : `Свободно ${data.disk.free} MB`}
+          />
+        )}
       </div>
 
-      {/* CPU + uptime */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
-        <div className="stat-card" style={{ padding: 18, textAlign: 'center' }}>
-          <div className="l" style={{ marginBottom: 4 }}>CPU</div>
-          <div className="v" style={{ fontSize: 22 }}>{data.cpu.model}</div>
-          <div style={{ fontSize: 13, color: 'var(--text-dim)', marginTop: 6 }}>
-            {data.cpu.cores} ядер · нагрузка {data.cpu.loadAvg.map(v => v.toFixed(1)).join(' / ')}
-          </div>
-        </div>
-        <div className="stat-card" style={{ padding: 18, textAlign: 'center' }}>
-          <div className="l" style={{ marginBottom: 4 }}>Аптайм</div>
-          <div className="v" style={{ fontSize: 24 }}>{days}д {hours}ч {mins}м</div>
-          <div style={{ fontSize: 13, color: 'var(--text-dim)', marginTop: 6 }}>
-            {data.platform} · Node {data.nodeVersion}
-          </div>
+      {/* uptime info */}
+      <div className="stat-card" style={{ padding: 16, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 14, color: 'var(--text-dim)' }}>
+          Аптайм: <b style={{ color: 'var(--text)' }}>{days}д {hours}ч {mins}м</b>
+        </span>
+        <span style={{ fontSize: 14, color: 'var(--text-dim)' }}>
+          Платформа: <b style={{ color: 'var(--text)' }}>{data.platform}</b>
+        </span>
+        <span style={{ fontSize: 14, color: 'var(--text-dim)' }}>
+          Node: <b style={{ color: 'var(--text)' }}>{data.nodeVersion}</b>
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function GaugeCard({ label, value, color, detail, sub, history }) {
+  const r = 52
+  const circ = 2 * Math.PI * r
+  const offset = circ - (value / 100) * circ
+
+  return (
+    <div className="stat-card" style={{ padding: 18, textAlign: 'center' }}>
+      <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+        <svg width={130} height={130} viewBox="0 0 130 130">
+          <circle cx={65} cy={65} r={r} fill="none" stroke="var(--surface-2)" strokeWidth={10} />
+          <circle
+            cx={65} cy={65} r={r} fill="none" stroke={color} strokeWidth={10}
+            strokeLinecap="round"
+            strokeDasharray={circ}
+            strokeDashoffset={offset}
+            transform="rotate(-90 65 65)"
+            style={{ transition: 'stroke-dashoffset 0.7s ease' }}
+          />
+        </svg>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontSize: 26, fontWeight: 800, color }}>{value}%</span>
+          <span style={{ fontSize: 12, color: 'var(--text-dim)', fontWeight: 600 }}>{label}</span>
         </div>
       </div>
+      {history && history.length > 1 && (
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 28, justifyContent: 'center', marginTop: 10 }}>
+          {history.map((v, i) => (
+            <div key={i} style={{
+              width: 6,
+              height: `${Math.max(8, Math.round((v / 100) * 28))}px`,
+              background: v > 85 ? '#ff6b6b' : v > 60 ? '#f0b86c' : '#6cdb8a',
+              borderRadius: 2,
+              opacity: 0.7,
+            }} />
+          ))}
+        </div>
+      )}
+      <div style={{ marginTop: history ? 6 : 12, fontSize: 13, color: 'var(--text-dim)' }}>{detail}</div>
+      {sub && <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 3 }}>{sub}</div>}
     </div>
   )
 }
