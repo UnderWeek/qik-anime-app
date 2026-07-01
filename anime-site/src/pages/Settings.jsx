@@ -2,23 +2,25 @@ import { useState, useRef } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme, ACCENT_PRESETS } from '../context/ThemeContext.jsx'
 import { backend } from '../api/backend.js'
-import { GridIcon, CalendarIcon, UsersIcon, BookmarkIcon, SunIcon, MoonIcon, MessageIcon, RoomIcon, StarIcon } from '../components/icons.jsx'
+import { GridIcon, CalendarIcon, UsersIcon, BookmarkIcon, SunIcon, MoonIcon, MessageIcon, RoomIcon, StarIcon, SettingsIcon, UserIcon } from '../components/icons.jsx'
 import SEO from '../components/SEO.jsx'
 
 const MOBILE_KEY = 'qik_mobile_tabs'
-const MAX_TABS = 4
+const MAX_TABS = 5
 
 const ALL_MOBILE_TABS = [
   { key: 'catalog', label: 'Каталог', icon: GridIcon },
   { key: 'schedule', label: 'Расписание', icon: CalendarIcon },
-  { key: 'rooms', label: 'Комнаты', icon: RoomIcon },
+  { key: 'rooms', label: 'Комнаты', icon: RoomIcon, master: true },
   { key: 'library', label: 'Закладки', icon: BookmarkIcon },
   { key: 'friends', label: 'Друзья', icon: UsersIcon },
   { key: 'ratings', label: 'Рейтинги', icon: StarIcon },
   { key: 'quiz', label: 'Квиз', icon: StarIcon },
+  { key: 'settings', label: 'Настройки', icon: SettingsIcon },
+  { key: 'profile', label: 'Профиль', icon: UserIcon },
 ]
 
-const DEFAULT_TABS = ['catalog', 'rooms', 'library', 'friends']
+const DEFAULT_TABS = ['catalog', 'library', 'friends', 'profile']
 
 function loadMobileTabs() {
   try {
@@ -107,20 +109,55 @@ export default function Settings() {
   const [tabsSaved, setTabsSaved] = useState(true)
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
+  const [dragId, setDragId] = useState(null)
   const fileRef = useRef(null)
+
+  const availableTabs = ALL_MOBILE_TABS.filter(
+    (t) => !t.master || user?.isMaster || user?.isAdmin
+  )
+  const cleanedTabs = tabs.filter((k) => availableTabs.some((t) => t.key === k))
+  const unselected = availableTabs.filter((t) => !cleanedTabs.includes(t.key))
+  const displayList = [
+    ...cleanedTabs.map((k) => availableTabs.find((t) => t.key === k)).filter(Boolean),
+    ...unselected,
+  ]
 
   function toggleTab(key) {
     setTabs((prev) => {
       const active = prev.includes(key)
       if (active) return prev.filter((k) => k !== key)
-      if (prev.length >= MAX_TABS) return prev
+      const effective = prev.filter((k) => availableTabs.some((t) => t.key === k))
+      if (effective.length >= MAX_TABS) return prev
       return [...prev, key]
     })
     setTabsSaved(false)
   }
 
+  function handleDragStart(key) {
+    setDragId(key)
+  }
+
+  function handleDragOver(e, key) {
+    e.preventDefault()
+    if (!dragId || dragId === key) return
+    setTabs((prev) => {
+      if (!prev.includes(dragId)) return prev
+      const arr = [...prev]
+      const from = arr.indexOf(dragId)
+      const to = prev.includes(key) ? arr.indexOf(key) : arr.length
+      arr.splice(from, 1)
+      arr.splice(to, 0, dragId)
+      return arr
+    })
+    setTabsSaved(false)
+  }
+
+  function handleDragEnd() {
+    setDragId(null)
+  }
+
   function applyTabs() {
-    saveMobileTabs(tabs)
+    saveMobileTabs(cleanedTabs)
     window.location.reload()
   }
 
@@ -233,13 +270,19 @@ export default function Settings() {
           Выберите до {MAX_TABS} вкладок для нижней панели на телефоне
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 400 }}>
-          {ALL_MOBILE_TABS.map((t) => {
+          {displayList.map((t) => {
             const Icon = t.icon
-            const active = tabs.includes(t.key)
-            const locked = !active && tabs.length >= MAX_TABS
+            const active = cleanedTabs.includes(t.key)
+            const locked = !active && cleanedTabs.length >= MAX_TABS
+            const isDragging = dragId === t.key
             return (
               <div
                 key={t.key}
+                draggable={active}
+                onDragStart={() => handleDragStart(t.key)}
+                onDragOver={(e) => handleDragOver(e, t.key)}
+                onDragEnd={handleDragEnd}
+                onDrop={(e) => e.preventDefault()}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -248,15 +291,28 @@ export default function Settings() {
                   borderRadius: 12,
                   border: '1px solid var(--border)',
                   background: active ? 'var(--surface-2)' : 'var(--surface)',
-                  opacity: locked ? 0.3 : active ? 1 : 0.5,
+                  opacity: locked ? 0.3 : isDragging ? 0.4 : active ? 1 : 0.5,
+                  cursor: active ? 'grab' : 'default',
+                  transition: 'opacity 0.15s, transform 0.15s',
+                  transform: isDragging ? 'scale(0.96)' : 'none',
                 }}
               >
+                {active && (
+                  <span style={{ color: 'var(--text-faint)', cursor: 'grab', fontSize: 16, lineHeight: 1, userSelect: 'none', flexShrink: 0 }} title="Перетащите чтобы изменить порядок">
+                    ⠿
+                  </span>
+                )}
                 <label style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, cursor: locked ? 'not-allowed' : 'pointer', fontSize: 14 }}>
                   <input type="checkbox" checked={active} onChange={() => toggleTab(t.key)} disabled={locked} />
                   <Icon width={18} height={18} />
                   <span>{t.label}</span>
                 </label>
                 {locked && <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>лимит</span>}
+                {active && !locked && (
+                  <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+                    {cleanedTabs.indexOf(t.key) + 1}
+                  </span>
+                )}
               </div>
             )
           })}
@@ -274,7 +330,7 @@ export default function Settings() {
           {!tabsSaved && <span style={{ fontSize: 13, color: 'var(--text-faint)' }}>Есть несохранённые изменения</span>}
         </div>
         <p style={{ color: 'var(--text-faint)', fontSize: 12, marginTop: 10 }}>
-          Выбрано: {tabs.length}/{MAX_TABS} · Профиль закреплён всегда
+          Выбрано: {cleanedTabs.length}/{MAX_TABS}
         </p>
       </section>
 

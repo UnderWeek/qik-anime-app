@@ -237,7 +237,12 @@ export default function Profile() {
             <input ref={avatarFileRef} type="file" accept="image/*" hidden onChange={uploadAvatar} />
           </div>
           <div className="profile-id">
-            <h1>{profile.username}</h1>
+            <h1>
+              {profile.username}
+              {(profile.isMaster || profile.isAdmin) && (
+                <span className="master-badge">Q<span className="master-badge-tip">У этого пользователя роль — <em>МАСТЕР</em>.<br/>Мастера выполняют роль модерации, они могут удалять посты на стене и комментарии.</span></span>
+              )}
+            </h1>
             {!editing && profile.bio && <div className="bio">{profile.bio}</div>}
             <div className="joined">
               На QIK с {new Date(profile.createdAt).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}

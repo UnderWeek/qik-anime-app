@@ -1549,11 +1549,11 @@ input {
   border: 2px solid var(--bg);
 }
 .notif-menu {
-  position: absolute;
-  top: calc(100% + 10px);
-  right: 0;
+  position: fixed;
+  top: 60px;
+  right: 12px;
   width: 340px;
-  max-width: 90vw;
+  max-width: calc(100vw - 24px);
   background: var(--bg-soft);
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -2026,7 +2026,6 @@ input {
   background: var(--surface);
   padding: 28px;
   margin-bottom: 26px;
-  overflow: hidden;
 }
 .profile-banner:not(.has-image)::before {
   content: '';
@@ -2035,6 +2034,7 @@ input {
   background: var(--accent-grad);
   opacity: 0.08;
   pointer-events: none;
+  border-radius: inherit;
 }
 /* banner with uploaded image */
 .profile-banner.has-image { padding-top: 150px; }
@@ -2046,6 +2046,7 @@ input {
   height: 180px;
   background-size: cover;
   background-position: center;
+  border-radius: var(--radius) var(--radius) 0 0;
 }
 .profile-banner.has-image .profile-banner-bg::after {
   content: '';
@@ -2099,6 +2100,46 @@ input {
 }
 
 .profile-id h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
+.profile-id .master-badge {
+  display: inline-block;
+  vertical-align: middle;
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--accent);
+  margin-left: 8px;
+  cursor: help;
+  user-select: none;
+  position: relative;
+  top: -1px;
+}
+.profile-id .master-badge-tip {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 10;
+  box-shadow: 0 8px 28px -8px rgba(0,0,0,0.5);
+}
+.profile-id .master-badge-tip em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--accent);
+}
+.profile-id .master-badge:hover .master-badge-tip {
+  opacity: 1;
+}
 .profile-id .bio { color: var(--text-dim); font-size: 14px; margin-top: 5px; max-width: 460px; }
 .profile-id .joined { color: var(--text-faint); font-size: 12.5px; margin-top: 6px; }
 

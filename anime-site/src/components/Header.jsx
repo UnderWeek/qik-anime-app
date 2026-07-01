@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
-import { SearchIcon, BookmarkIcon, LogoutIcon, UserIcon, ChevronDown, UsersIcon, GridIcon, CalendarIcon, MessageIcon, RoomIcon, CloseIcon, StarIcon } from './icons.jsx';
+import { SearchIcon, BookmarkIcon, LogoutIcon, UserIcon, ChevronDown, UsersIcon, GridIcon, CalendarIcon, MessageIcon, RoomIcon, CloseIcon, StarIcon, SettingsIcon } from './icons.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { backend } from '../api/backend.js';
 import Avatar from './Avatar.jsx';
@@ -21,9 +21,11 @@ const TAB_DEFS = {
   friends: { to: '/friends', label: 'Друзья', icon: UsersIcon, auth: true },
   ratings: { to: '/ratings', label: 'Рейтинги', icon: StarIcon },
   quiz: { to: '/quiz', label: 'Квиз', icon: StarIcon },
+  settings: { to: '/settings', label: 'Настройки', icon: SettingsIcon },
+  profile: { to: '/u/me', label: 'Профиль', icon: UserIcon, profile: true },
 };
 
-const DEFAULT_MOBILE_ORDER = ['catalog', 'rooms', 'library', 'friends'];
+const DEFAULT_MOBILE_ORDER = ['catalog', 'library', 'friends', 'profile'];
 
 function readMobileOrder() {
   try {
@@ -99,7 +101,7 @@ export default function Header() {
   const mobileLinks = mobileOrder
     .map((key) => TAB_DEFS[key])
     .filter(Boolean)
-    .filter((l) => (!l.auth && !l.master) || (l.auth && user) || (l.master && (user?.isMaster || user?.isAdmin)));
+    .filter((l) => l.profile || (!l.auth && !l.master) || (l.auth && user) || (l.master && (user?.isMaster || user?.isAdmin)));
 
   const profileActive = location.pathname.startsWith('/u/');
 
@@ -212,6 +214,22 @@ export default function Header() {
       <nav className='mobile-bottom-nav' aria-label='Мобильная навигация'>
         {mobileLinks.map((item) => {
           const Icon = item.icon;
+          if (item.profile) {
+            if (user) {
+              return (
+                <Link key="profile" to={`/u/${user.id}`} className={`mobile-bottom-item${profileActive ? ' active' : ''}`}>
+                  <Icon width={19} height={19} />
+                  <span>Профиль</span>
+                </Link>
+              );
+            }
+            return (
+              <button key="profile" className="mobile-bottom-item" onClick={() => openAuth('login')}>
+                <Icon width={19} height={19} />
+                <span>Войти</span>
+              </button>
+            );
+          }
           return (
             <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => `mobile-bottom-item${isActive ? ' active' : ''}`}>
               <Icon width={19} height={19} />
@@ -219,18 +237,6 @@ export default function Header() {
             </NavLink>
           );
         })}
-
-        {user ? (
-          <Link to={`/u/${user.id}`} className={`mobile-bottom-item${profileActive ? ' active' : ''}`}>
-            <UserIcon width={19} height={19} />
-            <span>Профиль</span>
-          </Link>
-        ) : (
-          <button className='mobile-bottom-item' onClick={() => openAuth('login')}>
-            <UserIcon width={19} height={19} />
-            <span>Войти</span>
-          </button>
-        )}
       </nav>
     </>
   );
