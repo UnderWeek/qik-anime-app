@@ -24,6 +24,7 @@ import {
   TrashIcon,
   SunIcon,
   MoonIcon,
+  SaveIcon,
 } from '../components/icons.jsx'
 
 const PASTELS = ['#A8D8C9', '#F7C9D9', '#C9D6F0', '#F5E1A4', '#D9C2F0', '#BFE3D0', '#F0C9B8', '#B8A6F0']
@@ -359,7 +360,7 @@ export default function Profile() {
               </button>
             )}
 
-            <button className="btn btn-primary profile-save-btn" onClick={saveProfile}>Сохранить</button>
+            <button className="btn btn-primary profile-save-btn" onClick={saveProfile}><SaveIcon width={18} height={18} />Сохранить</button>
           </div>
         )}
 

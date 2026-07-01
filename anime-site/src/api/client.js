@@ -3,7 +3,6 @@
 // Base server: https://api.yani.tv
 
 const BASE_URL = 'https://api.yani.tv'
-const IMGPROXY_URL = 'https://imgproxy.yani.tv'
 const STATIC_URL = 'https://static.yani.tv'
 
 // The X-Application token is required by the docs for production usage.
@@ -54,32 +53,20 @@ async function request(path, { params, ...options } = {}) {
   return json.response !== undefined ? json.response : json
 }
 
-// Check if user wants all posters proxied through our backend
-function useProxy() {
-  try { return localStorage.getItem('qik_proxy_images') === '1' } catch { return false }
-}
-
-// Normalize poster URLs. If proxy mode is on, route through backend proxy.
-export function fixUrl(url, query) {
+// Normalize poster URLs.
+export function fixUrl(url) {
   if (!url) return ''
   if (url.startsWith('//')) url = `https:${url}`
   if (url.startsWith('/')) url = `${STATIC_URL}${url}`
-  if (useProxy() && /yani\.tv/i.test(url)) {
-    let proxyUrl = `/api/proxy/image?url=${encodeURIComponent(url)}`
-    if (query) proxyUrl += `&q=${encodeURIComponent(query)}`
-    return proxyUrl
-  }
   return url
 }
 
 // Build fallback chain for a failed static.yani.tv image.
-// Returns [imgproxy_url, backend_proxy_url].
 function buildChain(originalUrl) {
   const chain = []
   if (/static\.yani\.tv/i.test(originalUrl)) {
-    chain.push(originalUrl.replace(/^https?:\/\/static\.yani\.tv\//i, `${IMGPROXY_URL}/`))
+    chain.push(originalUrl.replace(/^https?:\/\/static\.yani\.tv\//i, 'https://imgproxy.yani.tv/'))
   }
-  chain.push(`/api/proxy/image?url=${encodeURIComponent(originalUrl)}`)
   return chain
 }
 
@@ -122,12 +109,10 @@ const POSTER_SIZES = ['mega', 'huge', 'fullsize', 'big', 'medium', 'small']
 export function poster(obj, size = 'medium') {
   if (!obj || !obj.poster) return ''
   const p = obj.poster
-  const alias = obj.anime_url || obj.url || obj.alias || ''
-  const title = obj.title || obj.name || ''
   // Try requested size first, then chain from largest to smallest
-  if (p[size]) return fixUrl(p[size], alias || title)
+  if (p[size]) return fixUrl(p[size])
   for (const s of POSTER_SIZES) {
-    if (p[s]) return fixUrl(p[s], alias || title)
+    if (p[s]) return fixUrl(p[s])
   }
   return ''
 }

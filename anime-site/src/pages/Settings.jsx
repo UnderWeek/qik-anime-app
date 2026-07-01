@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme, ACCENT_PRESETS } from '../context/ThemeContext.jsx'
 import { backend } from '../api/backend.js'
-import { GridIcon, CalendarIcon, UsersIcon, BookmarkIcon, SunIcon, MoonIcon, MessageIcon, RoomIcon, StarIcon, SettingsIcon, UserIcon } from '../components/icons.jsx'
+import { GridIcon, CalendarIcon, UsersIcon, BookmarkIcon, SunIcon, MoonIcon, MessageIcon, RoomIcon, StarIcon, SettingsIcon, UserIcon, PaletteIcon, UploadIcon } from '../components/icons.jsx'
 import SEO from '../components/SEO.jsx'
 
 const MOBILE_KEY = 'qik_mobile_tabs'
@@ -109,6 +109,7 @@ export default function Settings() {
   const [tabsSaved, setTabsSaved] = useState(true)
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
+  const [importProgress, setImportProgress] = useState(0)
   const [dragId, setDragId] = useState(null)
   const fileRef = useRef(null)
 
@@ -173,9 +174,11 @@ export default function Settings() {
       }
       setImporting(true)
       setImportResult(null)
+      setImportProgress(0)
       const BATCH = 60
       let imported = 0
       let failed = 0
+      const totalBatches = Math.ceil(entries.length / BATCH)
       for (let i = 0; i < entries.length; i += BATCH) {
         const batch = entries.slice(i, i + BATCH)
         try {
@@ -186,6 +189,7 @@ export default function Settings() {
           failed += batch.length
           break
         }
+        setImportProgress(Math.min(Math.round(((i + batch.length) / entries.length) * 100), 100))
       }
       setImportResult({ imported, failed, total: entries.length })
       setImporting(false)
@@ -216,168 +220,218 @@ export default function Settings() {
 
       <h1 style={{ marginBottom: 28 }}>Настройки</h1>
 
-      {/* Proxy toggle */}
-      <section style={{ marginBottom: 32 }}>
-        <h2 style={{ fontSize: 18, marginBottom: 14 }}>Загрузка постеров</h2>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', fontSize: 14 }}>
-          <input
-            type="checkbox"
-            checked={localStorage.getItem('qik_proxy_images') === '1'}
-            onChange={(e) => {
-              localStorage.setItem('qik_proxy_images', e.target.checked ? '1' : '0')
-              window.location.reload()
-            }}
-          />
-          <span>Проксировать постеры через сервер</span>
-        </label>
-        <p style={{ color: 'var(--text-faint)', fontSize: 12, marginTop: 6, marginLeft: 28 }}>
-          Включите, если постеры не грузятся (актуально для РФ)
-        </p>
-      </section>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {/* Theme toggle */}
-      <section style={{ marginBottom: 32 }}>
-        <h2 style={{ fontSize: 18, marginBottom: 14 }}>Тема</h2>
-        <button
-          className="btn btn-ghost"
-          onClick={toggle}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '10px 18px',
-            fontSize: 15,
-            borderRadius: 12,
-            border: '1px solid var(--border)',
-          }}
-        >
-          {theme === 'dark' ? (
-            <><SunIcon width={18} height={18} /> Светлая</>
-          ) : (
-            <><MoonIcon width={18} height={18} /> Тёмная</>
-          )}
-        </button>
-      </section>
-
-      {/* Accent color */}
-      <section style={{ marginBottom: 32 }}>
-        <h2 style={{ fontSize: 18, marginBottom: 14 }}>Акцентный цвет</h2>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {ACCENT_PRESETS.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setAccent(p)}
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 12,
-                border: accent.id === p.id ? '3px solid var(--text)' : '3px solid transparent',
-                background: `linear-gradient(135deg, ${p.accent}, ${p.accent2})`,
-                cursor: 'pointer',
-                outline: 'none',
-              }}
-              title={p.name}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* Mobile nav tabs — only on touch devices */}
-      <section style={{ marginBottom: 32 }} className="settings-mobile-nav">
-        <h2 style={{ fontSize: 18, marginBottom: 14 }}>Нижняя панель навигации</h2>
-        <p style={{ color: 'var(--text-faint)', fontSize: 13, marginBottom: 12 }}>
-          Выберите до {MAX_TABS} вкладок для нижней панели на телефоне
-        </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 400 }}>
-          {displayList.map((t) => {
-            const Icon = t.icon
-            const active = cleanedTabs.includes(t.key)
-            const locked = !active && cleanedTabs.length >= MAX_TABS
-            const isDragging = dragId === t.key
-            return (
-              <div
-                key={t.key}
-                draggable={active}
-                onDragStart={() => handleDragStart(t.key)}
-                onDragOver={(e) => handleDragOver(e, t.key)}
-                onDragEnd={handleDragEnd}
-                onDrop={(e) => e.preventDefault()}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '10px 14px',
-                  borderRadius: 12,
-                  border: '1px solid var(--border)',
-                  background: active ? 'var(--surface-2)' : 'var(--surface)',
-                  opacity: locked ? 0.3 : isDragging ? 0.4 : active ? 1 : 0.5,
-                  cursor: active ? 'grab' : 'default',
-                  transition: 'opacity 0.15s, transform 0.15s',
-                  transform: isDragging ? 'scale(0.96)' : 'none',
-                }}
-              >
-                {active && (
-                  <span style={{ color: 'var(--text-faint)', cursor: 'grab', fontSize: 16, lineHeight: 1, userSelect: 'none', flexShrink: 0 }} title="Перетащите чтобы изменить порядок">
-                    ⠿
-                  </span>
-                )}
-                <label style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, cursor: locked ? 'not-allowed' : 'pointer', fontSize: 14 }}>
-                  <input type="checkbox" checked={active} onChange={() => toggleTab(t.key)} disabled={locked} />
-                  <Icon width={18} height={18} />
-                  <span>{t.label}</span>
-                </label>
-                {locked && <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>лимит</span>}
-                {active && !locked && (
-                  <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>
-                    {cleanedTabs.indexOf(t.key) + 1}
-                  </span>
-                )}
-              </div>
-            )
-          })}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14 }}>
-          <button
-            className="btn btn-primary"
-            onClick={applyTabs}
-            disabled={tabsSaved}
-            style={{ padding: '8px 20px', fontSize: 14 }}
-          >
-            Применить
-          </button>
-          {tabsSaved && <span style={{ fontSize: 13, color: 'var(--accent-2)' }}>✓ Сохранено</span>}
-          {!tabsSaved && <span style={{ fontSize: 13, color: 'var(--text-faint)' }}>Есть несохранённые изменения</span>}
-        </div>
-        <p style={{ color: 'var(--text-faint)', fontSize: 12, marginTop: 10 }}>
-          Выбрано: {cleanedTabs.length}/{MAX_TABS}
-        </p>
-      </section>
-
-      {/* Import */}
-      <section>
-        <h2 style={{ fontSize: 18, marginBottom: 14 }}>Импорт закладок</h2>
-        <p style={{ color: 'var(--text-faint)', fontSize: 13, marginBottom: 12 }}>
-          Загрузите .csv файл из Anixart, чтобы перенести закладки
-        </p>
-        <input ref={fileRef} type="file" accept=".csv" hidden onChange={handleFile} />
-        <button
-          className="btn btn-primary"
-          onClick={() => fileRef.current?.click()}
-          disabled={importing}
-        >
-          {importing ? 'Импорт...' : 'Выбрать CSV из Anixart'}
-        </button>
-        {importResult && (
-          <div style={{ marginTop: 14, fontSize: 14, color: 'var(--text-dim)' }}>
-            {importResult.error ? (
-              <span style={{ color: 'var(--danger)' }}>{importResult.error}</span>
-            ) : (
-              <>Импортировано: <b>{importResult.imported}</b> из {importResult.total}.
-              {importResult.failed > 0 && <> Не найдено: <b>{importResult.failed}</b>.</>}</>
-            )}
+        {/* Theme toggle */}
+        <section className="settings-card settings-theme-card" data-theme={theme}>
+          <div className="theme-decor">
+            <span className="theme-decor-moon" />
+            <span className="theme-decor-star theme-decor-star--1" />
+            <span className="theme-decor-star theme-decor-star--2" />
+            <span className="theme-decor-star theme-decor-star--3" />
+            <span className="theme-decor-star theme-decor-star--4" />
+            <span className="theme-decor-sun" />
+            <span className="theme-decor-cloud theme-decor-cloud--1" />
+            <span className="theme-decor-cloud theme-decor-cloud--2" />
           </div>
-        )}
-      </section>
+          <h2 className="settings-card-title"><SunIcon width={20} height={20} style={{ marginRight: 10, verticalAlign: -4 }} />Тема</h2>
+          <p className="settings-card-desc">Выберите светлое или тёмное оформление сайта</p>
+          <button
+            className="btn btn-ghost"
+            onClick={toggle}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '10px 18px',
+              fontSize: 15,
+              borderRadius: 12,
+              border: '1px solid var(--border)',
+              position: 'relative',
+              zIndex: 1,
+            }}
+          >
+            {theme === 'dark' ? (
+              <><SunIcon width={18} height={18} /> Светлая</>
+            ) : (
+              <><MoonIcon width={18} height={18} /> Тёмная</>
+            )}
+          </button>
+        </section>
+
+        {/* Accent color */}
+        <section
+          className="settings-card settings-accent-card"
+          style={{ '--accent-a': accent.accent, '--accent-b': accent.accent2 }}
+        >
+          <div className="accent-decor">
+            <span className="accent-bubble accent-bubble--1" />
+            <span className="accent-bubble accent-bubble--2" />
+            <span className="accent-bubble accent-bubble--3" />
+            <span className="accent-bubble accent-bubble--4" />
+          </div>
+          <h2 className="settings-card-title"><PaletteIcon width={20} height={20} style={{ marginRight: 10, verticalAlign: -4 }} />Акцентный цвет</h2>
+          <p className="settings-card-desc">Выберите основной цвет интерфейса</p>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', position: 'relative', zIndex: 1 }}>
+            {ACCENT_PRESETS.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setAccent(p)}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  border: accent.id === p.id ? '3px solid var(--text)' : '3px solid transparent',
+                  background: `linear-gradient(135deg, ${p.accent}, ${p.accent2})`,
+                  cursor: 'pointer',
+                  outline: 'none',
+                }}
+                title={p.name}
+              />
+            ))}
+          </div>
+        </section>
+
+        {/* Mobile nav tabs */}
+        <section className="settings-card settings-mobile-nav">
+          <h2 className="settings-card-title"><GridIcon width={20} height={20} style={{ marginRight: 10, verticalAlign: -4 }} />Нижняя панель навигации</h2>
+          <p className="settings-card-desc">
+            Выберите до {MAX_TABS} вкладок для нижней панели на телефоне
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 400 }}>
+            {displayList.map((t) => {
+              const Icon = t.icon
+              const active = cleanedTabs.includes(t.key)
+              const locked = !active && cleanedTabs.length >= MAX_TABS
+              const isDragging = dragId === t.key
+              return (
+                <div
+                  key={t.key}
+                  draggable={active}
+                  onDragStart={() => handleDragStart(t.key)}
+                  onDragOver={(e) => handleDragOver(e, t.key)}
+                  onDragEnd={handleDragEnd}
+                  onDrop={(e) => e.preventDefault()}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '10px 14px',
+                    borderRadius: 12,
+                    border: '1px solid var(--border)',
+                    background: active ? 'var(--surface-2)' : 'var(--surface)',
+                    opacity: locked ? 0.3 : isDragging ? 0.4 : active ? 1 : 0.5,
+                    cursor: active ? 'grab' : 'default',
+                    transition: 'opacity 0.15s, transform 0.15s',
+                    transform: isDragging ? 'scale(0.96)' : 'none',
+                  }}
+                >
+                  {active && (
+                    <span style={{ color: 'var(--text-faint)', cursor: 'grab', fontSize: 16, lineHeight: 1, userSelect: 'none', flexShrink: 0 }} title="Перетащите чтобы изменить порядок">
+                      ⠿
+                    </span>
+                  )}
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, cursor: locked ? 'not-allowed' : 'pointer', fontSize: 14 }}>
+                    <input type="checkbox" checked={active} onChange={() => toggleTab(t.key)} disabled={locked} />
+                    <Icon width={18} height={18} />
+                    <span>{t.label}</span>
+                  </label>
+                  {locked && <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>лимит</span>}
+                  {active && !locked && (
+                    <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+                      {cleanedTabs.indexOf(t.key) + 1}
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14 }}>
+            <button
+              className="btn btn-primary"
+              onClick={applyTabs}
+              disabled={tabsSaved}
+              style={{ padding: '8px 20px', fontSize: 14 }}
+            >
+              Применить
+            </button>
+            {tabsSaved && <span style={{ fontSize: 13, color: 'var(--accent-2)' }}>✓ Сохранено</span>}
+            {!tabsSaved && <span style={{ fontSize: 13, color: 'var(--text-faint)' }}>Есть несохранённые изменения</span>}
+          </div>
+          <p style={{ color: 'var(--text-faint)', fontSize: 12, marginTop: 10 }}>
+            Выбрано: {cleanedTabs.length}/{MAX_TABS}
+          </p>
+        </section>
+
+        {/* Import */}
+        <section className="settings-card settings-import-card">
+          <h2 className="settings-card-title"><UploadIcon width={20} height={20} style={{ marginRight: 10, verticalAlign: -4 }} />Импорт закладок</h2>
+          <p className="settings-card-desc">
+            Загрузите .csv файл из Anixart, чтобы перенести закладки
+          </p>
+          <input ref={fileRef} type="file" accept=".csv" hidden onChange={handleFile} />
+          <button
+            className="btn btn-primary import-btn"
+            onClick={() => fileRef.current?.click()}
+            disabled={importing}
+          >
+            <UploadIcon width={16} height={16} />
+            {importing ? 'Идёт импорт...' : 'Выбрать CSV из Anixart'}
+          </button>
+
+          {importing && (
+            <div className="import-progress">
+              <svg className="import-wave" viewBox="0 0 340 32" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="waveGrad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor={accent.accent} />
+                    <stop offset="100%" stopColor={accent.accent2} />
+                  </linearGradient>
+                </defs>
+                <path
+                  className="import-wave-track"
+                  d="M0,16 Q10,4 20,16 T40,16 T60,16 T80,16 T100,16 T120,16 T140,16 T160,16 T180,16 T200,16 T220,16 T240,16 T260,16 T280,16 T300,16 T320,16 T340,16"
+                  fill="none"
+                  pathLength="340"
+                />
+                <path
+                  className="import-wave-fill"
+                  d="M0,16 Q10,4 20,16 T40,16 T60,16 T80,16 T100,16 T120,16 T140,16 T160,16 T180,16 T200,16 T220,16 T240,16 T260,16 T280,16 T300,16 T320,16 T340,16"
+                  fill="none"
+                  pathLength="340"
+                  stroke="url(#waveGrad)"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  style={{
+                    strokeDasharray: '340',
+                    strokeDashoffset: 340 - (importProgress / 100) * 340,
+                    transition: 'stroke-dashoffset 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                  }}
+                />
+              </svg>
+              <span className="import-progress-text">
+                <span className="import-spinner" />
+                Обработано {importProgress}%
+              </span>
+            </div>
+          )}
+
+          {importResult && !importing && (
+            <div className={`import-result${importResult.error ? ' import-result--error' : ''}`}>
+              {importResult.error ? (
+                <span>{importResult.error}</span>
+              ) : (
+                <>
+                  <span className="import-result-check">✓</span>
+                  <span>Импортировано: <b>{importResult.imported}</b> из {importResult.total}.
+                  {importResult.failed > 0 && <> Не найдено: <b>{importResult.failed}</b>.</>}</span>
+                </>
+              )}
+            </div>
+          )}
+        </section>
+
+      </div>
     </div>
   )
 }

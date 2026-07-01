@@ -221,3 +221,28 @@ export const SettingsIcon = (p) => (
     <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.7l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.7-.3 1.7 1.7 0 0 0-1 2.2v.1a2 2 0 0 1-4 .2 2 2 0 0 1 0-.2v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.7.3l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 4.8 15a1.7 1.7 0 0 0-2.2-1 2 2 0 0 1-.2-4 2 2 0 0 1 .2 0h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.7l-.1-.1a2 2 0 0 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 4.8a1.7 1.7 0 0 0 1-2.2V2.4a2 2 0 0 1 4-.2 2 2 0 0 1 0 .2v.1A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.7-.3l.1-.1a2 2 0 0 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 19.2 9a1.7 1.7 0 0 0 2.2 1 2 2 0 0 1 .2 4 2 2 0 0 1-.2 0h-.1a1.7 1.7 0 0 0-1.7 1z" />
   </svg>
 )
+
+export const SaveIcon = (p) => (
+  <svg viewBox="0 0 24 24" {...base} {...p}>
+    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+    <path d="M17 21v-8H7v8M7 3v5h8" />
+  </svg>
+)
+
+export const PaletteIcon = (p) => (
+  <svg viewBox="0 0 24 24" {...base} {...p}>
+    <path d="M12 2a10 10 0 1 0 0 20c.6 0 1-.4 1-1v-1.5c0-.8.7-1.5 1.5-1.5H16a6 6 0 0 0 6-6 10 10 0 0 0-10-10z" />
+    <circle cx="8" cy="9" r="1.5" fill="currentColor" stroke="none" />
+    <circle cx="16" cy="7" r="1.5" fill="currentColor" stroke="none" />
+    <circle cx="7" cy="14" r="1.5" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="17" r="1.5" fill="currentColor" stroke="none" />
+  </svg>
+)
+
+export const UploadIcon = (p) => (
+  <svg viewBox="0 0 24 24" {...base} {...p}>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="17 8 12 3 7 8" />
+    <line x1="12" y1="3" x2="12" y2="15" />
+  </svg>
+)

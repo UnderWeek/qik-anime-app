@@ -5,7 +5,7 @@ const KEY = 'qik_theme'
 const ACCENT_KEY = 'qik_accent'
 
 export const ACCENT_PRESETS = [
-  { id: 'lavender', name: 'Фиолетовый', accent: '#b8a6f0', accent2: '#a6e3d0', ink: '#2a2440' },
+  { id: 'violet', name: 'Фиолетовый', accent: '#9b5ef0', accent2: '#c4a0f0', ink: '#221a38' },
   { id: 'blue', name: 'Синий', accent: '#6cb4f0', accent2: '#6cd0f0', ink: '#1a2a38' },
   { id: 'green', name: 'Зелёный', accent: '#6cdb8a', accent2: '#a6e3c0', ink: '#1a2a20' },
   { id: 'red', name: 'Красный', accent: '#f06c7c', accent2: '#f0a6a6', ink: '#2a1a1c' },

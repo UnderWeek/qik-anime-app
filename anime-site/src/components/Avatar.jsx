@@ -58,7 +58,7 @@ export default function Avatar({ user, size = 34 }) {
       style={{ position: 'relative', display: 'inline-flex', width: totalSize, height: totalSize }}
     >
       {avatarEl}
-      <span className="online-dot" />
+      <span className="online-dot" style={{ bottom: pad, right: pad }} />
     </span>
   )
 }
