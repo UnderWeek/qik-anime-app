@@ -1,13 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { backend } from '../api/backend.js'
 import { useAuth } from '../context/AuthContext.jsx'
-
-function Stars({ value, hover, setHover, onSelect, disabled }) {
+function Bars({ value, hover, setHover, onSelect, disabled }) {
   return (
-    <div style={{ display: 'flex', gap: 3 }}>
+    <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end' }}>
       {Array.from({ length: 10 }).map((_, i) => {
         const s = i + 1
-        const filled = hover ? s <= hover : s <= value
+        const on = hover ? s <= hover : s <= value
         return (
           <button
             key={s}
@@ -16,15 +15,14 @@ function Stars({ value, hover, setHover, onSelect, disabled }) {
             onClick={() => onSelect(s)}
             onMouseEnter={() => setHover(s)}
             onMouseLeave={() => setHover(0)}
+            className="rate-bar"
             style={{
-              width: 22, height: 22, background: 'none', border: 'none',
-              cursor: disabled ? 'default' : 'pointer', fontSize: 18,
-              color: filled ? '#ffd76a' : 'var(--border)',
-              transition: 'color 0.1s', padding: 0, lineHeight: 1,
+              width: 16,
+              height: 24,
+              background: on ? 'linear-gradient(135deg, #ffd76a, #f5b642)' : undefined,
+              boxShadow: on ? '0 0 6px rgba(255, 215, 106, 0.4)' : undefined,
             }}
-          >
-            ★
-          </button>
+          />
         )
       })}
     </div>
@@ -80,12 +78,12 @@ export default function OpeningRatingWidget({ animeId }) {
   const edScore = data?.ending ?? null
 
   return (
-    <div className="info-card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div className="info-card" style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 18 }}>
       <div>
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, color: 'var(--text-secondary)' }}>
-          🎵 Опенинг
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: -3, marginRight: 5 }}><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>Опенинг
         </div>
-        <Stars value={opScore || 0} hover={hoverOp} setHover={setHoverOp} onSelect={(s) => rate('opening', s)} disabled={busy} />
+        <Bars value={opScore || 0} hover={hoverOp} setHover={setHoverOp} onSelect={(s) => rate('opening', s)} disabled={busy} />
         {opScore ? (
           <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 4 }}>
             Ваша оценка: {opScore}/10{' '}
@@ -97,9 +95,9 @@ export default function OpeningRatingWidget({ animeId }) {
       </div>
       <div>
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, color: 'var(--text-secondary)' }}>
-          🎶 Эндинг
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: -3, marginRight: 5 }}><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><line x1="21" y1="5" x2="9" y2="7"/></svg>Эндинг
         </div>
-        <Stars value={edScore || 0} hover={hoverEd} setHover={setHoverEd} onSelect={(s) => rate('ending', s)} disabled={busy} />
+        <Bars value={edScore || 0} hover={hoverEd} setHover={setHoverEd} onSelect={(s) => rate('ending', s)} disabled={busy} />
         {edScore ? (
           <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 4 }}>
             Ваша оценка: {edScore}/10{' '}

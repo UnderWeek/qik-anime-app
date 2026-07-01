@@ -837,9 +837,13 @@ input {
   display: flex;
   flex-direction: column;
   position: relative;
-  transition: transform 0.22s ease;
+  transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.35s ease;
+  border-radius: var(--radius-sm);
 }
-.card:hover { transform: translateY(-5px); }
+.card:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 20px 40px -16px rgba(0,0,0,0.5), 0 0 0 1px var(--border);
+}
 
 .card-poster {
   position: relative;
@@ -848,28 +852,60 @@ input {
   overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--border);
+  transition: border-color 0.35s ease;
 }
+.card:hover .card-poster {
+  border-color: rgba(255,255,255,0.12);
+}
+
 .card-poster img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s ease, opacity 0.4s ease;
+  transition: transform 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94), filter 0.35s ease;
 }
-.card:hover .card-poster img { transform: scale(1.06); }
+.card:hover .card-poster img {
+  transform: scale(1.08);
+  filter: brightness(1.1);
+}
+
+/* shiny sweep on hover — only animates forward, snaps back instantly */
+.card-poster::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.08) 50%,
+    transparent 100%
+  );
+  transform: skewX(-25deg);
+  z-index: 2;
+  pointer-events: none;
+}
+.card:hover .card-poster::before {
+  left: 120%;
+  transition: left 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
 
 .card-poster::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent 45%);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.55), transparent 40%);
   opacity: 0;
-  transition: opacity 0.25s;
+  transition: opacity 0.3s ease;
 }
 .card:hover .card-poster::after { opacity: 1; }
 
 .card-badge {
   position: absolute;
   top: 9px;
+  z-index: 3;
   left: 9px;
   padding: 4px 8px;
   font-size: 11px;
@@ -1488,7 +1524,9 @@ input {
   grid-auto-columns: 168px;
   gap: 18px;
   overflow-x: auto;
-  padding-bottom: 10px;
+  overflow-y: visible;
+  padding: 10px 8px 16px;
+  margin: -10px -8px -6px;
   scroll-snap-type: x proximity;
 }
 .row-scroll .card { scroll-snap-align: start; }
@@ -1505,8 +1543,10 @@ input {
   grid-auto-columns: 168px;
   gap: 18px;
   overflow-x: auto;
+  overflow-y: visible;
+  padding: 10px 8px 16px;
+  margin: -10px -8px -6px;
   scroll-snap-type: x proximity;
-  padding-bottom: 6px;
   scrollbar-width: thin;
 }
 .carousel-track .card { scroll-snap-align: start; }
@@ -2197,19 +2237,30 @@ input {
 }
 .rate-avg small { font-size: 16px; color: var(--text-faint); font-weight: 600; }
 .rate-count { color: var(--text-faint); font-size: 13px; }
-.rate-stars {
+.rate-bars {
   display: flex;
-  gap: 4px;
+  gap: 6px;
+  align-items: flex-end;
   flex-wrap: wrap;
 }
-.rate-star {
-  color: var(--surface-2);
-  transition: transform 0.12s, color 0.12s;
+.rate-bar {
+  width: 18px;
+  height: 28px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  border: none;
   cursor: pointer;
-  line-height: 0;
+  padding: 0;
+  transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
 }
-.rate-star:hover { transform: scale(1.18); }
-.rate-star.on { color: var(--accent); }
+.rate-bar:hover { transform: scaleY(1.15); }
+.rate-bar.on {
+  background: var(--accent-grad);
+  box-shadow: 0 0 8px rgba(139, 126, 245, 0.3);
+}
+.rate-bar:disabled { cursor: default; }
+
+.rate-val { font-weight: 400; margin-right: 2px; }
 .rate-mine {
   margin-top: 12px;
   font-size: 13px;

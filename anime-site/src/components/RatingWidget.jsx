@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
 import { backend } from '../api/backend.js'
 import { useAuth } from '../context/AuthContext.jsx'
-import { StarIcon } from './icons.jsx'
-
 export default function RatingWidget({ animeId }) {
   const { user, openAuth, requireAuth, showToast } = useAuth()
   const [summary, setSummary] = useState(null)
@@ -57,7 +55,7 @@ export default function RatingWidget({ animeId }) {
     <div className="rate-box">
       <div className="rate-head">
         <div className="rate-avg">
-          {avg ? avg.toFixed(1) : '—'}
+          <span className="rate-val">{avg ? avg.toFixed(1) : '–'}</span>
           <small>/10</small>
         </div>
         <div className="rate-count">
@@ -67,20 +65,19 @@ export default function RatingWidget({ animeId }) {
         </div>
       </div>
 
-      <div className="rate-stars" onMouseLeave={() => setHover(0)}>
+      <div className="rate-bars" onMouseLeave={() => setHover(0)}>
         {Array.from({ length: 10 }).map((_, i) => {
           const val = i + 1
+          const on = val <= display
           return (
-            <span
+            <button
               key={val}
-              className={`rate-star ${val <= display ? 'on' : ''}`}
+              className={`rate-bar ${on ? 'on' : ''}`}
               onMouseEnter={() => setHover(val)}
               onClick={() => !busy && rate(val)}
-              role="button"
+              disabled={busy}
               aria-label={`Оценка ${val}`}
-            >
-              <StarIcon width={20} height={20} />
-            </span>
+            />
           )
         })}
       </div>
