@@ -2948,6 +2948,14 @@ input {
 .profile-id .master-badge:hover .master-badge-tip {
   opacity: 1;
 }
+@media (max-width: 600px) {
+  .profile-id .master-badge-tip {
+    left: auto;
+    right: 0;
+    transform: none;
+    max-width: 220px;
+  }
+}
 .profile-id .bio { color: var(--text-dim); font-size: 14px; margin-top: 5px; max-width: 460px; }
 .profile-id .joined { color: var(--text-faint); font-size: 12.5px; margin-top: 6px; }
 
