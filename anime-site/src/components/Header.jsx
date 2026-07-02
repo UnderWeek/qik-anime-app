@@ -3,14 +3,13 @@ import { NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
 import { SearchIcon, BookmarkIcon, LogoutIcon, UserIcon, ChevronDown, UsersIcon, GridIcon, CalendarIcon, MessageIcon, RoomIcon, CloseIcon, StarIcon, SettingsIcon, ShieldIcon } from './icons.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { backend, uploadUrl } from '../api/backend.js';
+import { api, poster, fixUrl } from '../api/client.js';
 import Avatar from './Avatar.jsx';
 import NotificationBell from './NotificationBell.jsx';
 
 const links = [
   { to: '/catalog', label: 'Каталог' },
   { to: '/schedule', label: 'Расписание' },
-  { to: '/rooms', label: 'Комнаты', master: true },
-  { to: '/quiz', label: 'Квиз', badge: 'Beta' },
 ];
 
 const TAB_DEFS = {
@@ -43,12 +42,15 @@ export default function Header() {
   const [menu, setMenu] = useState(false);
   const [mobileOrder, setMobileOrder] = useState(readMobileOrder);
   const [history, setHistory] = useState([]);
-  const [showHistory, setShowHistory] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, openAuth, logout } = useAuth();
   const menuRef = useRef(null);
   const searchRef = useRef(null);
+  const debounceRef = useRef(null);
 
   function submit(e) {
     e.preventDefault();
@@ -56,7 +58,7 @@ export default function Header() {
     if (term && user) {
       backend.saveSearch(term).catch(() => {});
     }
-    setShowHistory(false);
+    setShowDropdown(false);
     navigate(term ? `/search?q=${encodeURIComponent(term)}` : '/search');
   }
 
@@ -64,6 +66,30 @@ export default function Header() {
     if (!user) return;
     backend.searchHistory().then(setHistory).catch(() => {});
   }, [user]);
+
+  // Debounced search suggestions
+  useEffect(() => {
+    const term = q.trim();
+    if (!term || term.length < 2) {
+      setSuggestions([]);
+      setSuggestionsLoading(false);
+      return;
+    }
+    setSuggestionsLoading(true);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      api.search(term, { limit: 5 }).then((res) => {
+        setSuggestions(Array.isArray(res) ? res.slice(0, 5) : []);
+        setSuggestionsLoading(false);
+      }).catch(() => {
+        setSuggestions([]);
+        setSuggestionsLoading(false);
+      });
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [q]);
 
   function removeHistoryItem(id, e) {
     e.stopPropagation();
@@ -79,13 +105,13 @@ export default function Header() {
 
   function onSearchFocus() {
     loadHistory();
-    setShowHistory(true);
+    setShowDropdown(true);
   }
 
   useEffect(() => {
     function onClick(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) setMenu(false);
-      if (searchRef.current && !searchRef.current.contains(e.target)) setShowHistory(false);
+      if (searchRef.current && !searchRef.current.contains(e.target)) setShowDropdown(false);
     }
     document.addEventListener('mousedown', onClick);
     return () => document.removeEventListener('mousedown', onClick);
@@ -124,10 +150,7 @@ export default function Header() {
               </NavLink>
             ))}
             {user && (
-              <>
-                <NavLink to='/library' className={({ isActive }) => (isActive ? 'active' : '')}>Закладки</NavLink>
-                <NavLink to='/friends' className={({ isActive }) => (isActive ? 'active' : '')}>Друзья</NavLink>
-              </>
+              <NavLink to='/library' className={({ isActive }) => (isActive ? 'active' : '')}>Закладки</NavLink>
             )}
           </nav>
           <form className='header-search' ref={searchRef} onSubmit={submit}>
@@ -145,35 +168,68 @@ export default function Header() {
                 <CloseIcon width={14} height={14} />
               </button>
             )}
-            {showHistory && user && (
-              <div className="search-dropdown">
-                {history.length === 0 ? (
-                  <div className="search-dropdown-empty">Нет недавних запросов</div>
-                ) : (
-                  <>
-                    <div className="search-dropdown-head">
-                      <span>Недавние запросы</span>
-                      <button type="button" className="search-dropdown-clear" onClick={clearHistory}>Очистить</button>
-                    </div>
-                    {history.map((h) => (
-                      <button
-                        key={h.id}
-                        type="button"
-                        className="search-dropdown-item"
-                        onClick={() => { setQ(h.query); setShowHistory(false); navigate(`/search?q=${encodeURIComponent(h.query)}`); }}
-                      >
-                        <SearchIcon width={14} height={14} />
-                        <span className="search-dropdown-text">{h.query}</span>
-                        <span
-                          className="search-dropdown-remove"
-                          onClick={(e) => removeHistoryItem(h.id, e)}
-                          title="Удалить"
+            {showDropdown && (
+              <div className={`search-dropdown${q.trim().length >= 2 ? ' search-dropdown--wide' : ''}`}>
+                {q.trim().length >= 2 ? (
+                  suggestionsLoading ? (
+                    <div className="search-dropdown-empty">Поиск...</div>
+                  ) : suggestions.length === 0 ? (
+                    <div className="search-dropdown-empty">Ничего не найдено</div>
+                  ) : (
+                    <div className="search-suggestions-grid">
+                      {suggestions.slice(0, 3).map((a) => (
+                        <button
+                          key={a.anime_id || a.anime_url}
+                          type="button"
+                          className="search-suggestion-card"
+                          onClick={() => { setShowDropdown(false); navigate(`/anime/${a.anime_url || a.anime_id}`); }}
                         >
-                          <CloseIcon width={11} height={11} />
-                        </span>
+                          <img className="search-suggestion-poster" src={fixUrl(poster(a, 'medium'))} alt="" loading="lazy" />
+                          <span className="search-suggestion-title">{a.title || a.anime_title}</span>
+                          <span className="search-suggestion-meta">{typeof a.type === 'object' ? (a.type?.shortname || a.type?.name || '') : (a.type || '')}{a.year ? ` • ${a.year}` : ''}</span>
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        className="search-suggestion-card search-suggestion-more"
+                        onClick={() => { setShowDropdown(false); navigate(`/search?q=${encodeURIComponent(q.trim())}`); }}
+                      >
+                        <span className="search-suggestion-more-icon" />
+                        <span className="search-suggestion-title">Больше результатов</span>
                       </button>
-                    ))}
-                  </>
+                    </div>
+                  )
+                ) : user ? (
+                  history.length === 0 ? (
+                    <div className="search-dropdown-empty">Нет недавних запросов</div>
+                  ) : (
+                    <>
+                      <div className="search-dropdown-head">
+                        <span>Недавние запросы</span>
+                        <button type="button" className="search-dropdown-clear" onClick={clearHistory}>Очистить</button>
+                      </div>
+                      {history.map((h) => (
+                        <button
+                          key={h.id}
+                          type="button"
+                          className="search-dropdown-item"
+                          onClick={() => { setQ(h.query); setShowDropdown(false); navigate(`/search?q=${encodeURIComponent(h.query)}`); }}
+                        >
+                          <SearchIcon width={14} height={14} />
+                          <span className="search-dropdown-text">{h.query}</span>
+                          <span
+                            className="search-dropdown-remove"
+                            onClick={(e) => removeHistoryItem(h.id, e)}
+                            title="Удалить"
+                          >
+                            <CloseIcon width={11} height={11} />
+                          </span>
+                        </button>
+                      ))}
+                    </>
+                  )
+                ) : (
+                  <div className="search-dropdown-empty">Введите запрос для поиска</div>
                 )}
               </div>
             )}

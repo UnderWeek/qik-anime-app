@@ -253,3 +253,10 @@ export const ShieldIcon = (p) => (
     <path d="m9 12 2 2 4-4" />
   </svg>
 )
+
+export const ArrowRightIcon = (p) => (
+  <svg viewBox="0 0 24 24" {...base} {...p}>
+    <path d="M5 12h14" />
+    <path d="m12 5 7 7-7 7" />
+  </svg>
+)
