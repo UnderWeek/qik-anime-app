@@ -44,7 +44,6 @@ export class UploadsController {
   )
   upload(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('Файл не загружен');
-    // URL path served statically by the app
     return { url: `/uploads/${file.filename}` };
   }
 }
