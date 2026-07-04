@@ -110,6 +110,25 @@ export default function Catalog() {
   const [done, setDone] = useState(false)
   const [error, setError] = useState(false)
   const reqId = useRef(0)
+  const itemsRef = useRef([])
+
+  // Generate a cache key from the current filter state
+  const cacheKey = `catalog:${params.toString()}`
+
+  // Save state + scroll on unmount (navigation away)
+  useEffect(() => {
+    return () => {
+      try {
+        sessionStorage.setItem(cacheKey, JSON.stringify({
+          items: itemsRef.current, offset, done,
+          scrollY: window.scrollY,
+          ts: Date.now(),
+        }))
+        // Marker: this cache was written during navigation, not by refresh
+        sessionStorage.setItem('catalog:nav_ts', String(Date.now()))
+      } catch {}
+    }
+  }, [cacheKey, offset, done])
 
   const fetchPage = useCallback(
     async (off, replace) => {
@@ -140,8 +159,14 @@ export default function Catalog() {
         })
         if (id !== reqId.current) return
         const list = Array.isArray(res) ? res : []
-        setItems((prev) => (replace ? list : [...prev, ...list]))
-        setDone(list.length < PAGE)
+        const current = itemsRef.current
+        const newItems = replace ? list : [...current, ...list]
+        const newOffset = off + list.length
+        const newDone = list.length < PAGE
+        itemsRef.current = newItems
+        setItems(newItems)
+        setOffset(newOffset)
+        setDone(newDone)
       } catch (e) {
         if (id === reqId.current) setError(true)
       } finally {
@@ -155,11 +180,47 @@ export default function Catalog() {
     [params.toString()]
   )
 
+  // Try restoring cached state on mount
   useEffect(() => {
+    try {
+      // Only restore if we just navigated away (< 10s ago, not a full page reload)
+      const navTs = sessionStorage.getItem('catalog:nav_ts')
+      const isBackNav = navTs && Date.now() - Number(navTs) < 10_000
+      if (isBackNav) {
+        const raw = sessionStorage.getItem(cacheKey)
+        if (raw) {
+          const cached = JSON.parse(raw)
+          if (cached?.items?.length) {
+            itemsRef.current = cached.items
+            setItems(cached.items)
+            setOffset(cached.offset)
+            setDone(cached.done)
+            setLoading(false)
+            if (cached.scrollY) {
+              // Wait for React to render the cached items, then restore scroll
+              let tries = 0
+              function tryScroll() {
+                if (document.body.scrollHeight >= cached.scrollY || tries++ > 10) {
+                  window.scrollTo(0, cached.scrollY)
+                } else {
+                  requestAnimationFrame(tryScroll)
+                }
+              }
+              requestAnimationFrame(tryScroll)
+            }
+            // Clear the nav marker so next reload doesn't trigger
+            sessionStorage.removeItem('catalog:nav_ts')
+            return
+          }
+        }
+      }
+    } catch { /* ignore */ }
+    // No cache or not a back-nav — do a fresh fetch
+    sessionStorage.removeItem('catalog:nav_ts')
     setOffset(0)
     setDone(false)
     fetchPage(0, true)
-  }, [fetchPage])
+  }, [cacheKey])
 
   function loadMore() {
     const next = offset + PAGE

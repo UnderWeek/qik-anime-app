@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link, useLocation } from 'react-router-dom'
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useApi } from '../hooks/useApi.js'
 import { api, poster } from '../api/client.js'
 import { backend } from '../api/backend.js'
@@ -26,6 +26,7 @@ function fmtNum(n) {
 export default function AnimeDetail() {
   const { url } = useParams()
   const location = useLocation()
+  const navigate = useNavigate()
   const { user, requireAuth } = useAuth()
   const [suggestOpen, setSuggestOpen] = useState(false)
   const [posterZoom, setPosterZoom] = useState(null)
@@ -128,9 +129,9 @@ export default function AnimeDetail() {
               {img && <img src={img} alt={anime.title} />}
             </div>
             <div className="detail-info">
-              <Link to="/catalog" className="section-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 14 }}>
-                <ArrowLeft width={14} height={14} /> Каталог
-              </Link>
+              <button onClick={() => { if (window.history.length > 1) navigate(-1); else navigate('/') }} className="section-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 14, background: 'none', border: 'none', cursor: 'pointer', font: 'inherit' }}>
+                <ArrowLeft width={14} height={14} /> Назад
+              </button>
               <h1>{anime.title}</h1>
               {anime.other_titles?.length > 0 && (
                 <div className="detail-alt">{anime.other_titles.slice(0, 3).join(' · ')}</div>

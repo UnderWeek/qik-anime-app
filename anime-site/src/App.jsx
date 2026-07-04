@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route, useLocation, useNavigationType } from 'react-router-dom'
 import { useEffect } from 'react'
 import Header from './components/Header.jsx'
 import AuthModal from './components/AuthModal.jsx'
@@ -31,9 +31,13 @@ function LazyFallback() {
 
 function ScrollToTop() {
   const { pathname } = useLocation()
+  const navType = useNavigationType()
   useEffect(() => {
+    // On POP (back/forward), let the page handle its own scroll restoration.
+    // On PUSH/REPLACE (new navigation), scroll to top.
+    if (navType === 'POP') return
     window.scrollTo(0, 0)
-  }, [pathname])
+  }, [pathname, navType])
   return null
 }
 
