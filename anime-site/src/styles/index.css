@@ -335,6 +335,8 @@ input {
   top: calc(100% + 6px);
   left: 0;
   right: 0;
+  width: auto;
+  max-width: none;
   background: var(--surface);
   border: 1px solid var(--border-strong);
   border-radius: 12px;
@@ -437,7 +439,7 @@ input {
 
 .search-suggestions-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
   gap: 10px;
   padding: 12px;
 }
@@ -456,6 +458,7 @@ input {
   border-radius: 10px;
   transition: background 0.15s;
   height: 100%;
+  min-width: 0;
 }
 
 .search-suggestion-title {
@@ -481,8 +484,9 @@ input {
 }
 
 .search-suggestion-poster {
-  width: 92px;
-  height: 130px;
+  width: 100%;
+  max-width: 92px;
+  aspect-ratio: 2/3;
   border-radius: 8px;
   object-fit: cover;
   flex-shrink: 0;
@@ -501,8 +505,9 @@ input {
 }
 
 .search-suggestion-more-icon {
-  width: 92px;
-  height: 130px;
+  width: 100%;
+  max-width: 92px;
+  aspect-ratio: 2/3;
   border-radius: 8px;
   background: var(--surface-2);
   border: 2px dashed var(--border);
@@ -1662,8 +1667,10 @@ input {
   padding: 10px 8px 16px;
   margin: -10px -8px -6px;
   scroll-snap-type: x proximity;
+  scrollbar-width: none;
 }
 .row-scroll .card { scroll-snap-align: start; }
+.row-scroll::-webkit-scrollbar { display: none; }
 
 /* ---------- carousel (arrow-navigated, width-constrained) ---------- */
 .carousel {
@@ -1681,10 +1688,10 @@ input {
   padding: 10px 8px 16px;
   margin: -10px -8px -6px;
   scroll-snap-type: x proximity;
-  scrollbar-width: thin;
+  scrollbar-width: none;
 }
 .carousel-track .card { scroll-snap-align: start; }
-.carousel-track::-webkit-scrollbar { height: 6px; }
+.carousel-track::-webkit-scrollbar { display: none; }
 .carousel-arrow {
   position: absolute;
   top: calc(50% - 28px);
@@ -1965,19 +1972,8 @@ input {
   }
   .header-search input { height: 36px; }
   .search-suggestions-grid {
-    grid-template-columns: repeat(2, 1fr);
     gap: 8px;
     padding: 8px;
-  }
-  .search-suggestion-poster {
-    width: 100%;
-    height: auto;
-    aspect-ratio: 2/3;
-  }
-  .search-suggestion-more-icon {
-    width: 100%;
-    height: auto;
-    aspect-ratio: 2/3;
   }
   .settings-mobile-nav { display: block; }
   .mobile-bottom-nav {
