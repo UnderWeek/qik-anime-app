@@ -6,6 +6,7 @@ import { backend, uploadUrl } from '../api/backend.js';
 import { api, poster, fixUrl } from '../api/client.js';
 import Avatar from './Avatar.jsx';
 import NotificationBell from './NotificationBell.jsx';
+import GlassNav from './GlassNav.jsx';
 
 const links = [
   { to: '/catalog', label: 'Каталог' },
@@ -130,6 +131,36 @@ export default function Header() {
     .filter((l) => l.profile || (!l.auth && !l.master) || (l.auth && user) || (l.master && (user?.isMaster || user?.isAdmin)));
 
   const profileActive = location.pathname.startsWith('/u/');
+  const [liquidGlass, setLiquidGlass] = useState(() => localStorage.getItem('qik_liquid_glass') === 'true');
+  useEffect(() => {
+    setLiquidGlass(localStorage.getItem('qik_liquid_glass') !== 'false');
+  }, [location.pathname]);
+
+  // Build glass nav items (public tabs + profile/login)
+  const glassItems = (() => {
+    const items = mobileLinks.map((item) => {
+      const Icon = item.icon
+      if (item.profile) {
+        if (user) return { key: 'profile', label: 'Профиль', icon: Icon, to: `/u/${user.id}` }
+        return { key: 'profile', label: 'Войти', icon: Icon, to: null } // login triggers openAuth
+      }
+      return { key: item.to, label: item.label, icon: Icon, to: item.to }
+    }).filter(Boolean)
+    return items.map((item) => ({
+      ...item,
+      onClick: item.to ? () => navigate(item.to) : () => openAuth('login'),
+    }))
+  })()
+
+  // Determine active key for glass nav
+  const activeKey = (() => {
+    const path = location.pathname
+    if (profileActive && user) return 'profile'
+    for (const g of glassItems) {
+      if (g.to && (path === g.to || path.startsWith(g.to + '/'))) return g.key
+    }
+    return null
+  })()
 
   return (
     <>
@@ -267,33 +298,40 @@ export default function Header() {
         </div>
       </header>
 
-      <nav className='mobile-bottom-nav' aria-label='Мобильная навигация'>
-        {mobileLinks.map((item) => {
-          const Icon = item.icon;
-          if (item.profile) {
-            if (user) {
+      {liquidGlass ? (
+        <GlassNav
+          items={glassItems}
+          activeKey={activeKey}
+        />
+      ) : (
+        <nav className='mobile-bottom-nav' aria-label='Мобильная навигация'>
+          {mobileLinks.map((item) => {
+            const Icon = item.icon;
+            if (item.profile) {
+              if (user) {
+                return (
+                  <Link key="profile" to={`/u/${user.id}`} className={`mobile-bottom-item${profileActive ? ' active' : ''}`}>
+                    <Icon width={19} height={19} />
+                    <span>Профиль</span>
+                  </Link>
+                );
+              }
               return (
-                <Link key="profile" to={`/u/${user.id}`} className={`mobile-bottom-item${profileActive ? ' active' : ''}`}>
+                <button key="profile" className="mobile-bottom-item" onClick={() => openAuth('login')}>
                   <Icon width={19} height={19} />
-                  <span>Профиль</span>
-                </Link>
+                  <span>Войти</span>
+                </button>
               );
             }
             return (
-              <button key="profile" className="mobile-bottom-item" onClick={() => openAuth('login')}>
+              <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => `mobile-bottom-item${isActive ? ' active' : ''}`}>
                 <Icon width={19} height={19} />
-                <span>Войти</span>
-              </button>
+                <span>{item.label}</span>
+              </NavLink>
             );
-          }
-          return (
-            <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => `mobile-bottom-item${isActive ? ' active' : ''}`}>
-              <Icon width={19} height={19} />
-              <span>{item.label}</span>
-            </NavLink>
-          );
-        })}
-      </nav>
+          })}
+        </nav>
+      )}
     </>
   );
 }

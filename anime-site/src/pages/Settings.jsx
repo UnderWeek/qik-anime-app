@@ -112,6 +112,7 @@ export default function Settings() {
   const [importProgress, setImportProgress] = useState(0)
   const [dragId, setDragId] = useState(null)
   const fileRef = useRef(null)
+  const [liquidGlass, setLiquidGlass] = useState(() => localStorage.getItem('qik_liquid_glass') === 'true')
 
   const availableTabs = ALL_MOBILE_TABS.filter(
     (t) => !t.master || user?.isMaster || user?.isAdmin
@@ -155,6 +156,12 @@ export default function Settings() {
 
   function handleDragEnd() {
     setDragId(null)
+  }
+
+  function toggleLiquidGlass() {
+    const next = !liquidGlass
+    setLiquidGlass(next)
+    localStorage.setItem('qik_liquid_glass', String(next))
   }
 
   function applyTabs() {
@@ -290,6 +297,31 @@ export default function Settings() {
               />
             ))}
           </div>
+        </section>
+
+        {/* Liquid glass toggle */}
+        <section className="settings-card" style={{ background: liquidGlass ? 'rgba(255,255,255,0.04)' : 'var(--surface)', border: liquidGlass ? '1px solid rgba(255,255,255,0.1)' : '1px solid var(--border)', transition: 'all 0.3s' }}>
+          <h2 className="settings-card-title"><span style={{ marginRight: 10, fontSize: 20 }}>💧</span>Liquid Glass</h2>
+          <p className="settings-card-desc">
+            Стеклянный дизайн нижней панели навигации с анимированной каплей
+          </p>
+          <button
+            className="btn btn-ghost"
+            onClick={toggleLiquidGlass}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '10px 18px',
+              fontSize: 15,
+              borderRadius: 12,
+              border: '1px solid var(--border)',
+              background: liquidGlass ? 'var(--accent-soft)' : 'var(--surface)',
+              transition: 'all 0.3s',
+            }}
+          >
+            {liquidGlass ? '✓ Включено' : 'Выключено'}
+          </button>
         </section>
 
         {/* Mobile nav tabs */}
