@@ -1218,6 +1218,10 @@ input {
 .hero-arrow.right { right: 12px; }
 @media (max-width: 768px) {
   .hero-arrow { display: none; }
+  .card:hover { transform: none; box-shadow: none; }
+  .card:hover .card-poster img { transform: none; filter: none; }
+  .card:hover .card-poster::after { opacity: 0; }
+  .card:hover .card-poster::before { left: -100%; transition: none; }
 }
 
 /* ---------- buttons ---------- */
@@ -1715,6 +1719,18 @@ input {
 .carousel-arrow.hidden { opacity: 0; pointer-events: none; }
 @media (max-width: 600px) {
   .carousel-arrow { display: none; }
+  .carousel-track {
+    grid-auto-columns: 148px;
+    gap: 12px;
+    padding: 8px 4px 14px;
+    margin: -8px -4px -4px;
+  }
+  .row-scroll {
+    grid-auto-columns: 148px;
+    gap: 12px;
+    padding: 8px 4px 14px;
+    margin: -8px -4px -4px;
+  }
 }
 
 /* ---------- filter bar ---------- */
@@ -2042,9 +2058,19 @@ input {
     align-items: flex-start;
     gap: 10px;
   }
-  .hero { height: 380px; }
-  .hero-content { padding: 26px; }
-  .hero-title { font-size: 28px; }
+  .hero { height: 340px; }
+  .hero-content { padding: 22px; }
+  .hero-title { font-size: 24px; }
+  .hero-desc { font-size: 13px; -webkit-line-clamp: 2; margin-bottom: 16px; }
+  .hero-actions { flex-wrap: wrap; gap: 8px; }
+  .hero-actions .btn { font-size: 13px; padding: 9px 14px; height: auto; }
+  .hero-tag { font-size: 11px; margin-bottom: 10px; }
+  .hero-dots { right: 14px; bottom: 16px; gap: 6px; }
+  .hero-dots button { width: 7px; height: 7px; }
+  .hero-dots button.active { width: 20px; }
+  .section { margin-bottom: 38px; }
+  .section-title { font-size: 18px; }
+  .section-head { margin-bottom: 14px; }
   .detail-hero-inner { flex-direction: column; gap: 22px; padding: 22px; }
   .detail-poster { width: 160px; }
   .detail-info h1 { font-size: 26px; }
@@ -2061,6 +2087,8 @@ input {
   }
   .detail-info .hero-actions .bm-control { width: 100%; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 18px 14px; }
+  .card-title { font-size: 13px; }
+  .card-meta { font-size: 11px; }
 }
 
 /* ---------- avatar ---------- */
