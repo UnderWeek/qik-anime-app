@@ -132,8 +132,10 @@ export default function Header() {
 
   const profileActive = location.pathname.startsWith('/u/');
   const [liquidGlass, setLiquidGlass] = useState(() => localStorage.getItem('qik_liquid_glass') === 'true');
+  const [iconOnly, setIconOnly] = useState(() => localStorage.getItem('qik_nav_icon_only') === 'true');
   useEffect(() => {
-    setLiquidGlass(localStorage.getItem('qik_liquid_glass') !== 'false');
+    setLiquidGlass(localStorage.getItem('qik_liquid_glass') === 'true');
+    setIconOnly(localStorage.getItem('qik_nav_icon_only') === 'true');
   }, [location.pathname]);
 
   // Build glass nav items (public tabs + profile/login)
@@ -302,9 +304,10 @@ export default function Header() {
         <GlassNav
           items={glassItems}
           activeKey={activeKey}
+          iconOnly={iconOnly}
         />
       ) : (
-        <nav className='mobile-bottom-nav' aria-label='Мобильная навигация'>
+        <nav className={`mobile-bottom-nav${iconOnly ? ' icon-only' : ''}`} aria-label='Мобильная навигация'>
           {mobileLinks.map((item) => {
             const Icon = item.icon;
             if (item.profile) {

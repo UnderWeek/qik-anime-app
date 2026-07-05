@@ -113,6 +113,7 @@ export default function Settings() {
   const [dragId, setDragId] = useState(null)
   const fileRef = useRef(null)
   const [liquidGlass, setLiquidGlass] = useState(() => localStorage.getItem('qik_liquid_glass') === 'true')
+  const [iconOnly, setIconOnly] = useState(() => localStorage.getItem('qik_nav_icon_only') === 'true')
 
   const availableTabs = ALL_MOBILE_TABS.filter(
     (t) => !t.master || user?.isMaster || user?.isAdmin
@@ -162,6 +163,12 @@ export default function Settings() {
     const next = !liquidGlass
     setLiquidGlass(next)
     localStorage.setItem('qik_liquid_glass', String(next))
+  }
+
+  function toggleIconOnly() {
+    const next = !iconOnly
+    setIconOnly(next)
+    localStorage.setItem('qik_nav_icon_only', String(next))
   }
 
   function applyTabs() {
@@ -321,6 +328,31 @@ export default function Settings() {
             }}
           >
             {liquidGlass ? '✓ Включено' : 'Выключено'}
+          </button>
+        </section>
+
+        {/* Icon-only mode */}
+        <section className="settings-card">
+          <h2 className="settings-card-title"><span style={{ marginRight: 10, fontSize: 20 }}>🔲</span>Подписи в навбаре</h2>
+          <p className="settings-card-desc">
+            {iconOnly ? 'Только иконки в нижней панели навигации' : 'Иконки с названиями пунктов'}
+          </p>
+          <button
+            className="btn btn-ghost"
+            onClick={toggleIconOnly}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '10px 18px',
+              fontSize: 15,
+              borderRadius: 12,
+              border: '1px solid var(--border)',
+              background: iconOnly ? 'var(--accent-soft)' : 'var(--surface)',
+              transition: 'all 0.3s',
+            }}
+          >
+            {iconOnly ? '✓ Только иконки' : 'Иконки + текст'}
           </button>
         </section>
 
