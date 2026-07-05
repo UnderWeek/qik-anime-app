@@ -60,15 +60,15 @@ export default function Home() {
 
       <ContinueWatching />
 
-      <Section title="Новые серии" link="/catalog?sort=last_view_date">
+      <Section title="Новые серии">
         {loading ? <GridSkeleton /> : <Row items={newVideos.slice(0, 12)} />}
       </Section>
 
-      <Section title="Свежие релизы" link="/catalog">
+      <Section title="Свежие релизы" link="/catalog?sort=id">
         {loading ? <GridSkeleton /> : <Row items={fresh.slice(0, 12)} />}
       </Section>
 
-      <Section title="Анонсы" link="/catalog?status=anons">
+      <Section title="Анонсы" link="/catalog?status=announcement">
         {loading ? <GridSkeleton count={6} /> : <Row items={announcements.slice(0, 12)} />}
       </Section>
     </div>

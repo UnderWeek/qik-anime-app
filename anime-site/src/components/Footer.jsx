@@ -10,6 +10,10 @@ export default function Footer() {
           <a href="https://yummyani.me" target="_blank" rel="noreferrer">YummyAnime API</a>
           {' · '}Только для личного использования
         </div>
+        <div>
+          Увидели ошибку на сайте?{' '}
+          <a href="https://forms.gle/qv7VfbSnuqB88Fav7" target="_blank" rel="noreferrer">Напишите нам!</a>
+        </div>
         <div style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.6, marginTop: 8, maxWidth: 680 }}>
           QIK Anime не хранит и не распространяет видеоконтент. Все материалы (постеры, описания, метаданные) получены из открытых источников и принадлежат их правообладателям. Сайт является агрегатором общедоступной информации и не несёт ответственности за контент, размещённый на сторонних ресурсах. Если вы правообладатель и хотите удалить материалы — напишите на{' '}
           <a href="mailto:qikanime@gmail.com" style={{ color: 'var(--accent)' }}>qikanime@gmail.com</a>.
