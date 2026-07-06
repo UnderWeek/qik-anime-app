@@ -11,14 +11,16 @@ export default function Carousel({ children }) {
   const update = useCallback(() => {
     const el = trackRef.current
     if (!el) return
-    setCanLeft(el.scrollLeft > 4)
-    setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+    setCanLeft(el.scrollLeft > 2)
+    setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2)
   }, [])
 
   useEffect(() => {
-    update()
     const el = trackRef.current
     if (!el) return
+    // Reset scroll to start on mount (prevents browser scroll restoration)
+    el.scrollLeft = 0
+    update()
     el.addEventListener('scroll', update, { passive: true })
     window.addEventListener('resize', update)
     // Detect content size changes (e.g. images loading in)
@@ -34,7 +36,10 @@ export default function Carousel({ children }) {
   function scrollBy(dir) {
     const el = trackRef.current
     if (!el) return
-    el.scrollBy({ left: dir * Math.round(el.clientWidth * 0.85), behavior: 'smooth' })
+    const step = Math.round(el.clientWidth * 0.85)
+    const target = el.scrollLeft + dir * step
+    const clamped = Math.max(0, Math.min(target, el.scrollWidth - el.clientWidth))
+    el.scrollTo({ left: clamped, behavior: 'smooth' })
   }
 
   return (
