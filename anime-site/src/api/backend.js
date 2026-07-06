@@ -280,6 +280,23 @@ export const backend = {
   updateIssue: (id, status) => request(`/issues/${id}`, { method: 'PATCH', body: { status }, auth: true }),
   assignIssue: (id) => request(`/issues/${id}/assign`, { method: 'POST', auth: true }),
   deleteIssue: (id) => request(`/issues/${id}`, { method: 'DELETE', auth: true }),
+  uploadAttachment: async (issueId, file) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    const headers = {}
+    const t = getToken()
+    if (t) headers.Authorization = `Bearer ${t}`
+    const res = await fetch(`${BASE}/issues/${issueId}/attachments`, {
+      method: 'POST',
+      headers,
+      body: fd,
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok) throw new Error(data?.message || 'Ошибка загрузки')
+    return data
+  },
+  deleteAttachment: (issueId, attachmentId) =>
+    request(`/issues/${issueId}/attachments/${attachmentId}`, { method: 'DELETE', auth: true }),
 
   // ---- push ----
   pushKey: () => request('/push/key'),

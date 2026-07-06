@@ -3,10 +3,12 @@ import {
   CreateDateColumn,
   Entity,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { User } from '../users/user.entity';
+import { IssueAttachment } from './issue-attachment.entity';
 
 export type IssueStatus = 'open' | 'in_progress' | 'fixed';
 
@@ -26,6 +28,9 @@ export class Issue {
 
   @ManyToOne(() => User, { onDelete: 'SET NULL', eager: true, nullable: true })
   assignee: User | null;
+
+  @OneToMany(() => IssueAttachment, (a) => a.issue, { eager: true, cascade: true })
+  attachments: IssueAttachment[];
 
   @CreateDateColumn()
   createdAt: Date;

@@ -21,6 +21,7 @@ import { PushSubscriptionEntity } from './push/push-subscription.entity';
 import { SearchHistory } from './search-history/search-history.entity';
 import { AuditLog } from './admin/audit-log.entity';
 import { Issue } from './issues/issue.entity';
+import { IssueAttachment } from './issues/issue-attachment.entity';
 
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
@@ -74,6 +75,7 @@ import { DB_PATH, UPLOAD_DIR_ABSOLUTE } from './common/runtime-paths';
         SearchHistory,
         AuditLog,
         Issue,
+        IssueAttachment,
       ],
       synchronize: true, // dev convenience; auto-creates tables
     }),
