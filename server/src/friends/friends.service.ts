@@ -123,16 +123,19 @@ export class FriendsService {
   async listFriends(userId: number) {
     const rows = await this.repo
       .createQueryBuilder('f')
-      .leftJoinAndSelect('f.requester', 'req')
-      .leftJoinAndSelect('f.addressee', 'addr')
+      .innerJoinAndSelect('f.requester', 'req')
+      .innerJoinAndSelect('f.addressee', 'addr')
       .where('f.status = :s', { s: 'accepted' })
       .andWhere('(req.id = :id OR addr.id = :id)', { id: userId })
       .getMany();
 
     return rows
-      .map((f) =>
-        this.pub(f.requester.id === userId ? f.addressee : f.requester),
-      )
+      .map((f) => {
+        const isRequester = f.requester?.id === userId
+        const friend = isRequester ? f.addressee : f.requester
+        if (!friend?.id) return null // guard against orphan rows
+        return this.pub(friend)
+      })
       .filter(Boolean);
   }
 
@@ -159,8 +162,10 @@ export class FriendsService {
   async friendsCount(userId: number) {
     return this.repo
       .createQueryBuilder('f')
+      .innerJoin('f.requester', 'req')
+      .innerJoin('f.addressee', 'addr')
       .where('f.status = :s', { s: 'accepted' })
-      .andWhere('(f.requesterId = :id OR f.addresseeId = :id)', { id: userId })
+      .andWhere('(req.id = :id OR addr.id = :id)', { id: userId })
       .getCount();
   }
 
