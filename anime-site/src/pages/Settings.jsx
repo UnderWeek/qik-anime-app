@@ -2,13 +2,14 @@ import { useState, useRef } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme, ACCENT_PRESETS } from '../context/ThemeContext.jsx'
 import { backend } from '../api/backend.js'
-import { GridIcon, CalendarIcon, UsersIcon, BookmarkIcon, SunIcon, MoonIcon, MessageIcon, RoomIcon, StarIcon, SettingsIcon, UserIcon, PaletteIcon, UploadIcon } from '../components/icons.jsx'
+import { GridIcon, CalendarIcon, UsersIcon, BookmarkIcon, SunIcon, MoonIcon, MessageIcon, RoomIcon, StarIcon, SettingsIcon, UserIcon, PaletteIcon, UploadIcon, HomeIcon } from '../components/icons.jsx'
 import SEO from '../components/SEO.jsx'
 
 const MOBILE_KEY = 'qik_mobile_tabs'
 const MAX_TABS = 5
 
 const ALL_MOBILE_TABS = [
+  { key: 'home', label: 'Главная', icon: HomeIcon },
   { key: 'catalog', label: 'Каталог', icon: GridIcon },
   { key: 'schedule', label: 'Расписание', icon: CalendarIcon },
   { key: 'rooms', label: 'Комнаты', icon: RoomIcon, master: true },
@@ -307,53 +308,31 @@ export default function Settings() {
         </section>
 
         {/* Liquid glass toggle */}
-        <section className="settings-card" style={{ background: liquidGlass ? 'rgba(255,255,255,0.04)' : 'var(--surface)', border: liquidGlass ? '1px solid rgba(255,255,255,0.1)' : '1px solid var(--border)', transition: 'all 0.3s' }}>
-          <h2 className="settings-card-title"><span style={{ marginRight: 10, fontSize: 20 }}>💧</span>Liquid Glass</h2>
-          <p className="settings-card-desc">
-            Стеклянный дизайн нижней панели навигации с анимированной каплей
-          </p>
-          <button
-            className="btn btn-ghost"
-            onClick={toggleLiquidGlass}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '10px 18px',
-              fontSize: 15,
-              borderRadius: 12,
-              border: '1px solid var(--border)',
-              background: liquidGlass ? 'var(--accent-soft)' : 'var(--surface)',
-              transition: 'all 0.3s',
-            }}
-          >
-            {liquidGlass ? '✓ Включено' : 'Выключено'}
-          </button>
+        <section className="settings-card">
+          <label className="settings-switch" style={{ cursor: 'pointer' }}>
+            <div style={{ flex: 1 }}>
+              <h2 className="settings-card-title" style={{ margin: 0 }}><span style={{ marginRight: 10, fontSize: 20 }}>💧</span>Liquid Glass</h2>
+              <p className="settings-card-desc" style={{ margin: '4px 0 0' }}>
+                Стеклянный дизайн нижней панели навигации с анимированной каплей
+              </p>
+            </div>
+            <input type="checkbox" checked={liquidGlass} onChange={toggleLiquidGlass} />
+            <span className="toggle-track" />
+          </label>
         </section>
 
         {/* Icon-only mode */}
         <section className="settings-card">
-          <h2 className="settings-card-title"><span style={{ marginRight: 10, fontSize: 20 }}>🔲</span>Подписи в навбаре</h2>
-          <p className="settings-card-desc">
-            {iconOnly ? 'Только иконки в нижней панели навигации' : 'Иконки с названиями пунктов'}
-          </p>
-          <button
-            className="btn btn-ghost"
-            onClick={toggleIconOnly}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '10px 18px',
-              fontSize: 15,
-              borderRadius: 12,
-              border: '1px solid var(--border)',
-              background: iconOnly ? 'var(--accent-soft)' : 'var(--surface)',
-              transition: 'all 0.3s',
-            }}
-          >
-            {iconOnly ? '✓ Только иконки' : 'Иконки + текст'}
-          </button>
+          <label className="settings-switch" style={{ cursor: 'pointer' }}>
+            <div style={{ flex: 1 }}>
+              <h2 className="settings-card-title" style={{ margin: 0 }}><span style={{ marginRight: 10, fontSize: 20 }}>🔲</span>Подписи в навбаре</h2>
+              <p className="settings-card-desc" style={{ margin: '4px 0 0' }}>
+                {iconOnly ? 'Только иконки в нижней панели навигации' : 'Иконки с названиями пунктов'}
+              </p>
+            </div>
+            <input type="checkbox" checked={iconOnly} onChange={toggleIconOnly} />
+            <span className="toggle-track" />
+          </label>
         </section>
 
         {/* Mobile nav tabs */}

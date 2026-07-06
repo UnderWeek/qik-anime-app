@@ -30,13 +30,23 @@ export function uploadUrl(path) {
 }
 
 const TOKEN_KEY = 'qik_token'
+const UID_KEY = 'qik_uid'
 
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY)
 }
-export function setToken(token) {
-  if (token) localStorage.setItem(TOKEN_KEY, token)
-  else localStorage.removeItem(TOKEN_KEY)
+export function setToken(token, uid) {
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token)
+    if (uid != null) localStorage.setItem(UID_KEY, String(uid))
+  } else {
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(UID_KEY)
+  }
+}
+export function getStoredUid() {
+  const v = localStorage.getItem(UID_KEY)
+  return v ? Number(v) : null
 }
 
 async function request(path, { method = 'GET', body, auth = false } = {}) {

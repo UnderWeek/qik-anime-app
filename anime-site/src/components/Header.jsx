@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
-import { SearchIcon, BookmarkIcon, LogoutIcon, UserIcon, ChevronDown, UsersIcon, GridIcon, CalendarIcon, MessageIcon, RoomIcon, CloseIcon, StarIcon, SettingsIcon, ShieldIcon } from './icons.jsx';
+import { SearchIcon, BookmarkIcon, LogoutIcon, UserIcon, ChevronDown, UsersIcon, GridIcon, CalendarIcon, MessageIcon, RoomIcon, CloseIcon, StarIcon, SettingsIcon, ShieldIcon, HomeIcon } from './icons.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { backend, uploadUrl } from '../api/backend.js';
 import { api, poster, fixUrl } from '../api/client.js';
@@ -14,6 +14,7 @@ const links = [
 ];
 
 const TAB_DEFS = {
+  home: { to: '/', label: 'Главная', icon: HomeIcon, end: true },
   catalog: { to: '/catalog', label: 'Каталог', icon: GridIcon },
   schedule: { to: '/schedule', label: 'Расписание', icon: CalendarIcon },
   rooms: { to: '/rooms', label: 'Комнаты', icon: RoomIcon, master: true },
@@ -275,20 +276,20 @@ export default function Header() {
               <div className='account-wrap' ref={menuRef}>
                 <button className='account-btn' onClick={() => setMenu((m) => !m)}><Avatar user={user} /><span className='name'>{user.username}</span><ChevronDown width={15} height={15} /></button>
                 {menu && (
-                  <div className='account-menu'>
+                  <div className={`account-menu${liquidGlass ? ' glass-menu' : ''}`}>
                     <div className={`who${user.bannerUrl ? ' who--banner' : ''}`} style={user.bannerUrl ? { backgroundImage: `url(${uploadUrl(user.bannerUrl)})` } : undefined}><b>{user.username}</b><span>{user.email}</span></div>
-                    <Link to={`/u/${user.id}`}><UserIcon width={16} height={16} />Профиль</Link>
-                    <Link to='/library'><BookmarkIcon width={16} height={16} />Закладки</Link>
-                    <Link to='/ratings'><StarIcon width={16} height={16} />Рейтинги</Link>
-                    <Link to='/schedule'><CalendarIcon width={16} height={16} />Расписание</Link>
-                    <Link to='/friends'><UsersIcon width={16} height={16} />Друзья</Link>
+                    <Link to={`/u/${user.id}`} className={profileActive ? 'menu-active' : ''}><UserIcon width={16} height={16} />Профиль</Link>
+                    <Link to='/library' className={location.pathname === '/library' ? 'menu-active' : ''}><BookmarkIcon width={16} height={16} />Закладки</Link>
+                    <Link to='/ratings' className={location.pathname === '/ratings' ? 'menu-active' : ''}><StarIcon width={16} height={16} />Рейтинги</Link>
+                    <Link to='/schedule' className={location.pathname === '/schedule' ? 'menu-active' : ''}><CalendarIcon width={16} height={16} />Расписание</Link>
+                    <Link to='/friends' className={location.pathname === '/friends' ? 'menu-active' : ''}><UsersIcon width={16} height={16} />Друзья</Link>
                     {(user?.isMaster || user?.isAdmin) && (
-                      <Link to='/rooms'><RoomIcon width={16} height={16} />Комнаты</Link>
+                      <Link to='/rooms' className={location.pathname.startsWith('/rooms') ? 'menu-active' : ''}><RoomIcon width={16} height={16} />Комнаты</Link>
                     )}
                     {user.isAdmin && (
-                      <Link to='/admin'><ShieldIcon width={16} height={16} />Админка</Link>
+                      <Link to='/admin' className={location.pathname === '/admin' ? 'menu-active' : ''}><ShieldIcon width={16} height={16} />Админка</Link>
                     )}
-                    <Link to='/settings'><SettingsIcon width={16} height={16} />Настройки</Link>
+                    <Link to='/settings' className={location.pathname === '/settings' ? 'menu-active' : ''}><SettingsIcon width={16} height={16} />Настройки</Link>
                     <button onClick={() => { logout(); setMenu(false); }}><LogoutIcon width={16} height={16} />Выйти</button>
                   </div>
                 )}

@@ -1,16 +1,12 @@
 import { useRef, useEffect, useState } from 'react'
-import { motion, useMotionValue, useSpring } from 'motion/react'
+import { animate } from 'motion/react'
 
 // ---- droplet ---------------------------------------------------------------
-// The shared glass droplet that slides between active items.
-// layoutId makes it animate its position/size across renders;
-// a lightweight spring on x smooths out fast consecutive moves.
 
 function Droplet({ navRef, activeKey }) {
-  const x = useMotionValue(0)
-  const w = useMotionValue(0)
-  const springX = useSpring(x, { stiffness: 180, damping: 28, mass: 0.8 })
-  const springW = useSpring(w, { stiffness: 220, damping: 32, mass: 0.7 })
+  const dropletRef = useRef(null)
+  const prevKey = useRef(activeKey)
+  const timerRef = useRef(null)
 
   useEffect(() => {
     if (!navRef.current || !activeKey) return
@@ -18,17 +14,50 @@ function Droplet({ navRef, activeKey }) {
     if (!el) return
     const navRect = navRef.current.getBoundingClientRect()
     const elRect = el.getBoundingClientRect()
+    const targetLeft = elRect.left - navRect.left
+    const targetWidth = elRect.width
 
-    x.set(elRect.left - navRect.left)
-    w.set(elRect.width)
+    const drop = dropletRef.current
+    if (!drop) return
+
+    const isJump = prevKey.current && prevKey.current !== activeKey
+    prevKey.current = activeKey
+
+    // Cancel any pending phase-2 timer
+    if (timerRef.current) clearTimeout(timerRef.current)
+
+    if (isJump) {
+      // Phase 1 — stretch: widen and flatten slightly, shift toward target
+      const dir = targetLeft > targetWidth * 0.5 ? 1 : -1
+      const stretchLeft = targetLeft - dir * targetWidth * 0.25
+      const stretchW = targetWidth * 1.35
+      const stretchRadius = 17 // slightly flattened
+
+      animate(drop,
+        { left: stretchLeft, width: stretchW, borderRadius: stretchRadius },
+        { duration: 0.3, ease: [0.33, 0, 0.1, 1] }
+      )
+
+      // Phase 2 — settle: spring to exact position, size, and fully round pill
+      timerRef.current = setTimeout(() => {
+        animate(drop,
+          { left: targetLeft, width: targetWidth, borderRadius: 24 },
+          { type: 'spring', stiffness: 45, damping: 14, mass: 1.3 }
+        )
+      }, 240)
+    } else {
+      // Initial mount — place at target without animation
+      drop.style.left = `${targetLeft}px`
+      drop.style.width = `${targetWidth}px`
+      drop.style.borderRadius = '24px'
+    }
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
   }, [activeKey, navRef])
 
-  return (
-    <motion.div
-      className="glass-droplet"
-      style={{ left: springX, width: springW }}
-    />
-  )
+  return <div ref={dropletRef} className="glass-droplet" />
 }
 
 // ---- item ------------------------------------------------------------------

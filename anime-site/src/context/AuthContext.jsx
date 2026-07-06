@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import { backend, getToken, setToken } from '../api/backend.js'
+import { backend, getToken, setToken, getStoredUid } from '../api/backend.js'
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -23,9 +23,20 @@ export function AuthProvider({ children }) {
       setReady(true)
       return
     }
+    const prevUid = getStoredUid()
     backend
       .me()
-      .then((u) => setUser(u))
+      .then((u) => {
+        // Guard: if the token returned a different user than before,
+        // the token may have been replaced — force re-login.
+        if (prevUid != null && u.id !== prevUid) {
+          console.warn('[auth] token mismatch: stored uid', prevUid, 'got', u.id)
+          setToken(null)
+          setReady(true)
+          return
+        }
+        setUser(u)
+      })
       .catch(() => setToken(null))
       .finally(() => setReady(true))
   }, [])
@@ -59,7 +70,7 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (login, password) => {
     const res = await backend.login({ login, password })
-    setToken(res.token)
+    setToken(res.token, res.user.id)
     setUser(res.user)
     setupPush() // user gesture → permission prompt
     return res.user
@@ -67,7 +78,7 @@ export function AuthProvider({ children }) {
 
   const register = useCallback(async (payload) => {
     const res = await backend.register(payload)
-    setToken(res.token)
+    setToken(res.token, res.user.id)
     setUser(res.user)
     setupPush() // user gesture → permission prompt
     return res.user
