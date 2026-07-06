@@ -274,6 +274,13 @@ export const backend = {
   deleteSearch: (id) => request(`/search-history/${id}`, { method: 'DELETE', auth: true }),
   clearSearchHistory: () => request('/search-history/clear', { method: 'DELETE', auth: true }),
 
+  // ---- issues (masters only) ----
+  listIssues: (status) => request(`/issues${status ? '?status=' + status : ''}`, { auth: true }),
+  createIssue: (title) => request('/issues', { method: 'POST', body: { title }, auth: true }),
+  updateIssue: (id, status) => request(`/issues/${id}`, { method: 'PATCH', body: { status }, auth: true }),
+  assignIssue: (id) => request(`/issues/${id}/assign`, { method: 'POST', auth: true }),
+  deleteIssue: (id) => request(`/issues/${id}`, { method: 'DELETE', auth: true }),
+
   // ---- push ----
   pushKey: () => request('/push/key'),
   pushSubscribe: (sub) => request('/push/subscribe', { method: 'POST', body: sub, auth: true }),

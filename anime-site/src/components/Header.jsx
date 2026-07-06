@@ -292,6 +292,9 @@ export default function Header() {
                     {(user?.isMaster || user?.isAdmin) && (
                       <Link to='/rooms' className={location.pathname.startsWith('/rooms') ? 'menu-active' : ''}><RoomIcon width={16} height={16} />Комнаты</Link>
                     )}
+                    {(user?.isMaster || user?.isAdmin) && (
+                      <Link to='/issues' className={location.pathname === '/issues' ? 'menu-active' : ''}><span style={{ fontSize: 15, width: 16, textAlign: 'center', flexShrink: 0 }}>🐛</span>Баг-репорты</Link>
+                    )}
                     {user.isAdmin && (
                       <Link to='/admin' className={location.pathname === '/admin' ? 'menu-active' : ''}><ShieldIcon width={16} height={16} />Админка</Link>
                     )}

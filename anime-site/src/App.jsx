@@ -24,6 +24,7 @@ const Rooms = lazy(() => import('./pages/Rooms.jsx'))
 const RoomWatch = lazy(() => import('./pages/RoomWatch.jsx'))
 const Admin = lazy(() => import('./pages/Admin.jsx'))
 const Quiz = lazy(() => import('./pages/Quiz.jsx'))
+const Issues = lazy(() => import('./pages/Issues.jsx'))
 
 function LazyFallback() {
   return <div className="container page"><div style={{ padding: 40, textAlign: 'center', color: 'var(--text-faint)' }}>Загрузка…</div></div>
@@ -63,6 +64,7 @@ export default function App() {
           <Route path="/anime/:url/watch" element={<Watch />} />
           <Route path="/admin" element={<Suspense fallback={<LazyFallback />}><Admin /></Suspense>} />
           <Route path="/quiz" element={<Suspense fallback={<LazyFallback />}><Quiz /></Suspense>} />
+          <Route path="/issues" element={<Suspense fallback={<LazyFallback />}><Issues /></Suspense>} />
           <Route path="/ratings" element={<Ratings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
