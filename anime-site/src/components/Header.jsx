@@ -139,6 +139,12 @@ export default function Header() {
     setIconOnly(localStorage.getItem('qik_nav_icon_only') === 'true');
   }, [location.pathname]);
 
+  // Set data-lg attribute on html for global CSS scoping of liquid glass
+  useEffect(() => {
+    document.documentElement.setAttribute('data-lg', liquidGlass ? 'true' : 'false');
+    return () => document.documentElement.removeAttribute('data-lg');
+  }, [liquidGlass]);
+
   // Build glass nav items (public tabs + profile/login)
   const glassItems = (() => {
     const items = mobileLinks.map((item) => {

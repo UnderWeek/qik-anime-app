@@ -21,9 +21,13 @@ export default function Carousel({ children }) {
     if (!el) return
     el.addEventListener('scroll', update, { passive: true })
     window.addEventListener('resize', update)
+    // Detect content size changes (e.g. images loading in)
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
     return () => {
       el.removeEventListener('scroll', update)
       window.removeEventListener('resize', update)
+      ro.disconnect()
     }
   }, [update, children])
 

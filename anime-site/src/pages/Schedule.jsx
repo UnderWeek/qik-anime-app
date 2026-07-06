@@ -87,20 +87,7 @@ function ScheduleCard({ anime }) {
     <div style={{ position: 'relative' }}>
       <AnimeCard anime={anime} />
       {time && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 9,
-            left: 9,
-            padding: '4px 8px',
-            fontSize: 11,
-            fontWeight: 700,
-            borderRadius: 7,
-            background: 'var(--accent-grad)',
-            color: '#fff',
-            zIndex: 2,
-          }}
-        >
+        <div className="schedule-badge">
           {anime.episodes?.aired != null ? `${anime.episodes.aired + 1} эп.` : 'Скоро'} · {time}
         </div>
       )}
