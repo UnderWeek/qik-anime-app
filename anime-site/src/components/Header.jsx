@@ -203,7 +203,7 @@ export default function Header() {
               </button>
             )}
             {showDropdown && (
-              <div className={`search-dropdown${q.trim().length >= 2 ? ' search-dropdown--wide' : ''}`}>
+              <div className={`search-dropdown${q.trim().length >= 2 ? ' search-dropdown--wide' : ''}${liquidGlass ? ' glass-dd' : ''}`}>
                 {q.trim().length >= 2 ? (
                   suggestionsLoading ? (
                     <div className="search-dropdown-empty">Поиск...</div>

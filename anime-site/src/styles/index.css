@@ -357,6 +357,28 @@ input {
   overflow: hidden;
 }
 
+/* ---- liquid glass dropdown ---- */
+.search-dropdown.glass-dd {
+  background: rgba(22, 22, 32, 0.85);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.45),
+    0 0 0 0.5px rgba(255, 255, 255, 0.05),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
+  animation: fade 0.2s ease;
+}
+[data-theme='light'] .search-dropdown.glass-dd {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.12),
+    0 0 0 0.5px rgba(0, 0, 0, 0.04),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.5);
+}
+
 .search-dropdown-head {
   display: flex;
   align-items: center;
