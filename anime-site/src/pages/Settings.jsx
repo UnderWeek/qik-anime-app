@@ -115,6 +115,11 @@ export default function Settings() {
   const fileRef = useRef(null)
   const [liquidGlass, setLiquidGlass] = useState(() => localStorage.getItem('qik_liquid_glass') === 'true')
   const [iconOnly, setIconOnly] = useState(() => localStorage.getItem('qik_nav_icon_only') === 'true')
+  const [pushEnabled, setPushEnabled] = useState(() => {
+    if (typeof Notification === 'undefined') return false
+    return Notification.permission === 'granted'
+  })
+  const [pushLoading, setPushLoading] = useState(false)
 
   const availableTabs = ALL_MOBILE_TABS.filter(
     (t) => !t.master || user?.isMaster || user?.isAdmin
@@ -170,6 +175,54 @@ export default function Settings() {
     const next = !iconOnly
     setIconOnly(next)
     localStorage.setItem('qik_nav_icon_only', String(next))
+  }
+
+  async function togglePush() {
+    setPushLoading(true)
+    try {
+      if (pushEnabled) {
+        // Unsubscribe all push subscriptions
+        if ('serviceWorker' in navigator) {
+          const reg = await navigator.serviceWorker.ready
+          const sub = await reg.pushManager.getSubscription()
+          if (sub) {
+            await backend.pushUnsubscribe(sub.endpoint)
+            await sub.unsubscribe()
+          }
+        }
+        setPushEnabled(false)
+      } else {
+        // Subscribe to push
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+          setPushLoading(false)
+          return
+        }
+        const perm = await Notification.requestPermission()
+        if (perm !== 'granted') {
+          setPushLoading(false)
+          return
+        }
+        const reg = await navigator.serviceWorker.ready
+        let sub = await reg.pushManager.getSubscription()
+        if (!sub) {
+          const { publicKey } = await backend.pushKey()
+          if (!publicKey) { setPushLoading(false); return }
+          const toUint8 = (base64) => {
+            const padding = '='.repeat((4 - (base64.length % 4)) % 4)
+            const base = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/')
+            const raw = atob(base)
+            return new Uint8Array([...raw].map((c) => c.charCodeAt(0)))
+          }
+          sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: toUint8(publicKey),
+          })
+        }
+        await backend.pushSubscribe(sub.toJSON())
+        setPushEnabled(true)
+      }
+    } catch { /* silent */ }
+    setPushLoading(false)
   }
 
   function applyTabs() {
@@ -320,6 +373,22 @@ export default function Settings() {
             <span className="toggle-track" />
           </label>
         </section>
+
+        {/* Push notifications */}
+        {'PushManager' in window && (
+          <section className="settings-card">
+            <label className="settings-switch" style={{ cursor: pushLoading ? 'wait' : 'pointer', opacity: pushLoading ? 0.6 : 1 }}>
+              <div style={{ flex: 1 }}>
+                <h2 className="settings-card-title" style={{ margin: 0 }}><span style={{ marginRight: 10, fontSize: 20 }}>🔔</span>Push-уведомления</h2>
+                <p className="settings-card-desc" style={{ margin: '4px 0 0' }}>
+                  {pushEnabled ? 'Уведомления о новых комментариях, заявках в друзья и другом' : 'Получайте уведомления даже когда сайт закрыт'}
+                </p>
+              </div>
+              <input type="checkbox" checked={pushEnabled} onChange={togglePush} disabled={pushLoading} />
+              <span className="toggle-track" />
+            </label>
+          </section>
+        )}
 
         {/* Icon-only mode */}
         <section className="settings-card">
