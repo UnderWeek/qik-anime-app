@@ -2204,6 +2204,12 @@ input {
   }
 }
 
+/* ---------- mobile-only utility ---------- */
+.mobile-only { display: none; }
+@media (max-width: 768px) {
+  .mobile-only { display: block; }
+}
+
 /* ---------- responsive ---------- */
 @media (max-width: 768px) {
   .container { padding: 0 14px; }

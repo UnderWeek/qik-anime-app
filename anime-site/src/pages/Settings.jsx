@@ -391,7 +391,7 @@ export default function Settings() {
         )}
 
         {/* Icon-only mode */}
-        <section className="settings-card">
+        <section className="settings-card mobile-only">
           <label className="settings-switch" style={{ cursor: 'pointer' }}>
             <div style={{ flex: 1 }}>
               <h2 className="settings-card-title" style={{ margin: 0 }}><span style={{ marginRight: 10, fontSize: 20 }}>🔲</span>Подписи в навбаре</h2>
