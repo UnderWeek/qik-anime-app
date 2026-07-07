@@ -11,20 +11,20 @@ export default function Carousel({ children }) {
   const update = useCallback(() => {
     const el = trackRef.current
     if (!el) return
-    setCanLeft(el.scrollLeft > 4)
-    setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+    setCanLeft(el.scrollLeft > 2)
+    setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2)
   }, [])
 
   useEffect(() => {
-    update()
     const el = trackRef.current
     if (!el) return
+    const raf = requestAnimationFrame(update)
     el.addEventListener('scroll', update, { passive: true })
     window.addEventListener('resize', update)
-    // Detect content size changes (e.g. images loading in)
     const ro = new ResizeObserver(update)
     ro.observe(el)
     return () => {
+      cancelAnimationFrame(raf)
       el.removeEventListener('scroll', update)
       window.removeEventListener('resize', update)
       ro.disconnect()

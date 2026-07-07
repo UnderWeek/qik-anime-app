@@ -1210,12 +1210,12 @@ input {
   display: flex;
   flex-direction: column;
   position: relative;
-  transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.35s ease;
+  transition: transform 0.3s ease;
   border-radius: var(--radius-sm);
 }
 .card:hover {
-  transform: translateY(-6px) scale(1.02);
-  box-shadow: 0 20px 40px -16px rgba(0,0,0,0.5), 0 0 0 1px var(--border);
+  transform: translateY(-4px);
+  box-shadow: none;
 }
 
 .card-poster {
@@ -1225,21 +1225,19 @@ input {
   overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--border);
-  transition: border-color 0.35s ease;
 }
 .card:hover .card-poster {
-  border-color: rgba(255,255,255,0.12);
+  border-color: var(--border);
 }
 
 .card-poster img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94), filter 0.35s ease;
 }
 .card:hover .card-poster img {
-  transform: scale(1.08);
-  filter: brightness(1.1);
+  transform: none;
+  filter: none;
 }
 
 /* shiny sweep on hover — only animates forward, snaps back instantly */
@@ -1273,7 +1271,7 @@ input {
   opacity: 0;
   transition: opacity 0.3s ease;
 }
-.card:hover .card-poster::after { opacity: 1; }
+.card:hover .card-poster::after { opacity: 0; }
 
 .card-badge {
   position: absolute;
@@ -1489,10 +1487,6 @@ input {
 .hero-arrow.right { right: 12px; }
 @media (max-width: 768px) {
   .hero-arrow { display: none; }
-  .card:hover { transform: none; box-shadow: none; }
-  .card:hover .card-poster img { transform: none; filter: none; }
-  .card:hover .card-poster::after { opacity: 0; }
-  .card:hover .card-poster::before { left: -100%; transition: none; }
 }
 
 /* ---------- buttons ---------- */
@@ -1939,8 +1933,8 @@ input {
   gap: 18px;
   overflow-x: auto;
   overflow-y: visible;
-  padding: 10px 8px 16px;
-  margin: -10px -8px -6px;
+  padding: 8px 0 12px;
+  margin: -8px 0 -4px;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
 }
@@ -1950,7 +1944,7 @@ input {
 /* ---------- carousel (arrow-navigated, width-constrained) ---------- */
 .carousel {
   position: relative;
-  min-width: 0; /* critical: prevents the track from stretching the page/grid */
+  min-width: 0;
   width: 100%;
 }
 .carousel-track {
@@ -1960,8 +1954,8 @@ input {
   gap: 18px;
   overflow-x: auto;
   overflow-y: visible;
-  padding: 10px 8px 16px;
-  margin: -10px -8px -6px;
+  padding: 8px 0 12px;
+  margin: -8px 0 -4px;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
 }
@@ -1985,22 +1979,22 @@ input {
   transition: opacity 0.2s, transform 0.15s;
 }
 .carousel-arrow:hover { transform: translateY(-50%) scale(1.08); color: var(--accent); }
-.carousel-arrow.left { left: -8px; }
-.carousel-arrow.right { right: -8px; }
+.carousel-arrow.left { left: 6px; }
+.carousel-arrow.right { right: 6px; }
 .carousel-arrow.hidden { opacity: 0; pointer-events: none; }
 @media (max-width: 600px) {
   .carousel-arrow { display: none; }
   .carousel-track {
     grid-auto-columns: 148px;
     gap: 12px;
-    padding: 8px 4px 14px;
-    margin: -8px -4px -4px;
+    padding: 6px 0 10px;
+    margin: -6px 0 -2px;
   }
   .row-scroll {
     grid-auto-columns: 148px;
     gap: 12px;
-    padding: 8px 4px 14px;
-    margin: -8px -4px -4px;
+    padding: 6px 0 10px;
+    margin: -6px 0 -2px;
   }
 }
 
