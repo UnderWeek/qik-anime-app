@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "QIK Anime",
+    "slug": "qik-anime",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "scheme": "qikanime",
+    "newArchEnabled": true,
+    "android": {
+      "package": "ru.quickik.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#1a1b25"
+      },
+      "permissions": [
+        "INTERNET"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-image"
+    ]
+  }
+}
