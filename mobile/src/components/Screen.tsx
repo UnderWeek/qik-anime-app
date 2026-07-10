@@ -1,7 +1,7 @@
-import { View, StyleSheet, RefreshControl, FlatList } from 'react-native';
+import { View, StyleSheet, RefreshControl, ScrollView } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ReactNode, useCallback } from 'react';
+import { ReactNode } from 'react';
 
 interface ScreenProps {
   children: ReactNode;
@@ -15,6 +15,35 @@ export default function Screen({ children, refreshing, onRefresh, padded = true 
   const theme = useTheme();
   const insets = useSafeAreaInsets();
 
+  const content = (
+    <View style={padded ? {} : {}}>{children}</View>
+  );
+
+  if (onRefresh) {
+    return (
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: theme.colors.background,
+            paddingTop: insets.top + 4,
+            paddingHorizontal: padded ? 12 : 0,
+          },
+        ]}
+      >
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 80 }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
+          }
+        >
+          {content}
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View
       style={[
@@ -23,22 +52,11 @@ export default function Screen({ children, refreshing, onRefresh, padded = true 
           backgroundColor: theme.colors.background,
           paddingTop: insets.top + 4,
           paddingHorizontal: padded ? 12 : 0,
+          paddingBottom: insets.bottom + 80,
         },
       ]}
     >
-      <FlatList
-        data={[{ key: 'content' }]}
-        renderItem={() => <View style={padded ? {} : {}}>{children}</View>}
-        keyExtractor={(item) => item.key}
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 80 }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          onRefresh ? (
-            <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
-          ) : undefined
-        }
-        scrollEnabled={!!onRefresh}
-      />
+      {content}
     </View>
   );
 }

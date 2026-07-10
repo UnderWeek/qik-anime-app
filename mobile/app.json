@@ -7,7 +7,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "scheme": "qikanime",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "android": {
       "package": "ru.quickik.app",
       "versionCode": 1,
