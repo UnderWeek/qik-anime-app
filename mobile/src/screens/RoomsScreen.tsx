@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, StyleSheet, FlatList, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import {
   useTheme,
   Button,
@@ -245,14 +245,13 @@ export default function RoomsScreen(props: Props) {
           message="Пока нет активных комнат. Создайте свою или войдите по коду."
         />
       ) : (
-        <FlatList
-          data={rooms}
-          renderItem={renderItem}
-          keyExtractor={(item) => String(item.id)}
-          scrollEnabled={false}
-          contentContainerStyle={styles.list}
-          ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-        />
+        <View style={styles.list}>
+          {rooms.map((item) => (
+            <View key={String(item.id)} style={{ marginBottom: 10 }}>
+              {renderItem({ item })}
+            </View>
+          ))}
+        </View>
       )}
 
       <Portal>

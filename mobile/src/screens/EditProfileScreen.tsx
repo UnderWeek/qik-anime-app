@@ -46,14 +46,14 @@ const AVATAR_COLORS = [
 ];
 
 const FRAMES: { label: string; value: string | null }[] = [
-  { label: 'Нет', value: null },
-  { label: 'Мята', value: 'Mint' },
-  { label: 'Лаванда', value: 'Lavender' },
-  { label: 'Персик', value: 'Peach' },
-  { label: 'Роза', value: 'Rose' },
-  { label: 'Золото', value: 'Gold' },
-  { label: 'Аврора', value: 'Aurora' },
-  { label: 'Легенда', value: 'Legend' },
+  { label: 'Нет', value: 'none' },
+  { label: 'Мята', value: 'mint' },
+  { label: 'Лаванда', value: 'lavender' },
+  { label: 'Персик', value: 'peach' },
+  { label: 'Роза', value: 'rose' },
+  { label: 'Золото', value: 'gold' },
+  { label: 'Аврора', value: 'aurora' },
+  { label: 'Легенда', value: 'legend' },
 ];
 
 export default function EditProfileScreen({ navigation }: Props) {
@@ -64,7 +64,7 @@ export default function EditProfileScreen({ navigation }: Props) {
   const [username, setUsername] = useState(user?.username ?? '');
   const [bio, setBio] = useState(user?.bio ?? '');
   const [avatarColor, setAvatarColor] = useState(user?.avatarColor ?? AVATAR_COLORS[0]);
-  const [avatarFrame, setAvatarFrame] = useState<string | null>(user?.avatarFrame ?? null);
+  const [avatarFrame, setAvatarFrame] = useState<string | null>(user?.avatarFrame || 'none');
   const [avatarUrl, setAvatarUrl] = useState<string | null | undefined>(user?.avatarUrl);
   const [bannerUrl, setBannerUrl] = useState<string | null | undefined>(user?.bannerUrl);
 

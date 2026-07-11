@@ -187,7 +187,7 @@ export default function LibraryScreen() {
           numColumns={NUM_COLUMNS}
           contentContainerStyle={{
             paddingHorizontal: SIDE_PAD,
-            paddingBottom: insets.bottom + 80,
+            paddingBottom: insets.bottom + 100,
           }}
           columnWrapperStyle={{ gap: GUTTER }}
           showsVerticalScrollIndicator={false}

@@ -121,7 +121,7 @@ with open(path, 'w') as f:
     f.write(content)
 
 print("Patched build.gradle with release signing config.")
-PYEOF "$APP_BUILD_GRADLE"
+PYEOF
 fi
 
 # 6. Assemble a release APK (JS bundle is packaged inside — no Metro needed).

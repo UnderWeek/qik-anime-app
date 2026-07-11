@@ -4,13 +4,13 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { uploadUrl } from '../api/client';
 
 const FRAME_COLORS: Record<string, string> = {
-  Mint: '#7FE3B0',
-  Lavender: '#B9A0FF',
-  Peach: '#FFC79A',
-  Rose: '#FF8FA3',
-  Gold: '#FFD24A',
-  Aurora: '#5EE6D0',
-  Legend: '#FF5E5E',
+  mint: '#7FE3B0',
+  lavender: '#B9A0FF',
+  peach: '#FFC79A',
+  rose: '#FF8FA3',
+  gold: '#FFD24A',
+  aurora: '#5EE6D0',
+  legend: '#FF5E5E',
 };
 
 interface AvatarProps {

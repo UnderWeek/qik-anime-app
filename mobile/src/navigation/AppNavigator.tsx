@@ -11,6 +11,7 @@ import { useThemeCtx } from '../context/ThemeContext';
 import HomeScreen from '../screens/HomeScreen';
 import CatalogScreen from '../screens/CatalogScreen';
 import LibraryScreen from '../screens/LibraryScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import AnimeDetailScreen from '../screens/AnimeDetailScreen';
 import WatchScreen from '../screens/WatchScreen';
@@ -18,7 +19,6 @@ import RatingsScreen from '../screens/RatingsScreen';
 import ScheduleScreen from '../screens/ScheduleScreen';
 import SearchScreen from '../screens/SearchScreen';
 import FriendsScreen from '../screens/FriendsScreen';
-import NotificationsScreen from '../screens/NotificationsScreen';
 import ChatsScreen from '../screens/ChatsScreen';
 import ChatThreadScreen from '../screens/ChatThreadScreen';
 import RoomsScreen from '../screens/RoomsScreen';
@@ -28,6 +28,7 @@ import EditProfileScreen from '../screens/EditProfileScreen';
 import QuizScreen from '../screens/QuizScreen';
 import IssuesScreen from '../screens/IssuesScreen';
 import AdminScreen from '../screens/AdminScreen';
+import FloatingTabBar from './FloatingTabBar';
 import Avatar from '../components/Avatar';
 
 export type RootStackParamList = {
@@ -71,11 +72,8 @@ function MainTabs() {
 
   return (
     <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarStyle: { backgroundColor: theme.colors.background, borderTopColor: theme.colors.border },
-      }}
+      tabBar={(props) => <FloatingTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
       <Tab.Screen
         name="HomeTab"
@@ -97,8 +95,16 @@ function MainTabs() {
         name="LibraryTab"
         component={LibraryScreen}
         options={{
-          title: 'Библиотека',
+          title: 'Библ.',
           tabBarIcon: ({ color, size }) => <TabIcon name="bookmark-multiple" color={color} size={size} />,
+        }}
+      />
+      <Tab.Screen
+        name="NotificationsTab"
+        component={NotificationsScreen}
+        options={{
+          title: 'Уведы',
+          tabBarIcon: ({ color, size }) => <TabIcon name="bell-outline" color={color} size={size} />,
         }}
       />
       <Tab.Screen
@@ -108,7 +114,7 @@ function MainTabs() {
           title: 'Профиль',
           tabBarIcon: ({ color, size }) =>
             user ? (
-              <View style={{ marginTop: 4 }}>
+              <View style={{ marginTop: 2 }}>
                 <Avatar user={user} size={26} />
               </View>
             ) : (

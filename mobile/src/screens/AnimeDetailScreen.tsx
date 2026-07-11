@@ -146,7 +146,7 @@ export default function AnimeDetailScreen(props: Props) {
       ? a.genres.map((g: any) => (typeof g === 'string' ? g : g.name || g.title || ''))
       : []
     : [];
-  const score = a.score ?? a.rating ?? a.averageRating;
+  const score = typeof a.score === 'object' ? (a.score?.average ?? a.score?.score) : (a.score ?? a.rating ?? a.averageRating);
   const status = a.status ? STATUS_LABELS[a.status] || a.status : '';
   const episodes = a.episodes ?? a.episodes_total ?? a.count;
   const year = a.year || (a.aired_on ? String(a.aired_on).slice(0, 4) : '');
@@ -342,7 +342,7 @@ export default function AnimeDetailScreen(props: Props) {
     <SafeAreaView style={[styles.fill, { backgroundColor: theme.colors.background }]} edges={['bottom']}>
       <ScrollView
         style={styles.fill}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
@@ -390,7 +390,7 @@ export default function AnimeDetailScreen(props: Props) {
               {score != null ? (
                 <View style={styles.scoreRow}>
                   <MaterialCommunityIcons name="star" size={18} color="#FFC107" />
-                  <Text style={styles.scoreText}>{String(score)}</Text>
+                  <Text style={styles.scoreText}>{Number(score).toFixed(2)}</Text>
                 </View>
               ) : null}
               <View style={styles.metaChips}>

@@ -12,7 +12,8 @@ export default function AnimeCard({ item, onPress, width = 140 }: AnimeCardProps
   const theme = useTheme();
   const posterUrl = item?.posterUrl || item?.poster_url || extractPoster(item);
   const title = item?.title || item?.name || item?.ru_title || 'Без названия';
-  const rating = item?.rating || item?.averageRating;
+  const ratingRaw = item?.rating;
+  const rating = typeof ratingRaw === 'object' ? ratingRaw?.average ?? ratingRaw?.score : ratingRaw;
 
   return (
     <Pressable
@@ -33,7 +34,7 @@ export default function AnimeCard({ item, onPress, width = 140 }: AnimeCardProps
           {title}
         </Text>
         {rating != null && (
-          <Text style={[styles.rating, { color: theme.colors.primary }]}>★ {rating}</Text>
+          <Text style={[styles.rating, { color: theme.colors.primary }]}>★ {Number(rating).toFixed(2)}</Text>
         )}
       </View>
     </Pressable>

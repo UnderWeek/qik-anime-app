@@ -97,25 +97,29 @@ export default function HomeScreen() {
 
   const sections: { key: string; title: string; items: any[] }[] = React.useMemo(() => {
     if (!feed) return [];
-    const out: { key: string; title: string; items: any[] }[] = [];
-    const source = feed && typeof feed === 'object' ? feed : {};
-    // If the feed itself is an array, treat it as a single "Лента" section.
-    if (Array.isArray(feed)) {
-      out.push({ key: 'feed', title: 'Лента', items: feed });
-    } else {
-      for (const key of Object.keys(source)) {
-        const items = asItems(source[key]);
-        if (items.length > 0) {
-          out.push({ key, title: titleFor(key), items });
+    try {
+      const out: { key: string; title: string; items: any[] }[] = [];
+      const source = feed && typeof feed === 'object' ? feed : {};
+      if (Array.isArray(feed)) {
+        out.push({ key: 'feed', title: 'Лента', items: feed.slice(0, 20) });
+      } else {
+        for (const key of Object.keys(source).slice(0, 12)) {
+          try {
+            const items = asItems(source[key]);
+            if (items.length > 0) {
+              out.push({ key, title: titleFor(key), items: items.slice(0, 20) });
+            }
+          } catch { /* skip malformed sections */ }
+        }
+        if (out.length === 0) {
+          const flat = Object.values(source).flatMap((v) => asItems(v));
+          if (flat.length > 0) out.push({ key: 'all', title: 'Лента', items: flat.slice(0, 20) });
         }
       }
-      // Fallback: nothing recognizable — dump everything into one section.
-      if (out.length === 0) {
-        const flat = Object.values(source).flatMap((v) => asItems(v));
-        if (flat.length > 0) out.push({ key: 'all', title: 'Лента', items: flat });
-      }
+      return out;
+    } catch {
+      return [];
     }
-    return out;
   }, [feed]);
 
   // ----- renderers -----
@@ -225,12 +229,10 @@ export default function HomeScreen() {
     );
   } else {
     body = (
-      <FlatList
-        data={blocks}
-        keyExtractor={(b) => b.key}
-        renderItem={({ item: b }) =>
+      <View>
+        {blocks.map((b) =>
           b.type === 'continue' ? (
-            <View style={styles.section}>
+            <View style={styles.section} key={b.key}>
               <SectionHeader title="Продолжить просмотр" />
               <FlatList
                 data={b.items}
@@ -243,11 +245,10 @@ export default function HomeScreen() {
               />
             </View>
           ) : (
-            renderSection({ item: b.section })
-          )
-        }
-        scrollEnabled={false}
-      />
+            <View key={b.key}>{renderSection({ item: b.section })}</View>
+          ),
+        )}
+      </View>
     );
   }
 

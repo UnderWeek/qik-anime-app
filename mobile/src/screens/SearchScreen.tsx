@@ -265,7 +265,7 @@ export default function SearchScreen(props: Props) {
         columnWrapperStyle={{ gap: GUTTER }}
         contentContainerStyle={{
           paddingHorizontal: SIDE_PAD,
-          paddingBottom: insets.bottom + 80,
+          paddingBottom: insets.bottom + 100,
           flexGrow: 1,
         }}
         showsVerticalScrollIndicator={false}

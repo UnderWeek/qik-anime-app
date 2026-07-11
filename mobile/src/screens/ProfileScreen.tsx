@@ -5,12 +5,10 @@ import {
   useTheme,
   Text,
   IconButton,
-  Menu,
   Button,
   SegmentedButtons,
   Chip,
   Card,
-  Divider,
   Surface,
   ProgressBar,
 } from 'react-native-paper';
@@ -56,7 +54,6 @@ export default function ProfileScreen() {
   const navigation = useNavigation<Nav>();
   const { user, logout, openAuthModal } = useAuth();
 
-  const [menuOpen, setMenuOpen] = useState(false);
   const [tab, setTab] = useState('stats');
 
   const profileApi = useApi(
@@ -94,7 +91,7 @@ export default function ProfileScreen() {
   const profileUser = profile?.user ?? profile ?? user;
   const stats = profile?.stats ?? profile;
   const achievements: any[] = profile?.achievements ?? [];
-  const frames: string[] = profile?.availableFrames ?? profile?.frames ?? [];
+  const frames: any[] = profile?.availableFrames ?? profile?.frames ?? [];
 
   const genreBars = useMemo(() => {
     const list = (genresApi.data as any[]) ?? [];
@@ -145,13 +142,15 @@ export default function ProfileScreen() {
   const isMaster = user.role === 'master' || user.role === 'admin';
   const isAdmin = user.role === 'admin';
 
-  const menuItems: { label: string; icon: string; target: keyof RootStackParamList }[] = [
-    { label: 'Настройки', icon: 'cog-outline', target: 'Settings' },
-    { label: 'Друзья', icon: 'account-group-outline', target: 'Friends' },
-    { label: 'Чаты', icon: 'chat-outline', target: 'Chats' },
-    { label: 'Уведомления', icon: 'bell-outline', target: 'Notifications' },
-    { label: 'Комнаты', icon: 'movie-open-outline', target: 'Rooms' },
-    { label: 'Квиз', icon: 'help-circle-outline', target: 'Quiz' },
+  const actionCards: { label: string; icon: string; target: keyof RootStackParamList; color: string }[] = [
+    { label: 'Друзья', icon: 'account-group-outline', target: 'Friends', color: '#4CAF50' },
+    { label: 'Чаты', icon: 'chat-outline', target: 'Chats', color: '#2196F3' },
+    { label: 'Комнаты', icon: 'movie-open-outline', target: 'Rooms', color: '#FF9800' },
+    { label: 'Квиз', icon: 'help-circle-outline', target: 'Quiz', color: '#9C27B0' },
+    { label: 'Рейтинги', icon: 'trophy-outline', target: 'Ratings', color: '#FFC107' },
+    { label: 'Календарь', icon: 'calendar-month-outline', target: 'Schedule', color: '#E91E63' },
+    { label: 'Поиск', icon: 'magnify', target: 'Search', color: '#00BCD4' },
+    { label: 'Настройки', icon: 'cog-outline', target: 'Settings', color: '#607D8B' },
   ];
 
   return (
@@ -174,60 +173,13 @@ export default function ProfileScreen() {
               onPress={() => navigation.navigate('EditProfile')}
               style={styles.headerBtn}
             />
-            <Menu
-              visible={menuOpen}
-              onDismiss={() => setMenuOpen(false)}
-              anchor={
-                <IconButton
-                  icon="dots-vertical"
-                  iconColor="#fff"
-                  size={22}
-                  onPress={() => setMenuOpen(true)}
-                  style={styles.headerBtn}
-                />
-              }
-            >
-              {menuItems.map((m) => (
-                <Menu.Item
-                  key={m.target}
-                  leadingIcon={m.icon}
-                  title={m.label}
-                  onPress={() => {
-                    setMenuOpen(false);
-                    navigation.navigate(m.target as any);
-                  }}
-                />
-              ))}
-              {isMaster && (
-                <Menu.Item
-                  leadingIcon="bug-check-outline"
-                  title="Баг-трекер"
-                  onPress={() => {
-                    setMenuOpen(false);
-                    navigation.navigate('Issues');
-                  }}
-                />
-              )}
-              {isAdmin && (
-                <Menu.Item
-                  leadingIcon="shield-crown-outline"
-                  title="Админка"
-                  onPress={() => {
-                    setMenuOpen(false);
-                    navigation.navigate('Admin');
-                  }}
-                />
-              )}
-              <Divider />
-              <Menu.Item
-                leadingIcon="logout"
-                title="Выйти"
-                onPress={() => {
-                  setMenuOpen(false);
-                  logout();
-                }}
-              />
-            </Menu>
+            <IconButton
+              icon="logout"
+              iconColor="#fff"
+              size={22}
+              onPress={logout}
+              style={styles.headerBtn}
+            />
           </View>
         </View>
 
@@ -248,11 +200,11 @@ export default function ProfileScreen() {
                 {profileUser.bio}
               </Text>
             ) : null}
-            {(profile?.level != null || profileUser?.level != null) && (
+            {((profile?.level != null || profileUser?.level != null) || (profile?.xp != null || profileUser?.xp != null)) && (
               <View style={styles.levelRow}>
                 <Surface style={[styles.levelBadge, { backgroundColor: theme.colors.primary }]} elevation={0}>
                   <Text style={{ color: theme.colors.onPrimary, fontWeight: '700', fontSize: 12 }}>
-                    Ур. {profile?.level ?? profileUser?.level}
+                    Ур. {typeof profile?.level === 'object' ? profile.level.level : (profile?.level ?? profileUser?.level)}
                   </Text>
                 </Surface>
                 <View style={styles.xpWrap}>
@@ -260,7 +212,7 @@ export default function ProfileScreen() {
                     {profile?.xp ?? profileUser?.xp ?? 0} XP
                   </Text>
                   <ProgressBar
-                    progress={profile?.xpProgress ?? profile?.progressToNext ?? 0}
+                    progress={typeof profile?.level === 'object' ? profile.level.progress : (profile?.xpProgress ?? profile?.progressToNext ?? 0)}
                     color={theme.colors.primary}
                     style={{ height: 5, borderRadius: 3 }}
                   />
@@ -304,6 +256,53 @@ export default function ProfileScreen() {
           />
         </View>
 
+        {/* Action grid — quick access to Friends, Chats, Rooms, Quiz etc. */}
+        <View style={styles.actionGrid}>
+          {actionCards.map((a) => (
+            <Card
+              key={a.target}
+              style={[styles.actionCard, { backgroundColor: theme.colors.surfaceContainer }]}
+              mode="contained"
+              onPress={() => navigation.navigate(a.target as any)}
+            >
+              <View style={styles.actionInner}>
+                <MaterialCommunityIcons name={a.icon as any} size={24} color={a.color} />
+                <Text variant="labelSmall" style={{ color: theme.colors.onSurface, marginTop: 6 }} numberOfLines={1}>
+                  {a.label}
+                </Text>
+              </View>
+            </Card>
+          ))}
+          {isMaster && (
+            <Card
+              style={[styles.actionCard, { backgroundColor: theme.colors.surfaceContainer }]}
+              mode="contained"
+              onPress={() => navigation.navigate('Issues')}
+            >
+              <View style={styles.actionInner}>
+                <MaterialCommunityIcons name="bug-check-outline" size={24} color="#FF5722" />
+                <Text variant="labelSmall" style={{ color: theme.colors.onSurface, marginTop: 6, textAlign: 'center' }} numberOfLines={2}>
+                  Баг-трекер
+                </Text>
+              </View>
+            </Card>
+          )}
+          {isAdmin && (
+            <Card
+              style={[styles.actionCard, { backgroundColor: theme.colors.surfaceContainer }]}
+              mode="contained"
+              onPress={() => navigation.navigate('Admin')}
+            >
+              <View style={styles.actionInner}>
+                <MaterialCommunityIcons name="shield-crown-outline" size={24} color="#FFD700" />
+                <Text variant="labelSmall" style={{ color: theme.colors.onSurface, marginTop: 6 }} numberOfLines={1}>
+                  Админка
+                </Text>
+              </View>
+            </Card>
+          )}
+        </View>
+
         {frames.length > 0 ? (
           <View style={styles.section}>
             <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 6 }}>
@@ -311,8 +310,8 @@ export default function ProfileScreen() {
             </Text>
             <View style={styles.chipRow}>
               {frames.map((f) => (
-                <Chip key={f} mode="outlined" style={{ marginRight: 6, marginBottom: 6 }}>
-                  {f}
+                <Chip key={f?.id ?? f} mode="outlined" style={{ marginRight: 6, marginBottom: 6 }}>
+                  {f?.title ?? f?.id ?? String(f)}
                 </Chip>
               ))}
             </View>
@@ -627,14 +626,28 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     paddingHorizontal: 12,
     marginTop: 16,
+    gap: 8,
   },
   statTile: {
     width: (SCREEN_W - 12 * 2 - 8 * 4) / 5,
     borderRadius: 12,
     padding: 8,
     alignItems: 'center',
-    marginRight: 8,
-    marginBottom: 8,
+  },
+  actionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 12,
+    marginTop: 16,
+    gap: 8,
+  },
+  actionCard: {
+    width: (SCREEN_W - 12 * 2 - 8 * 3) / 4,
+    borderRadius: 14,
+  },
+  actionInner: {
+    padding: 14,
+    alignItems: 'center',
   },
   section: {
     paddingHorizontal: 12,

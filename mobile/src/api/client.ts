@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system';
 import { TOKEN_KEY, UID_KEY, QIK_API_BASE, QIK_BACKEND_ORIGIN } from './config';
 
 export function uploadUrl(path?: string | null): string {
@@ -77,31 +78,34 @@ export async function request<T = any>(
   return data as T;
 }
 
-// Multipart upload helper (RN FormData with {uri,name,type}).
+// Multipart upload via expo-file-system new API (UploadTask).
 export async function uploadMultipart(
   path: string,
   file: { uri: string; name?: string; type?: string },
 ): Promise<any> {
   const t = await getToken();
-  const name = file.name || `upload-${Date.now()}.jpg`;
-  const type = file.type || 'image/jpeg';
-  const fd = new FormData();
-  // @ts-ignore — RN FormData accepts the uri shape
-  fd.append('file', { uri: file.uri, name, type } as any);
 
-  const res = await fetch(`${QIK_API_BASE}${path}`, {
-    method: 'POST',
+  const fsFile = new FileSystem.File(file.uri);
+  const task = new FileSystem.UploadTask(fsFile, `${QIK_API_BASE}${path}`, {
+    httpMethod: 'POST',
+    uploadType: FileSystem.UploadType.MULTIPART,
+    fieldName: 'file',
+    mimeType: file.type || 'image/jpeg',
     headers: t ? { Authorization: `Bearer ${t}` } : {},
-    body: fd,
   });
-  const data = await res.json().catch(() => null);
-  if (!res.ok) {
-    const msg = Array.isArray(data?.message)
-      ? data.message.join('. ')
-      : data?.message || `Ошибка ${res.status}`;
+
+  const result = await task.uploadAsync();
+
+  if (result.status < 200 || result.status >= 300) {
+    let msg = `Ошибка ${result.status}`;
+    try {
+      const parsed = JSON.parse(result.body);
+      msg = Array.isArray(parsed?.message) ? parsed.message.join('. ') : (parsed?.message || msg);
+    } catch {}
     const err: any = new Error(msg);
-    err.status = res.status;
+    err.status = result.status;
     throw err;
   }
-  return data;
+
+  try { return JSON.parse(result.body); } catch { return result.body; }
 }

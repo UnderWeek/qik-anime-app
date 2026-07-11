@@ -32,7 +32,7 @@ export default function Screen({ children, refreshing, onRefresh, padded = true 
         ]}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 80 }}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 100 }}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
@@ -52,7 +52,7 @@ export default function Screen({ children, refreshing, onRefresh, padded = true 
           backgroundColor: theme.colors.background,
           paddingTop: insets.top + 4,
           paddingHorizontal: padded ? 12 : 0,
-          paddingBottom: insets.bottom + 80,
+          paddingBottom: insets.bottom + 100,
         },
       ]}
     >
