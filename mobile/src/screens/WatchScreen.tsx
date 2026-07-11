@@ -62,25 +62,6 @@ function normalizePlayerUrl(url: string): string {
   return url;
 }
 
-// Build an HTML page that embeds the player via iframe — exactly like the web frontend.
-function buildIframeHtml(iframeUrl: string): string {
-  const url = normalizePlayerUrl(iframeUrl);
-  return `<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<style>
-  html,body { margin:0; padding:0; height:100%; background:#000; overflow:hidden; }
-  iframe { width:100%; height:100%; border:0; }
-</style>
-</head>
-<body>
-<iframe src="${url}" allowfullscreen allow="autoplay; fullscreen; encrypted-media"></iframe>
-</body>
-</html>`;
-}
-
 // Pick the best playable URL from a video entry.
 function resolvePlayerUrl(entry: VideoEntry | undefined): { url: string; kind: 'hls' | 'iframe' } | null {
   if (!entry) return null;
@@ -213,6 +194,29 @@ export default function WatchScreen(props: Props) {
     if (dub && dubbings.length && !dubbings.includes(dub)) setDub(null);
   }, [dubbings, dub]);
 
+  // Select dubbing AND immediately pick the first available player for it,
+  // so both change in a single render — avoids WebView loading with stale/incomplete state.
+  const selectDub = useCallback(
+    (d: string) => {
+      setCurrentVideoId(null);
+      setDub(d);
+      // Compute the first player for this dubbing synchronously from the raw list.
+      const seen = new Set<string>();
+      const firstPlayer = list
+        .filter((v) => (v.data?.dubbing || v.dubbing || 'Озвучка') === d)
+        .find((v) => {
+          const p = v.data?.player || v.player || 'Плеер';
+          if (!seen.has(p)) {
+            seen.add(p);
+            return true;
+          }
+          return false;
+        });
+      setPlayer(firstPlayer ? (firstPlayer.data?.player || firstPlayer.player || 'Плеер') : null);
+    },
+    [list],
+  );
+
   // ---- players for selected dubbing ----
   const players = useMemo(() => {
     const out: string[] = [];
@@ -233,6 +237,7 @@ export default function WatchScreen(props: Props) {
   useEffect(() => {
     if (players.length) setPlayer((prev) => (players.includes(prev || '') ? prev : players[0]));
   }, [players]);
+
 
   // ---- episodes for selected dubbing + player ----
   const episodes = useMemo(() => {
@@ -326,6 +331,19 @@ export default function WatchScreen(props: Props) {
   );
 
   const resolvedPlayer = useMemo(() => resolvePlayerUrl(current), [current]);
+
+  // ---- WebView error tracking ----
+  const [webViewError, setWebViewError] = useState(false);
+  const webViewKey = useRef(0);
+  // Reset error state whenever the resolved URL changes.
+  useEffect(() => {
+    setWebViewError(false);
+  }, [resolvedPlayer?.url]);
+  // Increment key to force WebView remount on retry.
+  const retryWebView = useCallback(() => {
+    webViewKey.current += 1;
+    setWebViewError(false);
+  }, []);
 
   // ---- save progress ----
   const lastSaveRef = useRef(0);
@@ -472,14 +490,30 @@ export default function WatchScreen(props: Props) {
               <Text style={{ color: '#fff', fontSize: 15, marginTop: 8, opacity: 0.7 }}>Выберите озвучку</Text>
             </View>
           ) : current && resolvedPlayer ? (
-            resolvedPlayer.kind === 'hls' ? (
+            webViewError ? (
+              <View style={styles.playerCenter}>
+                <MaterialCommunityIcons name="alert-circle-outline" size={36} color="rgba(255,255,255,0.45)" />
+                <Text style={{ color: '#fff', fontSize: 14, marginTop: 8, textAlign: 'center', paddingHorizontal: 20 }}>
+                  Не удалось загрузить плеер
+                </Text>
+                <Surface
+                  style={[styles.retryBtn, { marginTop: 14 }]}
+                  elevation={0}
+                  onTouchEnd={retryWebView}
+                >
+                  <Text style={{ color: theme.colors.primary, fontWeight: 600 }}>Повторить</Text>
+                </Surface>
+              </View>
+            ) : resolvedPlayer.kind === 'hls' ? (
               <WebView
+                key={`hls-${resolvedPlayer.url}-${webViewKey.current}`}
                 source={{ html: buildHlsHtml(resolvedPlayer.url, resumeSeconds) }}
                 style={{ flex: 1, height: playerHeight, backgroundColor: '#000' }}
                 originWhitelist={['*']}
                 allowsInlineMediaPlayback
                 mediaPlaybackRequiresUserAction={false}
                 onMessage={onMessage}
+                onError={() => setWebViewError(true)}
                 javaScriptEnabled
                 domStorageEnabled
                 renderLoading={() => (
@@ -487,17 +521,32 @@ export default function WatchScreen(props: Props) {
                     <ActivityIndicator color={theme.colors.primary} />
                   </View>
                 )}
+                renderError={() => (
+                  <View style={styles.playerCenter}>
+                    <ActivityIndicator color={theme.colors.primary} />
+                  </View>
+                )}
               />
             ) : (
               <WebView
-                source={{ html: buildIframeHtml(resolvedPlayer.url) }}
+                key={`iframe-${resolvedPlayer.url}-${webViewKey.current}`}
+                source={{
+                  uri: normalizePlayerUrl(resolvedPlayer.url),
+                  headers: { Referer: 'https://quickik.ru/' },
+                }}
                 style={{ flex: 1, height: playerHeight, backgroundColor: '#000' }}
                 originWhitelist={['*']}
                 allowsInlineMediaPlayback
                 mediaPlaybackRequiresUserAction={false}
+                onError={() => setWebViewError(true)}
                 javaScriptEnabled
                 domStorageEnabled
                 renderLoading={() => (
+                  <View style={styles.playerCenter}>
+                    <ActivityIndicator color={theme.colors.primary} />
+                  </View>
+                )}
+                renderError={() => (
                   <View style={styles.playerCenter}>
                     <ActivityIndicator color={theme.colors.primary} />
                   </View>
@@ -566,7 +615,7 @@ export default function WatchScreen(props: Props) {
                 <Chip
                   key={d}
                   selected={d === dub}
-                  onPress={() => setDub(d)}
+                  onPress={() => selectDub(d)}
                   style={styles.chip}
                   mode={d === dub ? 'flat' : 'outlined'}
                 >
@@ -707,6 +756,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   loginBtn: {
+    borderRadius: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+  },
+  retryBtn: {
     borderRadius: 20,
     paddingHorizontal: 24,
     paddingVertical: 10,
