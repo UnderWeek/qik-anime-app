@@ -136,30 +136,40 @@ export default function AnimeDetailScreen(props: Props) {
     setRefreshing(false);
   }, [refetchAnime, refetchBookmark, refetchRating, refetchOpening, refetchComments]);
 
-  // ---- derived anime fields ----
+  // ---- derived anime fields (match web frontend exactly: AnimeDetail.jsx) ----
   const a: any = anime || {};
   const titleRu = a.title || a.ru_title || a.name || route.params.title || 'Без названия';
-  const titleOrig = a.title_orig || a.original_title || a.en_title || a.romaji;
-  const description = a.description || a.description_html || '';
-  const genres: string[] = a.genres
-    ? Array.isArray(a.genres)
-      ? a.genres.map((g: any) => (typeof g === 'string' ? g : g.name || g.title || ''))
-      : []
-    : [];
-  const score = typeof a.score === 'object' ? (a.score?.average ?? a.score?.score) : (a.score ?? a.rating ?? a.averageRating);
-  const status = a.status ? STATUS_LABELS[a.status] || a.status : '';
-  const episodes = a.episodes ?? a.episodes_total ?? a.count;
-  const year = a.year || (a.aired_on ? String(a.aired_on).slice(0, 4) : '');
-  const studio = a.studio?.name || a.studio || (Array.isArray(a.studios) ? a.studios.map((s: any) => s.name).join(', ') : '');
+  const titleOrig = a.title_orig || a.original_title || a.en_title || a.romaji || '';
+  const description = (typeof a.description === 'string' ? a.description.replace(/<[^>]+>/g, '') : '') || '';
+  const genres: string[] = (a.genres || []).map((g: any) => (typeof g === 'string' ? g : g.title || g.name || ''));
+  // web: anime.rating?.average
+  const score: number | null = a.rating?.average ?? a.score ?? null;
+  // web: anime.anime_status?.title
+  const status = a.anime_status?.title || STATUS_LABELS[a.status] || a.status || '';
+  // web: anime.episodes?.aired
+  const episodes: number | null = a.episodes?.aired ?? a.episodes?.count ?? a.episodes_total ?? null;
+  const year = a.year || '';
+  // web: anime.studios?.[0]?.title
+  const studio = a.studios?.[0]?.title || a.studio?.name || a.studio || '';
+  // web: anime.type?.name
+  const animeType = a.type?.name || '';
+  // Can watch? Only if anime has at least 1 aired episode and is not just announced.
+  const isAnnounced = /ан[оо]нс/i.test(status) || /announced/i.test(a.status || '');
+  const hasEpisodes = episodes != null && episodes > 0;
+  const canWatch = hasEpisodes && !isAnnounced;
 
-  const heroPoster = useMemo(() => {
-    const u = posterUrl(a, 'huge') || posterUrl(a, 'big') || posterUrl(a, 'medium');
-    return u ? upgradePoster(u, 'huge') : '';
+  // Poster: YummyAnime may nest data in response.anime or response.data.
+  // Try both the raw object AND its .anime/.data wrapper — same as web's poster(anime, ...)
+  const posterSrc = useMemo(() => {
+    const candidates = [a, a?.anime, a?.data, a?.response].filter(Boolean);
+    for (const src of candidates) {
+      const u = posterUrl(src, 'big') || posterUrl(src, 'fullsize') || posterUrl(src, 'huge');
+      if (u) return u;
+    }
+    return '';
   }, [a]);
-  const backdrop = useMemo(() => {
-    const u = posterUrl(a, 'mega') || heroPoster;
-    return u;
-  }, [a, heroPoster]);
+  const heroPoster = useMemo(() => posterSrc ? upgradePoster(posterSrc, 'huge') : '', [posterSrc]);
+  const backdrop = useMemo(() => posterUrl(a, 'mega') || heroPoster || posterSrc, [a, heroPoster, posterSrc]);
 
   // ---- description expand ----
   const [expanded, setExpanded] = useState(false);
@@ -411,12 +421,17 @@ export default function AnimeDetailScreen(props: Props) {
         <View style={[styles.actionRow, { gap: 8 }]}>
           <Button
             mode="contained"
-            icon="play"
+            icon={canWatch ? 'play' : 'clock-outline'}
             style={styles.watchBtn}
             labelStyle={styles.watchLabel}
-            onPress={() => navigation.navigate('Watch', { id: animeId, title: titleRu })}
+            disabled={!canWatch}
+            onPress={() => {
+              if (!canWatch) return;
+              const watchId = a?.anime_id || a?.anime?.anime_id || a?.id || animeId;
+              navigation.navigate('Watch', { id: watchId, title: titleRu });
+            }}
           >
-            Смотреть
+            {canWatch ? 'Смотреть' : isAnnounced ? 'Скоро выйдет' : 'Недоступно'}
           </Button>
           <Menu
             visible={bookmarkMenu}
@@ -623,12 +638,13 @@ export default function AnimeDetailScreen(props: Props) {
                 <AnimeCard
                   item={item}
                   width={130}
-                  onPress={(it) =>
+                  onPress={(it) => {
+                    const rawId = it.id ?? it.code ?? it.url;
                     navigation.navigate('AnimeDetail', {
-                      id: it.id ?? it.code ?? it.url,
+                      id: rawId != null ? String(rawId).replace(/^\/anime\//, '') : rawId,
                       title: it.title || it.ru_title || it.name,
-                    })
-                  }
+                    });
+                  }}
                 />
               )}
               showsHorizontalScrollIndicator={false}

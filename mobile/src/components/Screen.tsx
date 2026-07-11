@@ -34,6 +34,8 @@ export default function Screen({ children, refreshing, onRefresh, padded = true 
         <ScrollView
           contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 100 }}
           showsVerticalScrollIndicator={false}
+          canCancelContentTouches={false}
+          keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
           }

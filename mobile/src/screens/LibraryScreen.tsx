@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { View, StyleSheet, Pressable, FlatList } from 'react-native';
+import { View, StyleSheet, FlatList } from 'react-native';
 import {
   SegmentedButtons,
   Menu,
@@ -72,15 +72,7 @@ export default function LibraryScreen() {
     [navigation],
   );
 
-  const handleLongPress = useCallback((item: BookmarkItem) => (e: any) => {
-    // nativeEvent provides pageX/pageY of the touch; fall back to measure.
-    const ne = e?.nativeEvent;
-    if (ne && (ne.pageX != null || ne.absoluteX != null) && ne.locationX != null) {
-      const px = ne.pageX ?? ne.absoluteX;
-      const py = ne.pageY ?? ne.absoluteY;
-      setMenu({ item, x: px, y: py, w: ne.locationX, h: ne.locationY });
-      return;
-    }
+  const handleLongPress = useCallback((item: BookmarkItem) => {
     setMenu({ item, x: 0, y: 0, w: 0, h: 0 });
   }, []);
 
@@ -142,12 +134,12 @@ export default function LibraryScreen() {
   const items = data || [];
 
   const renderCard = ({ item, index }: { item: BookmarkItem; index: number }) => (
-    <Pressable
-      onLongPress={handleLongPress(item)}
-      style={styles.cardSlot}
-    >
-      <AnimeCard item={item} onPress={handlePressItem} width={COL_WIDTH} />
-    </Pressable>
+    <AnimeCard
+      item={item}
+      onPress={handlePressItem}
+      onLongPress={handleLongPress}
+      width={COL_WIDTH}
+    />
   );
 
   return (

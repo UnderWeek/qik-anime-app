@@ -55,13 +55,38 @@ function isHlsUrl(url?: string): boolean {
   return /\.m3u8(\?|$)/i.test(url) || /\/m3u8\//i.test(url);
 }
 
-// Pick the best playable URL from a video entry: prefer explicit hls/video fields,
-// otherwise the iframe_url if it is itself an HLS stream.
+// Normalize player URL: add protocol if missing (prevents "file://" errors in WebView).
+function normalizePlayerUrl(url: string): string {
+  if (url.startsWith('//')) return 'https:' + url;
+  if (!url.startsWith('http')) return 'https://' + url;
+  return url;
+}
+
+// Build an HTML page that embeds the player via iframe — exactly like the web frontend.
+function buildIframeHtml(iframeUrl: string): string {
+  const url = normalizePlayerUrl(iframeUrl);
+  return `<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<style>
+  html,body { margin:0; padding:0; height:100%; background:#000; overflow:hidden; }
+  iframe { width:100%; height:100%; border:0; }
+</style>
+</head>
+<body>
+<iframe src="${url}" allowfullscreen allow="autoplay; fullscreen; encrypted-media"></iframe>
+</body>
+</html>`;
+}
+
+// Pick the best playable URL from a video entry.
 function resolvePlayerUrl(entry: VideoEntry | undefined): { url: string; kind: 'hls' | 'iframe' } | null {
   if (!entry) return null;
   const candidates = [entry.hls_url, entry.video_url, entry.iframe_url];
   for (const c of candidates) {
-    if (c && isHlsUrl(c)) return { url: c, kind: 'hls' };
+    if (c && isHlsUrl(c)) return { url: normalizePlayerUrl(c), kind: 'hls' };
   }
   if (entry.iframe_url) return { url: entry.iframe_url, kind: 'iframe' as const };
   if (entry.video_url) return { url: entry.video_url, kind: 'iframe' as const };
@@ -146,15 +171,22 @@ function buildHlsHtml(streamUrl: string, startAt: number): string {
 export default function WatchScreen(props: Props) {
   const { route } = props;
   const { id, title, episode: resumeEpisode } = route.params;
-  const animeId = Number(id);
 
   const theme = usePaperTheme();
   const { user, openAuthModal, addToast } = useAuth();
   const { width: screenWidth } = useWindowDimensions();
   const playerHeight = Math.round((screenWidth * 9) / 16);
 
+  // Fetch anime detail first to get the numeric anime_id for the videos API.
+  const { data: animeDetail } = useApi<any>(
+    () => api.anime(String(id)),
+    [id],
+  );
+  const animeIdNum: number = animeDetail?.anime_id ?? animeDetail?.id ?? (typeof id === 'number' ? id : Number(id));
+  const animeId = Number.isFinite(animeIdNum) ? animeIdNum : 0;
+
   const { data: videos, loading, error, refetch } = useApi<any[]>(
-    () => api.videos(animeId),
+    () => (animeId > 0 ? api.videos(animeId) : Promise.resolve([])),
     [animeId],
   );
 
@@ -446,7 +478,7 @@ export default function WatchScreen(props: Props) {
               />
             ) : (
               <WebView
-                source={{ uri: resolvedPlayer.url }}
+                source={{ html: buildIframeHtml(resolvedPlayer.url) }}
                 style={{ flex: 1, height: playerHeight, backgroundColor: '#000' }}
                 originWhitelist={['*']}
                 allowsInlineMediaPlayback

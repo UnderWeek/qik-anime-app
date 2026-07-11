@@ -86,10 +86,10 @@ export default function HomeScreen() {
 
   const goToDetail = useCallback(
     (item: any) => {
-      const id = item?.id || item?.alias || item?.url;
+      const id = item?.id || item?.alias || item?.code || item?.url || item?.anime_id || item?.animeId || item?.link;
       const title = item?.title || item?.ru_title || item?.name;
       if (id != null) {
-        navigation.navigate('AnimeDetail', { id, title });
+        navigation.navigate('AnimeDetail', { id: String(id).replace(/^\/anime\//, ''), title });
       }
     },
     [navigation],

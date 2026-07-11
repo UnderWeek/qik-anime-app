@@ -151,8 +151,9 @@ export default function SearchScreen(props: Props) {
 
   const openAnime = useCallback(
     (item: any) => {
-      const id = item?.anime_id ?? item?.anime_url ?? item?.url ?? item?.id;
-      if (id == null) return;
+      const rawId = item?.anime_id ?? item?.anime_url ?? item?.url ?? item?.id;
+      if (rawId == null) return;
+      const id = String(rawId).replace(/^\/anime\//, '');
       const title = item?.title || item?.name || item?.ru_title;
       navigation.navigate('AnimeDetail', { id, title });
     },

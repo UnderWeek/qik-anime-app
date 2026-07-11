@@ -268,12 +268,13 @@ export default function CatalogScreen() {
         <AnimeCard
           item={item}
           width={cw}
-          onPress={(it) =>
+          onPress={(it) => {
+            const rawId = it.id ?? it.url ?? it.code;
             navigation.navigate('AnimeDetail', {
-              id: it.id ?? it.url ?? it.code,
+              id: rawId != null ? String(rawId).replace(/^\/anime\//, '') : rawId,
               title: it.title || it.ru_title || it.name,
-            })
-          }
+            });
+          }}
         />
       </View>
     ),

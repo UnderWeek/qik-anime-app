@@ -5,10 +5,11 @@ import Poster from './Poster';
 interface AnimeCardProps {
   item: any;
   onPress: (item: any) => void;
+  onLongPress?: (item: any) => void;
   width?: number;
 }
 
-export default function AnimeCard({ item, onPress, width = 140 }: AnimeCardProps) {
+export default function AnimeCard({ item, onPress, onLongPress, width = 140 }: AnimeCardProps) {
   const theme = useTheme();
   const posterUrl = item?.posterUrl || item?.poster_url || extractPoster(item);
   const title = item?.title || item?.name || item?.ru_title || 'Без названия';
@@ -18,6 +19,8 @@ export default function AnimeCard({ item, onPress, width = 140 }: AnimeCardProps
   return (
     <Pressable
       onPress={() => onPress(item)}
+      onLongPress={onLongPress ? () => onLongPress(item) : undefined}
+      delayLongPress={400}
       style={({ pressed }) => [
         styles.card,
         { width, backgroundColor: theme.colors.surfaceContainer, opacity: pressed ? 0.85 : 1 },
