@@ -327,6 +327,10 @@ export default function WatchScreen(props: Props) {
 
   // ---- save progress ----
   const lastSaveRef = useRef(0);
+  const posterUrl = useMemo(() => {
+    if (!animeDetail) return '';
+    return extractPoster(animeDetail, 'big') || extractPoster(animeDetail, 'medium') || '';
+  }, [animeDetail]);
   const saveProgress = useCallback(
     (second: number, duration: number) => {
       if (!user || !current || !animeId) return;
@@ -342,7 +346,7 @@ export default function WatchScreen(props: Props) {
           second: Math.floor(second || 0),
           duration: Math.floor(duration || current.duration || 0),
           title: title,
-          poster: undefined,
+          poster: posterUrl,
         })
         .then((row: any) => {
           if (row && row.episodeNumber != null) {
@@ -369,6 +373,7 @@ export default function WatchScreen(props: Props) {
         second: 0,
         duration: Math.floor(current.duration || 0),
         title: title,
+        poster: posterUrl,
       })
       .then((row: any) => {
         if (row && row.episodeNumber != null) {

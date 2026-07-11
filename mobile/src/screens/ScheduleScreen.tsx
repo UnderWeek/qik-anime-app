@@ -15,7 +15,7 @@ import Screen from '../components/Screen';
 import Poster from '../components/Poster';
 import { LoadingState, ErrorState, EmptyState } from '../components/States';
 import { useApi } from '../hooks/useApi';
-import { api } from '../api/yummy';
+import { api, fixUrl } from '../api/yummy';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Schedule'>;
@@ -125,17 +125,11 @@ function normalizeDay(v: any): number | null {
 }
 
 function itemPosterUrl(item: ScheduleItem): string {
-  if (item.posterUrl) return item.posterUrl;
-  if (item.poster_url) return item.poster_url;
+  if (item.posterUrl) return fixUrl(item.posterUrl);
+  if (item.poster_url) return fixUrl(item.poster_url);
   if (item.poster && typeof item.poster === 'object') {
     for (const s of ['medium', 'small', 'big', 'huge', 'mega', 'fullsize']) {
-      const u = item.poster[s];
-      if (u) {
-        let url = u;
-        if (url.startsWith('//')) url = `https:${url}`;
-        if (url.startsWith('/')) url = `https://static.yani.tv${url}`;
-        return url;
-      }
+      if (item.poster[s]) return fixUrl(item.poster[s]);
     }
   }
   return '';

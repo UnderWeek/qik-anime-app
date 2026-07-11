@@ -25,6 +25,7 @@ import { useApi } from '../hooks/useApi';
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../api/backend';
 import { uploadUrl } from '../api/client';
+import { fixUrl } from '../api/yummy';
 import { cardWidth } from '../utils/layout';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -442,7 +443,9 @@ export default function ProfileScreen() {
                     <View style={styles.historyRow}>
                       {poster ? (
                         <Image
-                          source={typeof poster === 'string' ? poster : uploadUrl(poster)}
+                          source={typeof poster === 'string'
+                            ? (poster.startsWith('/uploads') ? uploadUrl(poster) : fixUrl(poster))
+                            : uploadUrl(poster)}
                           style={styles.historyPoster}
                           contentFit="cover"
                           cachePolicy="memory-disk"

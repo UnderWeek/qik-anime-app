@@ -1,6 +1,7 @@
 import { Pressable, View, Text, StyleSheet } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import Poster from './Poster';
+import { poster as extractPoster } from '../api/yummy';
 
 interface AnimeCardProps {
   item: any;
@@ -42,21 +43,6 @@ export default function AnimeCard({ item, onPress, onLongPress, width = 140 }: A
       </View>
     </Pressable>
   );
-}
-
-function extractPoster(item: any): string {
-  if (!item) return '';
-  const p = item.poster;
-  if (!p) return '';
-  for (const s of ['medium', 'small', 'big', 'huge', 'mega', 'fullsize']) {
-    if (p[s]) {
-      let u = p[s];
-      if (u.startsWith('//')) u = `https:${u}`;
-      if (u.startsWith('/')) u = `https://static.yani.tv${u}`;
-      return u;
-    }
-  }
-  return '';
 }
 
 const styles = StyleSheet.create({

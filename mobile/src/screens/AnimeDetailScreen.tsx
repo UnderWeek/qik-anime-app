@@ -27,7 +27,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { api, poster as posterUrl, upgradePoster } from '../api/yummy';
+import { api, poster as posterUrl } from '../api/yummy';
 import { backend } from '../api/backend';
 import { useApi } from '../hooks/useApi';
 import { useAuth } from '../context/AuthContext';
@@ -161,15 +161,23 @@ export default function AnimeDetailScreen(props: Props) {
   // Poster: YummyAnime may nest data in response.anime or response.data.
   // Try both the raw object AND its .anime/.data wrapper — same as web's poster(anime, ...)
   const posterSrc = useMemo(() => {
-    const candidates = [a, a?.anime, a?.data, a?.response].filter(Boolean);
-    for (const src of candidates) {
-      const u = posterUrl(src, 'big') || posterUrl(src, 'fullsize') || posterUrl(src, 'huge');
-      if (u) return u;
+    // posterUrl() already falls through all sizes (mega→huge→fullsize→big→medium→small)
+    const u = posterUrl(a, 'big');
+    if (u) return u;
+    // If the top-level object lacks poster, try nested wrappers
+    for (const key of ['anime', 'data', 'response']) {
+      const nested = a?.[key];
+      if (nested) {
+        const v = posterUrl(nested, 'big');
+        if (v) return v;
+      }
     }
     return '';
   }, [a]);
-  const heroPoster = useMemo(() => posterSrc ? upgradePoster(posterSrc, 'huge') : '', [posterSrc]);
-  const backdrop = useMemo(() => posterUrl(a, 'mega') || heroPoster || posterSrc, [a, heroPoster, posterSrc]);
+  // Use the original poster URL as-is (like web does). Don't upgradePoster —
+  // imgproxy.yani.tv may not serve the 'huge' size and the image will fail.
+  const heroPoster = posterSrc;
+  const backdrop = useMemo(() => posterUrl(a, 'mega') || posterUrl(a, 'huge') || posterSrc, [a, posterSrc]);
 
   // ---- description expand ----
   const [expanded, setExpanded] = useState(false);

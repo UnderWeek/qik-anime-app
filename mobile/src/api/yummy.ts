@@ -41,12 +41,16 @@ async function request<T = any>(path: string, { params, ...options }: any = {}):
   return json.response !== undefined ? json.response : json;
 }
 
-// Normalize poster URLs (static.yani.tv blocked in RF → imgproxy fallback).
+// Normalize poster URLs.
+// static.yani.tv is blocked in RF — swap to imgproxy.yani.tv proactively
+// so that CSS background-image, OG meta tags, and other non-<img> usages work.
 export function fixUrl(url?: string | null): string {
   if (!url) return '';
   let u = url;
   if (u.startsWith('//')) u = `https:${u}`;
   if (u.startsWith('/')) u = `${YUMMY_STATIC_URL}${u}`;
+  // Proactive host swap: static.yani.tv → imgproxy.yani.tv (RF block)
+  u = u.replace(/^https?:\/\/static\.yani\.tv\//i, 'https://imgproxy.yani.tv/');
   return u;
 }
 
