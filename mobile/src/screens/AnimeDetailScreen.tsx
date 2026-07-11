@@ -428,11 +428,21 @@ export default function AnimeDetailScreen(props: Props) {
         {/* Action row */}
         <View style={[styles.actionRow, { gap: 8 }]}>
           <Button
-            mode="contained"
+            mode={canWatch ? 'contained' : 'outlined'}
             icon={canWatch ? 'play' : 'clock-outline'}
-            style={styles.watchBtn}
-            labelStyle={styles.watchLabel}
-            disabled={!canWatch}
+            style={[
+              styles.watchBtn,
+              !canWatch && {
+                borderColor: theme.colors.outline,
+                borderWidth: 1.5,
+              },
+            ]}
+            labelStyle={[
+              styles.watchLabel,
+              !canWatch && { color: theme.colors.onSurface },
+            ]}
+            buttonColor={!canWatch ? theme.colors.surfaceContainerHighest : undefined}
+            textColor={!canWatch ? theme.colors.onSurface : undefined}
             onPress={() => {
               if (!canWatch) return;
               const watchId = a?.anime_id || a?.anime?.anime_id || a?.id || animeId;

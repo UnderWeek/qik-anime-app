@@ -1,0 +1,11 @@
+{
+    "schema_version": 2,
+    "commit": "a45956972c3e2d7f76a252266a5d5d86cb48b62b",
+    "indexed_at": "2026-07-11T22:32:08Z",
+    "project": "root-qik-anime-app",
+    "nodes": 2785,
+    "edges": 6746,
+    "original_size": 5701632,
+    "compressed_size": 1244316,
+    "compression_level": 9
+}

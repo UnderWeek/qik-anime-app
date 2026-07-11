@@ -207,8 +207,10 @@ export default function WatchScreen(props: Props) {
   }, [list]);
 
   const [dub, setDub] = useState<string | null>(null);
+  // Don't auto-select dubbing — the user must explicitly pick one.
+  // If current dubbing is no longer available, clear it.
   useEffect(() => {
-    if (dubbings.length && !dub) setDub(dubbings[0]);
+    if (dub && dubbings.length && !dubbings.includes(dub)) setDub(null);
   }, [dubbings, dub]);
 
   // ---- players for selected dubbing ----
@@ -464,6 +466,11 @@ export default function WatchScreen(props: Props) {
               <ActivityIndicator color={theme.colors.primary} />
               <Text style={{ color: '#fff', marginTop: 8, fontSize: 13 }}>Загрузка плеера…</Text>
             </View>
+          ) : !current && list.length > 0 ? (
+            <View style={styles.playerCenter}>
+              <MaterialCommunityIcons name="play-circle-outline" size={36} color="rgba(255,255,255,0.45)" />
+              <Text style={{ color: '#fff', fontSize: 15, marginTop: 8, opacity: 0.7 }}>Выберите озвучку</Text>
+            </View>
           ) : current && resolvedPlayer ? (
             resolvedPlayer.kind === 'hls' ? (
               <WebView
@@ -549,7 +556,7 @@ export default function WatchScreen(props: Props) {
         ) : null}
 
         {/* Dubbings */}
-        {dubbings.length > 1 ? (
+        {dubbings.length > 0 ? (
           <View style={styles.section}>
             <Text variant="labelLarge" style={[styles.sectionLabel, { color: theme.colors.onSurfaceVariant }]}>
               Озвучка
