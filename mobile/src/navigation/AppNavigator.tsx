@@ -39,7 +39,6 @@ export type RootStackParamList = {
   Schedule: undefined;
   Search: { q?: string } | undefined;
   Friends: undefined;
-  Notifications: undefined;
   Chats: undefined;
   ChatThread: { chatId: number | string; title?: string };
   Rooms: undefined;
@@ -120,11 +119,19 @@ function MainTabs() {
             ) : (
               <TabIcon name="account-circle" color={color} size={size} />
             ),
-          tabBarButton: (props: any) => (
-            <Pressable {...props} onPress={handleProfile(props.onPress)} style={props.style}>
-              {props.children}
-            </Pressable>
-          ),
+          tabBarButton: (props: any) => {
+            const { onPress: _onPress, onLongPress: _onLongPress, ...rest } = props;
+            return (
+              <Pressable
+                {...rest}
+                onPress={handleProfile(_onPress)}
+                onLongPress={_onLongPress ? handleProfile(() => _onLongPress?.()) : undefined}
+                style={props.style}
+              >
+                {props.children}
+              </Pressable>
+            );
+          },
         }}
       />
     </Tab.Navigator>
@@ -153,7 +160,6 @@ export default function AppNavigator() {
         <Stack.Screen name="Schedule" component={ScheduleScreen} options={{ title: 'Расписание' }} />
         <Stack.Screen name="Search" component={SearchScreen} options={{ title: 'Поиск' }} />
         <Stack.Screen name="Friends" component={FriendsScreen} options={{ title: 'Друзья' }} />
-        <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Уведомления' }} />
         <Stack.Screen name="Chats" component={ChatsScreen} options={{ title: 'Чаты' }} />
         <Stack.Screen name="ChatThread" component={ChatThreadScreen} options={{ title: '' }} />
         <Stack.Screen name="Rooms" component={RoomsScreen} options={{ title: 'Комнаты' }} />

@@ -169,10 +169,7 @@ export default function CatalogScreen() {
     setLoadingMore(true);
     try {
       const next = pageRef.current + 1;
-      const prevLen = itemsRef.current.length;
       await loadPage(next, false);
-      // guard against no-growth loops
-      if (itemsRef.current.length === prevLen) setReachedEnd(true);
     } finally {
       setLoadingMore(false);
     }
@@ -475,7 +472,11 @@ export default function CatalogScreen() {
           ) : null
         }
         ListFooterComponent={
-          loadingMore ? (
+          gridError && items.length > 0 ? (
+            <Text style={[styles.errorText, { color: theme.colors.error }]}>
+              {gridError.message || 'Ошибка загрузки'}
+            </Text>
+          ) : loadingMore ? (
             <View style={styles.footer}>
               <ActivityIndicator color={theme.colors.primary} />
               <Text style={[styles.footerText, { color: theme.colors.onSurfaceVariant }]}>
@@ -567,6 +568,12 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 13,
+  },
+  errorText: {
+    textAlign: 'center',
+    fontSize: 13,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
   },
   endText: {
     textAlign: 'center',

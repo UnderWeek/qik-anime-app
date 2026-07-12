@@ -83,11 +83,6 @@ export default function RatingsScreen(props: Props) {
     }
   };
 
-  const handleUserPress = (item: any) => {
-    // No dedicated profile route for other users in stack; navigate to Friends as closest.
-    // Keep pressable but no-op if no id.
-  };
-
   const renderItem = (item: any, index: number) => {
     const rank = index + 1;
     const rc = rankColor(rank);
@@ -242,7 +237,6 @@ export default function RatingsScreen(props: Props) {
             </View>
           ) : null
         }
-        onPress={() => handleUserPress(item)}
         style={[styles.item, { backgroundColor: theme.colors.surfaceContainer }]}
         titleStyle={{ color: theme.colors.onSurface, fontWeight: '600' }}
       />
@@ -300,7 +294,6 @@ function RankBadge({
         size={28}
         style={{
           backgroundColor: colorOverride || theme.colors.primary,
-          color: colorOverride ? '#1a1b25' : theme.colors.onPrimary,
           fontWeight: '700',
         }}
       >

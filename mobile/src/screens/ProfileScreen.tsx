@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import {
   useTheme,
@@ -33,7 +33,6 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const BANNER_HEIGHT = 180;
 const AVATAR_SIZE = 96;
-const SCREEN_W = Dimensions.get('window').width;
 
 function formatHours(totalSeconds?: number): string {
   if (!totalSeconds) return '0 ч';
@@ -54,6 +53,7 @@ export default function ProfileScreen() {
   const theme = useTheme();
   const navigation = useNavigation<Nav>();
   const { user, logout, openAuthModal } = useAuth();
+  const { width: SCREEN_W } = useWindowDimensions();
 
   const [tab, setTab] = useState('stats');
 
@@ -158,7 +158,7 @@ export default function ProfileScreen() {
     <Screen refreshing={profileApi.loading} onRefresh={refreshAll} padded={false}>
       {/* Header: banner + avatar + actions */}
       <View>
-        <View style={styles.bannerWrap}>
+        <View style={[styles.bannerWrap, { width: SCREEN_W }]}>
           <Image
             source={uploadUrl(profile?.bannerUrl ?? user.bannerUrl)}
             style={styles.banner}
@@ -262,7 +262,7 @@ export default function ProfileScreen() {
           {actionCards.map((a) => (
             <Card
               key={a.target}
-              style={[styles.actionCard, { backgroundColor: theme.colors.surfaceContainer }]}
+              style={[styles.actionCard, { backgroundColor: theme.colors.surfaceContainer, width: (SCREEN_W - 12 * 2 - 8 * 3) / 4 }]}
               mode="contained"
               onPress={() => navigation.navigate(a.target as any)}
             >
@@ -276,7 +276,7 @@ export default function ProfileScreen() {
           ))}
           {isMaster && (
             <Card
-              style={[styles.actionCard, { backgroundColor: theme.colors.surfaceContainer }]}
+              style={[styles.actionCard, { backgroundColor: theme.colors.surfaceContainer, width: (SCREEN_W - 12 * 2 - 8 * 3) / 4 }]}
               mode="contained"
               onPress={() => navigation.navigate('Issues')}
             >
@@ -290,7 +290,7 @@ export default function ProfileScreen() {
           )}
           {isAdmin && (
             <Card
-              style={[styles.actionCard, { backgroundColor: theme.colors.surfaceContainer }]}
+              style={[styles.actionCard, { backgroundColor: theme.colors.surfaceContainer, width: (SCREEN_W - 12 * 2 - 8 * 3) / 4 }]}
               mode="contained"
               onPress={() => navigation.navigate('Admin')}
             >
@@ -518,7 +518,7 @@ export default function ProfileScreen() {
                     key={f?.id ?? friend?.id ?? i}
                     style={[styles.friendCard, { width: cw2 }]}
                     mode="contained"
-                    onPress={() => navigation.navigate('Chats')}
+                    onPress={async () => { const res = await backend.startChat(friend.id); const chatId = res?.id ?? res?.chatId ?? res?.chat?.id; if (chatId != null) navigation.navigate('ChatThread', { chatId, title: friend.username }); }}
                   >
                     <View style={styles.friendInner}>
                       <Avatar user={friend} size={64} />
@@ -553,9 +553,10 @@ function StatTile({
   color: string;
 }) {
   const theme = useTheme();
+  const { width: SCREEN_W } = useWindowDimensions();
   return (
     <Surface
-      style={[styles.statTile, { backgroundColor: theme.colors.surfaceContainer }]}
+      style={[styles.statTile, { backgroundColor: theme.colors.surfaceContainer, width: (SCREEN_W - 12 * 2 - 8 * 4) / 5 }]}
       elevation={0}
     >
       <MaterialCommunityIcons name={icon as any} size={20} color={color} />
@@ -569,7 +570,6 @@ function StatTile({
 
 const styles = StyleSheet.create({
   bannerWrap: {
-    width: SCREEN_W,
     height: BANNER_HEIGHT,
     backgroundColor: 'rgba(128,128,128,0.2)',
     position: 'relative',
@@ -632,7 +632,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   statTile: {
-    width: (SCREEN_W - 12 * 2 - 8 * 4) / 5,
     borderRadius: 12,
     padding: 8,
     alignItems: 'center',
@@ -645,7 +644,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   actionCard: {
-    width: (SCREEN_W - 12 * 2 - 8 * 3) / 4,
     borderRadius: 14,
   },
   actionInner: {

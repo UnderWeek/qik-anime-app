@@ -49,7 +49,7 @@ export default function AuthModalHost() {
       <Modal
         visible={isAuthModalOpen}
         onDismiss={closeAuthModal}
-        contentContainerStyle={[styles.modal, { backgroundColor: theme.colors.surface }]}
+        style={[styles.modal, { backgroundColor: theme.colors.surface }]}
       >
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView keyboardShouldPersistTaps="handled">

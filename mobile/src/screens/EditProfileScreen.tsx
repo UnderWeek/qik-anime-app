@@ -5,7 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  Dimensions,
+  useWindowDimensions,
   ActivityIndicator,
 } from 'react-native';
 import {
@@ -46,7 +46,7 @@ const AVATAR_COLORS = [
 ];
 
 const FRAMES: { label: string; value: string | null }[] = [
-  { label: 'Нет', value: 'none' },
+  { label: 'Нет', value: null },
   { label: 'Мята', value: 'mint' },
   { label: 'Лаванда', value: 'lavender' },
   { label: 'Персик', value: 'peach' },
@@ -58,13 +58,16 @@ const FRAMES: { label: string; value: string | null }[] = [
 
 export default function EditProfileScreen({ navigation }: Props) {
   const theme = useTheme();
+  const { width } = useWindowDimensions();
   const { user, refreshUser, addToast } = useAuth();
   const insets = useSafeAreaInsets();
+
+  const BANNER_H = Math.round(width * 9 / 16);
 
   const [username, setUsername] = useState(user?.username ?? '');
   const [bio, setBio] = useState(user?.bio ?? '');
   const [avatarColor, setAvatarColor] = useState(user?.avatarColor ?? AVATAR_COLORS[0]);
-  const [avatarFrame, setAvatarFrame] = useState<string | null>(user?.avatarFrame || 'none');
+  const [avatarFrame, setAvatarFrame] = useState<string | null>(user?.avatarFrame || null);
   const [avatarUrl, setAvatarUrl] = useState<string | null | undefined>(user?.avatarUrl);
   const [bannerUrl, setBannerUrl] = useState<string | null | undefined>(user?.bannerUrl);
 
@@ -147,13 +150,14 @@ export default function EditProfileScreen({ navigation }: Props) {
       addToast('Введите имя пользователя', 'error');
       return;
     }
+    const frameToSave = avatarFrame === 'none' ? null : avatarFrame;
     setSaving(true);
     try {
       await backend.updateProfile({
         username: trimmed,
         bio: bio.trim(),
         avatarColor,
-        avatarFrame,
+        avatarFrame: frameToSave,
         avatarUrl,
         bannerUrl,
       });
@@ -169,7 +173,7 @@ export default function EditProfileScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView
-      edges={['bottom']}
+      edges={['top', 'bottom']}
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <ScrollView
@@ -180,10 +184,10 @@ export default function EditProfileScreen({ navigation }: Props) {
         {/* Banner preview */}
         <View style={styles.bannerWrap}>
           {bannerUrl ? (
-            <Image source={{ uri: uploadUrl(bannerUrl) }} style={styles.banner} resizeMode="cover" />
+            <Image source={{ uri: uploadUrl(bannerUrl) }} style={[styles.banner, { height: BANNER_H }]} resizeMode="cover" />
           ) : (
             <View
-              style={[styles.banner, { backgroundColor: theme.colors.surfaceContainer }]}
+              style={[styles.banner, { height: BANNER_H, backgroundColor: theme.colors.surfaceContainer }]}
             >
               <MaterialCommunityIcons
                 name="image"
@@ -360,12 +364,10 @@ export default function EditProfileScreen({ navigation }: Props) {
   );
 }
 
-const BANNER_H = Math.round(Dimensions.get('window').width * 9 / 16);
-
 const styles = StyleSheet.create({
   container: { flex: 1 },
   bannerWrap: { margin: 12, borderRadius: 14, overflow: 'hidden' },
-  banner: { width: '100%', height: BANNER_H, justifyContent: 'center', alignItems: 'center' },
+  banner: { width: '100%', justifyContent: 'center', alignItems: 'center' },
   bannerBtn: {
     position: 'absolute',
     bottom: 8,

@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { View, StyleSheet, FlatList, Pressable } from 'react-native';
+import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useTheme, Text, Surface, IconButton } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -160,15 +160,18 @@ export default function HomeScreen() {
   const renderSection = ({ item: section }: { item: { key: string; title: string; items: any[] } }) => (
     <View style={styles.section}>
       <SectionHeader title={section.title} />
-      <FlatList
-        data={section.items}
-        renderItem={renderAnimeCard}
-        keyExtractor={(it, i) => String(it?.id || it?.alias || i)}
+      <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        ItemSeparatorComponent={() => <View style={{ width: RAIL_CARD_GAP }} />}
         contentContainerStyle={styles.railContent}
-      />
+      >
+        {section.items.map((it: any, i: number) => (
+          <React.Fragment key={String(it?.id || it?.alias || i)}>
+            {i > 0 && <View style={{ width: RAIL_CARD_GAP }} />}
+            {renderAnimeCard({ item: it })}
+          </React.Fragment>
+        ))}
+      </ScrollView>
     </View>
   );
 
@@ -234,15 +237,18 @@ export default function HomeScreen() {
           b.type === 'continue' ? (
             <View style={styles.section} key={b.key}>
               <SectionHeader title="Продолжить просмотр" />
-              <FlatList
-                data={b.items}
-                renderItem={renderContinueItem}
-                keyExtractor={(it: any, i: number) => String(it?.animeId || it?.id || i)}
+              <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                ItemSeparatorComponent={() => <View style={{ width: RAIL_CARD_GAP }} />}
                 contentContainerStyle={styles.railContent}
-              />
+              >
+                {b.items.map((item: any, i: number) => (
+                  <React.Fragment key={String(item?.animeId || item?.id || i)}>
+                    {i > 0 && <View style={{ width: RAIL_CARD_GAP }} />}
+                    {renderContinueItem({ item })}
+                  </React.Fragment>
+                ))}
+              </ScrollView>
             </View>
           ) : (
             <View key={b.key}>{renderSection({ item: b.section })}</View>

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Appearance } from 'react-native';
 import { lightTheme, darkTheme, AppTheme } from '../theme/theme';
@@ -27,17 +27,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const persist = (dark: boolean) => {
+  const persist = async (dark: boolean) => {
     setIsDark(dark);
-    AsyncStorage.setItem(THEME_KEY, dark ? 'dark' : 'light');
+    try {
+      await AsyncStorage.setItem(THEME_KEY, dark ? 'dark' : 'light');
+    } catch (e) {
+      console.warn('Failed to persist theme:', e);
+    }
   };
 
-  const value: ThemeContextValue = {
+  const value: ThemeContextValue = useMemo(() => ({
     theme: isDark ? darkTheme : lightTheme,
     isDark,
     toggleTheme: () => persist(!isDark),
-    setTheme: (t) => persist(t === 'dark'),
-  };
+    setTheme: (t: 'light' | 'dark') => persist(t === 'dark'),
+  }), [isDark]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

@@ -235,9 +235,18 @@ export default function RoomWatchScreen(props: Props) {
       sock.on('room:message', (m: any) => {
         if (!m) return;
         setMessages((prev) => {
-          const key = (m.id != null ? m.id : `${m.userId}-${m.createdAt}-${m.body}`);
-          if (prev.some((x) => (x.id != null ? x.id === m.id : false)) || prev.some((x) => `${x.userId}-${x.createdAt}-${x.body}` === key)) {
-            return prev;
+          // Dedup by id
+          if (m.id != null && prev.some((x) => x.id === m.id)) return prev;
+          // Dedup by userId + body for recent messages (handles mismatched createdAt
+          // between optimistic client messages and server-assigned timestamps)
+          if (m.userId != null && m.body) {
+            const now = Date.now();
+            if (prev.some((x) =>
+              x.userId === m.userId &&
+              x.body === m.body &&
+              x.createdAt != null &&
+              Math.abs(new Date(x.createdAt).getTime() - now) < 5000
+            )) return prev;
           }
           return [...prev, m];
         });
@@ -334,7 +343,9 @@ export default function RoomWatchScreen(props: Props) {
     const body = draft.trim();
     if (!body) return;
     setSending(true);
+    const tempId = `temp-${Date.now()}`;
     const optimistic: ChatMessage = {
+      id: tempId,
       userId: user?.id,
       username: user?.username,
       body,
@@ -345,6 +356,7 @@ export default function RoomWatchScreen(props: Props) {
     try {
       await backend.sendWatchRoomMessage(roomId, { body });
     } catch (e: any) {
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
       addToast(e?.message || 'Не удалось отправить сообщение', 'error');
     } finally {
       setSending(false);
@@ -470,7 +482,7 @@ export default function RoomWatchScreen(props: Props) {
   };
 
   return (
-    <SafeAreaView style={[styles.flex, { backgroundColor: theme.colors.background }]} edges={['bottom']}>
+    <SafeAreaView style={[styles.flex, { backgroundColor: theme.colors.background }]} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

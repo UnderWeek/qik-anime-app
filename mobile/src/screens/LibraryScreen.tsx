@@ -2,7 +2,9 @@ import { useCallback, useRef, useState } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
 import {
   SegmentedButtons,
-  Menu,
+  Dialog,
+  List,
+  Button,
   Text,
   Divider,
   useTheme,
@@ -59,7 +61,7 @@ export default function LibraryScreen() {
   const { user, openAuthModal, addToast } = useAuth();
 
   const [activeStatus, setActiveStatus] = useState<BookmarkStatus>('watching');
-  const [menu, setMenu] = useState<{ item: BookmarkItem; x: number; y: number; w: number; h: number } | null>(null);
+  const [menu, setMenu] = useState<{ item: BookmarkItem } | null>(null);
   const [busy, setBusy] = useState(false);
 
   const fetcher = useCallback(() => backend.listBookmarks(activeStatus), [activeStatus]);
@@ -73,7 +75,7 @@ export default function LibraryScreen() {
   );
 
   const handleLongPress = useCallback((item: BookmarkItem) => {
-    setMenu({ item, x: 0, y: 0, w: 0, h: 0 });
+    setMenu({ item });
   }, []);
 
   const closeMenu = useCallback(() => setMenu(null), []);
@@ -188,43 +190,47 @@ export default function LibraryScreen() {
         />
       )}
 
-      <Menu
-        visible={!!menu}
-        onDismiss={closeMenu}
-        anchor={menu ? { x: menu.x, y: menu.y } : { x: 0, y: 0 }}
-      >
-        <Menu.Item
-          leadingIcon="play-outline"
-          onPress={() => menu && changeStatus(menu.item, 'watching')}
-          title="В «Смотрю»"
-        />
-        <Menu.Item
-          leadingIcon="calendar-clock"
-          onPress={() => menu && changeStatus(menu.item, 'planned')}
-          title="В «В планах»"
-        />
-        <Menu.Item
-          leadingIcon="check-circle-outline"
-          onPress={() => menu && changeStatus(menu.item, 'completed')}
-          title="В «Просмотрено»"
-        />
-        <Menu.Item
-          leadingIcon="pause-circle-outline"
-          onPress={() => menu && changeStatus(menu.item, 'on_hold')}
-          title="В «Отложено»"
-        />
-        <Menu.Item
-          leadingIcon="stop-circle-outline"
-          onPress={() => menu && changeStatus(menu.item, 'dropped')}
-          title="В «Брошено»"
-        />
-        <Divider />
-        <Menu.Item
-          leadingIcon="trash-can-outline"
-          onPress={() => menu && removeBookmark(menu.item)}
-          title="Удалить из библиотеки"
-        />
-      </Menu>
+      <Dialog visible={!!menu} onDismiss={closeMenu}>
+        <Dialog.Title>{menu?.item?.title || ''}</Dialog.Title>
+        <Dialog.ScrollArea style={{ paddingHorizontal: 0 }}>
+          <View>
+            <List.Item
+              title="В «Смотрю»"
+              left={(props) => <List.Icon {...props} icon="play-outline" />}
+              onPress={() => menu && changeStatus(menu.item, 'watching')}
+            />
+            <List.Item
+              title="В «В планах»"
+              left={(props) => <List.Icon {...props} icon="calendar-clock" />}
+              onPress={() => menu && changeStatus(menu.item, 'planned')}
+            />
+            <List.Item
+              title="В «Просмотрено»"
+              left={(props) => <List.Icon {...props} icon="check-circle-outline" />}
+              onPress={() => menu && changeStatus(menu.item, 'completed')}
+            />
+            <List.Item
+              title="В «Отложено»"
+              left={(props) => <List.Icon {...props} icon="pause-circle-outline" />}
+              onPress={() => menu && changeStatus(menu.item, 'on_hold')}
+            />
+            <List.Item
+              title="В «Брошено»"
+              left={(props) => <List.Icon {...props} icon="stop-circle-outline" />}
+              onPress={() => menu && changeStatus(menu.item, 'dropped')}
+            />
+            <Divider />
+            <List.Item
+              title="Удалить из библиотеки"
+              left={(props) => <List.Icon {...props} icon="trash-can-outline" />}
+              onPress={() => menu && removeBookmark(menu.item)}
+            />
+          </View>
+        </Dialog.ScrollArea>
+        <Dialog.Actions>
+          <Button onPress={closeMenu}>Отмена</Button>
+        </Dialog.Actions>
+      </Dialog>
     </View>
   );
 }

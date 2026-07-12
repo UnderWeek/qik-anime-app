@@ -4,24 +4,33 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 export function useApi<T>(
   fetcher: () => Promise<T>,
   deps: any[] = [],
-): { data: T | null; loading: boolean; error: Error | null; refetch: () => Promise<void> } {
+): { data: T | null; loading: boolean; error: Error | null; refetch: () => Promise<T | null> } {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
   const mounted = useRef(true);
+  const requestIdRef = useRef(0);
 
   const refetch = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
     try {
       const result = await fetcherRef.current();
-      if (mounted.current) setData(result);
+      if (requestId === requestIdRef.current) {
+        if (mounted.current) setData(result);
+        return result;
+      }
+      return null;
     } catch (e: any) {
-      if (mounted.current) setError(e);
+      if (requestId === requestIdRef.current) {
+        if (mounted.current) setError(e);
+      }
+      return null;
     } finally {
-      if (mounted.current) setLoading(false);
+      if (requestId === requestIdRef.current && mounted.current) setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);

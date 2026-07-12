@@ -15,9 +15,7 @@ export default function Screen({ children, refreshing, onRefresh, padded = true 
   const theme = useTheme();
   const insets = useSafeAreaInsets();
 
-  const content = (
-    <View style={padded ? {} : {}}>{children}</View>
-  );
+  const content = <>{children}</>;
 
   if (onRefresh) {
     return (

@@ -36,7 +36,11 @@ async function request<T = any>(path: string, { params, ...options }: any = {}):
     err.status = res.status;
     throw err;
   }
-  const json = await res.json();
+  const text = await res.text();
+  let json: any = {};
+  if (text) {
+    try { json = JSON.parse(text); } catch { json = text; }
+  }
   // YummyAnime wraps payloads in { response: ... }
   return json.response !== undefined ? json.response : json;
 }

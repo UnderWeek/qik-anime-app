@@ -75,10 +75,15 @@ export default function ChatThreadScreen(props: Props) {
     navigation.setOptions({ title: title || 'Чат' });
   }, [navigation, title]);
 
-  // Poll for new messages every 5s
+  // Poll for new messages every 5s (skip if previous request is still in-flight)
+  const fetchingRef = useRef(false);
+
   useEffect(() => {
     const interval = setInterval(() => {
-      refetch();
+      if (!fetchingRef.current) {
+        fetchingRef.current = true;
+        refetch().finally(() => { fetchingRef.current = false; });
+      }
     }, 5000);
     return () => clearInterval(interval);
   }, [refetch]);

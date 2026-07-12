@@ -1,12 +1,14 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Pressable, Animated, LayoutChangeEvent } from 'react-native';
-import { Text } from 'react-native-paper';
+import { Text, useTheme } from 'react-native-paper';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
 const PILL_H = 52;
 const PAD = 4;
 
 export default function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const theme = useTheme();
+
   const pillLeft = useRef(new Animated.Value(0)).current;
   const pillW = useRef(new Animated.Value(60)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -21,6 +23,8 @@ export default function FloatingTabBar({ state, descriptors, navigation }: Botto
       Animated.parallel([
         Animated.spring(pillLeft, { toValue: l.x - 1.5, ...config }),
         Animated.spring(pillW, { toValue: l.w + 3, ...config }),
+        // Bug 4: animate opacity in the parallel branch too
+        Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: false }),
       ]).start();
     } else {
       pillLeft.setValue(l.x - 1.5);
@@ -29,40 +33,54 @@ export default function FloatingTabBar({ state, descriptors, navigation }: Botto
     }
   };
 
-  // Track when all tabs have been measured
+  // Bug 1: useState tracks measured count so changes trigger re-render
+  const [measuredCount, setMeasuredCount] = useState(0);
   const routesLen = state.routes.length;
-  const measuredCount = Object.keys(layouts).length;
   const allMeasured = measuredCount >= routesLen;
 
-  // Animate on index change
-  const prevIndex = useRef(state.index);
+  // Bug 2: Consolidated effect, first-measure flag to avoid instant-setValue override
+  const hasMeasured = useRef(false);
   useEffect(() => {
     const route = state.routes[state.index];
-    if (route && allMeasured) {
-      movePill(route.key, prevIndex.current !== state.index);
-    }
-    prevIndex.current = state.index;
-  }, [state.index, allMeasured]);
+    if (!route || !allMeasured) return;
 
-  // Fade in on first measure
-  useEffect(() => {
-    if (allMeasured) {
-      const route = state.routes[state.index];
-      if (route && layouts[route.key]) {
-        movePill(route.key, false);
-      }
+    if (!hasMeasured.current) {
+      // First measurement — position instantly, fade in with timing
+      hasMeasured.current = true;
+      const l = layouts[route.key];
+      if (!l) return;
+      pillLeft.setValue(l.x - 1.5);
+      pillW.setValue(l.w + 3);
+      Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: false }).start();
+    } else {
+      movePill(route.key, true);
     }
-  }, [allMeasured]);
+  }, [state.index, allMeasured]);
 
   const onLayout = (routeKey: string) => (e: LayoutChangeEvent) => {
     const { x, width } = e.nativeEvent.layout;
     if (layouts[routeKey]?.x === x && layouts[routeKey]?.w === width) return;
     layouts[routeKey] = { x, w: width };
+    setMeasuredCount((c) => c + 1);
   };
+
+  // Bug 3: Parse primary color hex to RGB for pill background opacity
+  const primaryHex = theme.colors.primary;
+  const pr = parseInt(primaryHex.slice(1, 3), 16);
+  const pg = parseInt(primaryHex.slice(3, 5), 16);
+  const pb = parseInt(primaryHex.slice(5, 7), 16);
 
   return (
     <View style={styles.wrapper}>
-      <View style={styles.bar}>
+      <View
+        style={[
+          styles.bar,
+          {
+            backgroundColor: theme.dark
+              ? theme.colors.surfaceContainerHigh
+              : theme.colors.surfaceContainer,
+          },
+        ]}>
         <Animated.View
           style={[
             styles.pill,
@@ -70,16 +88,21 @@ export default function FloatingTabBar({ state, descriptors, navigation }: Botto
               left: pillLeft,
               width: pillW,
               opacity,
+              backgroundColor: `rgba(${pr},${pg},${pb},0.35)`,
             },
           ]}
         />
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
           const focused = state.index === index;
-          const color = focused ? '#FFFFFF' : '#938F99';
+          const color = focused ? theme.colors.onSurface : theme.colors.onSurfaceVariant;
 
           const onPress = () => {
-            const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
             if (!focused && !event.defaultPrevented) {
               navigation.navigate(route.name);
             }
@@ -92,12 +115,13 @@ export default function FloatingTabBar({ state, descriptors, navigation }: Botto
               onLayout={onLayout(route.key)}
               style={styles.tab}
               accessibilityRole="button"
-              accessibilityState={focused ? { selected: true } : {}}
-            >
+              accessibilityState={focused ? { selected: true } : {}}>
               {options.tabBarIcon
                 ? options.tabBarIcon({ focused, color, size: 22 })
                 : null}
-              <Text style={[styles.label, { color }, focused && styles.labelOn]} numberOfLines={1}>
+              <Text
+                style={[styles.label, { color }, focused && styles.labelOn]}
+                numberOfLines={1}>
                 {options.title ?? route.name}
               </Text>
             </Pressable>
@@ -117,7 +141,6 @@ const styles = StyleSheet.create({
   },
   bar: {
     flexDirection: 'row',
-    backgroundColor: '#1E1E2E',
     borderRadius: 22,
     padding: PAD,
     height: PILL_H + PAD * 2 + 6,
@@ -135,7 +158,6 @@ const styles = StyleSheet.create({
     top: PAD,
     height: PILL_H,
     borderRadius: PILL_H / 2,
-    backgroundColor: 'rgba(103,80,164,0.35)',
   },
   tab: {
     flex: 1,

@@ -98,85 +98,87 @@ export default function ChatsScreen({ navigation }: Props) {
   const chats = Array.isArray(data) ? data : [];
 
   return (
-    <Screen refreshing={loading} onRefresh={() => refetch()}>
-      {loading && !data ? (
-        <LoadingState label="Загрузка чатов…" />
-      ) : error ? (
-        <ErrorState message={error.message} onRetry={() => refetch()} />
-      ) : chats.length === 0 ? (
-        <EmptyState
-          icon="chat-outline"
-          message="У вас пока нет чатов. Начните общение с друзьями!"
-          action={handleStartChat}
-          actionLabel="К друзьям"
-        />
-      ) : (
-        <View style={styles.list}>
-          {chats.map((chat) => {
-            const other = pickOtherUser(chat);
-            const preview = pickLastMessage(chat);
-            const time = formatTime(pickTimestamp(chat));
-            const unread = chat.unreadCount ?? chat.unread ?? 0;
-            return (
-              <Pressable
-                key={String(chat.id)}
-                onPress={() => handleOpenChat(chat)}
-                style={({ pressed }) => [
-                  styles.row,
-                  { backgroundColor: theme.colors.surfaceContainer },
-                  pressed && { backgroundColor: theme.colors.surfaceContainerHigh },
-                ]}
-              >
-                <Avatar user={other} size={50} />
-                <View style={styles.content}>
-                  <View style={styles.topLine}>
-                    <Text
-                      variant="titleMedium"
-                      numberOfLines={1}
-                      style={[styles.name, { color: theme.colors.onSurface }]}
-                    >
-                      {other?.username || 'Пользователь'}
-                    </Text>
-                    {time ? (
+    <>
+      <Screen refreshing={loading} onRefresh={() => refetch()}>
+        {loading && !data ? (
+          <LoadingState label="Загрузка чатов…" />
+        ) : error ? (
+          <ErrorState message={error.message} onRetry={() => refetch()} />
+        ) : chats.length === 0 ? (
+          <EmptyState
+            icon="chat-outline"
+            message="У вас пока нет чатов. Начните общение с друзьями!"
+            action={handleStartChat}
+            actionLabel="К друзьям"
+          />
+        ) : (
+          <View style={styles.list}>
+            {chats.map((chat) => {
+              const other = pickOtherUser(chat);
+              const preview = pickLastMessage(chat);
+              const time = formatTime(pickTimestamp(chat));
+              const unread = chat.unreadCount ?? chat.unread ?? 0;
+              return (
+                <Pressable
+                  key={String(chat.id)}
+                  onPress={() => handleOpenChat(chat)}
+                  style={({ pressed }) => [
+                    styles.row,
+                    { backgroundColor: theme.colors.surfaceContainer },
+                    pressed && { backgroundColor: theme.colors.surfaceContainerHigh },
+                  ]}
+                >
+                  <Avatar user={other} size={50} />
+                  <View style={styles.content}>
+                    <View style={styles.topLine}>
                       <Text
-                        variant="labelSmall"
-                        style={{ color: theme.colors.onSurfaceVariant }}
+                        variant="titleMedium"
+                        numberOfLines={1}
+                        style={[styles.name, { color: theme.colors.onSurface }]}
                       >
-                        {time}
+                        {other?.username || 'Пользователь'}
                       </Text>
-                    ) : null}
-                  </View>
-                  <View style={styles.bottomLine}>
-                    <Text
-                      variant="bodyMedium"
-                      numberOfLines={1}
-                      style={[
-                        styles.preview,
-                        { color: theme.colors.onSurfaceVariant },
-                        unread > 0 && { color: theme.colors.onSurface, fontWeight: '600' },
-                      ]}
-                    >
-                      {preview || 'Нет сообщений'}
-                    </Text>
-                    {unread > 0 ? (
-                      <View
-                        style={[styles.badge, { backgroundColor: theme.colors.primary }]}
-                      >
+                      {time ? (
                         <Text
                           variant="labelSmall"
-                          style={{ color: theme.colors.onPrimary, fontWeight: '700' }}
+                          style={{ color: theme.colors.onSurfaceVariant }}
                         >
-                          {unread > 99 ? '99+' : unread}
+                          {time}
                         </Text>
-                      </View>
-                    ) : null}
+                      ) : null}
+                    </View>
+                    <View style={styles.bottomLine}>
+                      <Text
+                        variant="bodyMedium"
+                        numberOfLines={1}
+                        style={[
+                          styles.preview,
+                          { color: theme.colors.onSurfaceVariant },
+                          unread > 0 && { color: theme.colors.onSurface, fontWeight: '600' },
+                        ]}
+                      >
+                        {preview || 'Нет сообщений'}
+                      </Text>
+                      {unread > 0 ? (
+                        <View
+                          style={[styles.badge, { backgroundColor: theme.colors.primary }]}
+                        >
+                          <Text
+                            variant="labelSmall"
+                            style={{ color: theme.colors.onPrimary, fontWeight: '700' }}
+                          >
+                            {unread > 99 ? '99+' : unread}
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
                   </View>
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
-      )}
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+      </Screen>
 
       <FAB
         icon="pencil-plus-outline"
@@ -185,7 +187,7 @@ export default function ChatsScreen({ navigation }: Props) {
         color={theme.colors.onPrimary}
         label="Новый чат"
       />
-    </Screen>
+    </>
   );
 }
 

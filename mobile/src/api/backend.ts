@@ -202,7 +202,10 @@ export const backend = {
   pushKey: () => request('/push/key'),
   pushSubscribe: (sub: any) => request('/push/subscribe', { method: 'POST', body: sub, auth: true }),
   pushUnsubscribe: (endpoint: string) =>
-    request('/push/subscribe', { method: 'DELETE', body: { endpoint }, auth: true }),
+    request(`/push/subscribe?endpoint=${encodeURIComponent(endpoint)}`, {
+      method: 'DELETE',
+      auth: true,
+    }),
 };
 
 export default backend;

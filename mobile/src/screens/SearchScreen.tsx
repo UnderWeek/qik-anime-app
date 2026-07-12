@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, FlatList, Pressable, ActivityIndicator, Dimensions } from 'react-native';
+import { View, StyleSheet, FlatList, Pressable, ActivityIndicator, Dimensions, RefreshControl } from 'react-native';
 import { useTheme, Searchbar, Text, Chip, Button } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -43,6 +43,8 @@ export default function SearchScreen(props: Props) {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
   const reqIdRef = useRef(0);
 
   // React to inbound route param (deep-link / navigate with q).
@@ -82,9 +84,12 @@ export default function SearchScreen(props: Props) {
         if (reqId === reqIdRef.current) setError(e);
       })
       .finally(() => {
-        if (reqId === reqIdRef.current) setLoading(false);
+        if (reqId === reqIdRef.current) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       });
-  }, [submittedQuery]);
+  }, [submittedQuery, retryCount]);
 
   const loadMore = useCallback(() => {
     const q = submittedQuery.trim();
@@ -131,6 +136,13 @@ export default function SearchScreen(props: Props) {
   );
 
   const onSubmit = useCallback(() => runSearch(inputQuery), [inputQuery, runSearch]);
+
+  const onRefresh = useCallback(() => {
+    const q = submittedQuery.trim();
+    if (!q) return;
+    setRefreshing(true);
+    setRetryCount((c) => c + 1);
+  }, [submittedQuery]);
 
   const removeHistory = useCallback(
     (id: number) => {
@@ -226,7 +238,7 @@ export default function SearchScreen(props: Props) {
     initialLoading ? (
       <LoadingState label="Поиск…" />
     ) : error ? (
-      <ErrorState message={error.message} onRetry={() => setSubmittedQuery((q) => q.trim())} />
+      <ErrorState message={error.message} onRetry={() => setRetryCount((c) => c + 1)} />
     ) : (
       <EmptyState
         icon="magnify-close"
@@ -277,6 +289,7 @@ export default function SearchScreen(props: Props) {
         onEndReachedThreshold={0.4}
         initialNumToRender={PAGE_SIZE}
         keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       />
     </View>
   );

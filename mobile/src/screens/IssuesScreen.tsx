@@ -301,9 +301,12 @@ export default function IssuesScreen(props: Props) {
       try {
         await backend.uploadAttachment(issueId, asset);
         addToast('Вложение добавлено', 'success');
-        await refetch();
-        // Sync detail view attachments
-        setDetailIssue((prev) => prev);
+        const result = await refetch();
+        // Sync detail view with updated attachments from server
+        if (result) {
+          const updated = result.find((i) => i.id === issueId);
+          if (updated) setDetailIssue(updated);
+        }
       } catch (e: any) {
         addToast(e?.message || 'Ошибка загрузки', 'error');
       } finally {

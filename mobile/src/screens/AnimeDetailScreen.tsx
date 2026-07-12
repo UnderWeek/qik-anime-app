@@ -78,7 +78,10 @@ function formatTime(iso?: string | null): string {
 function safe<T>(p: Promise<T>): Promise<T | null> {
   return p.then(
     (v) => v,
-    () => null,
+    (e) => {
+      console.warn('safe() caught:', e);
+      return null;
+    },
   );
 }
 
@@ -219,7 +222,7 @@ export default function AnimeDetailScreen(props: Props) {
     if (!requireAuth()) return;
     setBookmarkBusy(true);
     try {
-      await backend.removeBookmark(animeId);
+      await backend.removeBookmark(animeIdNum);
       addToast('Закладка удалена', 'success');
       refetchBookmark();
     } catch (e: any) {
@@ -227,7 +230,7 @@ export default function AnimeDetailScreen(props: Props) {
     } finally {
       setBookmarkBusy(false);
     }
-  }, [requireAuth, animeId, addToast, refetchBookmark]);
+  }, [requireAuth, animeIdNum, addToast, refetchBookmark]);
 
   // ---- rating ----
   const myRating: number | null = (rating as any)?.score ?? null;
@@ -240,7 +243,7 @@ export default function AnimeDetailScreen(props: Props) {
       setRatingBusy(true);
       try {
         if (myRating === score) {
-          await backend.removeRating(animeId);
+          await backend.removeRating(animeIdNum);
         } else {
           await backend.rate(animeIdNum, score);
         }
@@ -251,7 +254,7 @@ export default function AnimeDetailScreen(props: Props) {
         setRatingBusy(false);
       }
     },
-    [requireAuth, animeIdNum, animeId, myRating, refetchRating, addToast],
+    [requireAuth, animeIdNum, myRating, refetchRating, addToast],
   );
 
   // ---- opening / ending ratings ----
@@ -268,7 +271,7 @@ export default function AnimeDetailScreen(props: Props) {
       try {
         const current = type === 'opening' ? myOpScore : myEdScore;
         if (current === score) {
-          await backend.removeOpeningRating(animeId, type);
+          await backend.removeOpeningRating(animeIdNum, type);
         } else {
           await backend.rateOpening({ animeId: animeIdNum, type, score });
         }
@@ -279,7 +282,7 @@ export default function AnimeDetailScreen(props: Props) {
         setOpBusy(false);
       }
     },
-    [requireAuth, animeIdNum, animeId, myOpScore, myEdScore, refetchOpening, addToast],
+    [requireAuth, animeIdNum, myOpScore, myEdScore, refetchOpening, addToast],
   );
 
   // ---- comments ----
@@ -357,7 +360,7 @@ export default function AnimeDetailScreen(props: Props) {
   };
 
   return (
-    <SafeAreaView style={[styles.fill, { backgroundColor: theme.colors.background }]} edges={['bottom']}>
+    <SafeAreaView style={[styles.fill, { backgroundColor: theme.colors.background }]} edges={['top', 'bottom']}>
       <ScrollView
         style={styles.fill}
         contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}

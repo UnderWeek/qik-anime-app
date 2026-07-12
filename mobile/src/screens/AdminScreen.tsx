@@ -356,7 +356,7 @@ export default function AdminScreen(_: Props) {
       {isLoading ? (
         <LoadingState label="Загрузка статистики…" />
       ) : isError ? (
-        <ErrorState message={statsApi.error?.message} onRetry={() => statsApi.refetch()} />
+        <ErrorState message={statsApi.error?.message || 'Не удалось загрузить статистику'} onRetry={() => statsApi.refetch()} />
       ) : statEntries.length === 0 ? (
         <EmptyState icon="chart-bar" message="Нет данных статистики" />
       ) : (

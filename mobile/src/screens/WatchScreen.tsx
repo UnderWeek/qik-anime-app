@@ -8,6 +8,7 @@ import {
   Divider,
   ActivityIndicator,
   Surface,
+  TouchableRipple,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
@@ -345,6 +346,9 @@ export default function WatchScreen(props: Props) {
     setWebViewError(false);
   }, []);
 
+  const animeIdRef = useRef(animeId);
+  animeIdRef.current = animeId;
+
   // ---- save progress ----
   const lastSaveRef = useRef(0);
   const posterUrl = useMemo(() => {
@@ -377,18 +381,19 @@ export default function WatchScreen(props: Props) {
         })
         .catch(() => {});
     },
-    [user, current, animeId, title],
+    [user, current, animeId, title, posterUrl],
   );
 
   // Mark episode visited for iframe players (best-effort progress)
   useEffect(() => {
-    if (!user || !current || !animeId || !resolvedPlayer) return;
+    const aid = animeIdRef.current;
+    if (!user || !current || !aid || !resolvedPlayer) return;
     if (resolvedPlayer.kind === 'hls') return; // HLS polls via onMessage
     const epNum = Number(current.number);
     if (!Number.isFinite(epNum)) return;
     backend
       .saveProgress({
-        animeId,
+        animeId: aid,
         episode: epNum,
         second: 0,
         duration: Math.floor(current.duration || 0),
@@ -403,8 +408,7 @@ export default function WatchScreen(props: Props) {
         }
       })
       .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current?.video_id, resolvedPlayer?.url]);
+  }, [current?.video_id, resolvedPlayer?.url, user, title, posterUrl]);
 
   // ---- WebView message handling (HLS progress) ----
   const onMessage = useCallback(
@@ -440,7 +444,7 @@ export default function WatchScreen(props: Props) {
   // ---- render ----
   if (!user) {
     return (
-      <SafeAreaView style={[styles.flex, { backgroundColor: theme.colors.background }]}>
+      <SafeAreaView style={[styles.flex, { backgroundColor: theme.colors.background }]} edges={['top', 'bottom']}>
         <View style={styles.center}>
           <MaterialCommunityIcons name="account-lock-outline" size={48} color={theme.colors.outline} />
           <Text variant="titleLarge" style={{ marginTop: 12, color: theme.colors.onSurface }}>
@@ -464,7 +468,7 @@ export default function WatchScreen(props: Props) {
   const stillLoading = loading || (!error && videos == null);
 
   return (
-    <SafeAreaView style={[styles.flex, { backgroundColor: theme.colors.background }]} edges={['bottom']}>
+    <SafeAreaView style={[styles.flex, { backgroundColor: theme.colors.background }]} edges={['top', 'bottom']}>
       <ScrollView
         style={styles.flex}
         contentContainerStyle={{ paddingBottom: 32 }}
@@ -660,7 +664,7 @@ export default function WatchScreen(props: Props) {
                 const sv = watched[String(ep.number)];
                 const isWatched = sv?.completed;
                 return (
-                  <Surface
+                  <TouchableRipple
                     key={String(ep.video_id)}
                     style={[
                       styles.epBtn,
@@ -673,8 +677,7 @@ export default function WatchScreen(props: Props) {
                         borderColor: isWatched && !isActive ? theme.colors.primary : theme.colors.outlineVariant,
                       },
                     ]}
-                    elevation={isActive ? 1 : 0}
-                    onTouchEnd={() => {
+                    onPress={() => {
                       setCurrentVideoId(ep.video_id);
                       setResumeSeconds(Number(watchedRef.current[String(ep.number)]?.second || 0));
                     }}
@@ -689,7 +692,7 @@ export default function WatchScreen(props: Props) {
                       {String(ep.number)}
                       {isWatched && !isActive ? ' ✓' : ''}
                     </Text>
-                  </Surface>
+                  </TouchableRipple>
                 );
               })}
             </View>

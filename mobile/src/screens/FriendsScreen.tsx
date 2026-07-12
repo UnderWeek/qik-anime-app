@@ -151,10 +151,10 @@ export default function FriendsScreen(props: Props) {
 
   const handleDecline = async (req: PendingRequest) => {
     if (!user) return openAuthModal();
-    const other = pickPendingUser(req).id;
-    setBusyId(other);
+    const id = pickRequestId(req);
+    setBusyId(id);
     try {
-      await backend.removeFriend(other);
+      await backend.removeFriend(pickPendingUser(req).id);
       addToast('Заявка отклонена', 'success');
       await pendingApi.refetch();
     } catch {
@@ -333,7 +333,7 @@ export default function FriendsScreen(props: Props) {
                     size={20}
                     iconColor={theme.colors.error}
                     onPress={() => handleDecline(req)}
-                    disabled={busyId === fromUser.id}
+                    disabled={busyId === rid}
                     accessibilityLabel="Отклонить"
                   />
                 </View>

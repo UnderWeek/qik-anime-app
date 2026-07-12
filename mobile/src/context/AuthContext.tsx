@@ -55,10 +55,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const addToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     const id = ++toastId;
     setToasts((t) => [...t, { id, type, message }]);
-    setTimeout(() => removeToast(id), 4000);
-  }, [removeToast]);
+  }, []);
 
   const refreshUser = useCallback(async () => {
+    setLoading(true);
     const t = await getToken();
     if (!t) {
       setLoading(false);
@@ -68,10 +68,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const me = await backend.me();
       setUser(me);
-    } catch {
-      await setToken(null);
-      setTokenState(null);
-      setUser(null);
+    } catch (e: any) {
+      if (e?.status === 401) {
+        await setToken(null);
+        setTokenState(null);
+        setUser(null);
+      }
     } finally {
       setLoading(false);
     }

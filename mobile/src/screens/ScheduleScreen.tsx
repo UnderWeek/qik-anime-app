@@ -5,7 +5,6 @@ import {
   Text,
   SegmentedButtons,
   Surface,
-  Divider,
   ActivityIndicator,
 } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -264,7 +263,9 @@ export default function ScheduleScreen(props: Props) {
             data={dayItems}
             renderItem={renderItem}
             keyExtractor={keyExtractor}
-            ItemSeparatorComponent={() => <Divider style={{ marginHorizontal: 12 }} />}
+            ItemSeparatorComponent={() => (
+              <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: theme.colors.outlineVariant, marginHorizontal: 12 }} />
+            )}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             scrollEnabled={false}

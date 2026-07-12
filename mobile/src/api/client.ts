@@ -78,23 +78,23 @@ export async function request<T = any>(
   return data as T;
 }
 
-// Multipart upload via expo-file-system new API (UploadTask).
+// Multipart upload via expo-file-system uploadAsync.
 export async function uploadMultipart(
   path: string,
   file: { uri: string; name?: string; type?: string },
 ): Promise<any> {
   const t = await getToken();
-
-  const fsFile = new FileSystem.File(file.uri);
-  const task = new FileSystem.UploadTask(fsFile, `${QIK_API_BASE}${path}`, {
-    httpMethod: 'POST',
-    uploadType: FileSystem.UploadType.MULTIPART,
-    fieldName: 'file',
-    mimeType: file.type || 'image/jpeg',
-    headers: t ? { Authorization: `Bearer ${t}` } : {},
-  });
-
-  const result = await task.uploadAsync();
+  const result = await FileSystem.uploadAsync(
+    `${QIK_API_BASE}${path}`,
+    file.uri,
+    {
+      httpMethod: 'POST',
+      uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+      fieldName: 'file',
+      mimeType: file.type || 'image/jpeg',
+      headers: t ? { Authorization: `Bearer ${t}` } : {},
+    },
+  );
 
   if (result.status < 200 || result.status >= 300) {
     let msg = `Ошибка ${result.status}`;
