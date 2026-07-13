@@ -1,5 +1,5 @@
 import { useRouter, usePathname } from 'expo-router';
-import { Home, LayoutGrid, Users, CircleUser } from 'lucide-react-native';
+import { Home, LayoutGrid, Users, CircleUser, Settings } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -10,6 +10,7 @@ const TABS = [
   { title: 'Каталог', icon: LayoutGrid, route: '/catalog' },
   { title: 'Друзья', icon: Users, route: '/friends' },
   { title: 'Профиль', icon: CircleUser, route: '/profile' },
+  { title: 'Настройки', icon: Settings, route: '/settings' },
 ] as const;
 
 export default function AppTabs() {

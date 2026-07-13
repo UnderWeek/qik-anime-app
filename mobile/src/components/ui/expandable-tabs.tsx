@@ -133,7 +133,7 @@ function AnimatedTabContent({
 
   return (
     <View style={styles.tabInner}>
-      <Icon size={20} color={isSelected ? activeColor : "#8F8F99"} />
+      <Icon size={18} color={isSelected ? activeColor : "#8F8F99"} />
       <Animated.View style={[styles.labelContainer, labelStyle]}>
         <Text
           style={[styles.label, isSelected && { color: activeColor }]}
@@ -157,12 +157,12 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    borderRadius: 16,
+    gap: 7,
+    borderRadius: 15,
     borderWidth: 1,
     borderColor: "#27272A",
     backgroundColor: "#09090B",
-    padding: 6,
+    padding: 5,
     marginHorizontal: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
@@ -171,8 +171,8 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   separator: {
-    marginHorizontal: 4,
-    height: 24,
+    marginHorizontal: 3,
+    height: 22,
     width: 1.2,
     backgroundColor: "#27272A",
   },
@@ -182,13 +182,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "transparent",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 11,
   },
   tabSelected: {
     borderColor: "#18181B",
     backgroundColor: "#18181B",
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
   },
   tabPressed: {
     opacity: 0.7,
@@ -196,13 +196,13 @@ const styles = StyleSheet.create({
   tabInner: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
   },
   labelContainer: {
     overflow: "hidden",
   },
   label: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
     color: "#8F8F99",
   },

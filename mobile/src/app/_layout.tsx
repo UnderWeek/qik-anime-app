@@ -18,6 +18,7 @@ export default function TabLayout() {
         <Tabs.Screen name="catalog" options={{ headerShown: false }} />
         <Tabs.Screen name="friends" options={{ headerShown: false }} />
         <Tabs.Screen name="profile" options={{ headerShown: false }} />
+        <Tabs.Screen name="settings" options={{ headerShown: false }} />
       </Tabs>
     </ThemeProvider>
   );
