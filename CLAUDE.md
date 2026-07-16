@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-QIK Anime — full-stack anime streaming/tracking app. React SPA frontend (`anime-site/`) + NestJS backend (`server/`). Anime catalog data comes from the external YummyAnime API (https://yani.tv); the backend only adds social/gamification layers (users, bookmarks, ratings, comments, progress, friends, notifications, watch rooms).
+QIK Anime — full-stack anime streaming/tracking app. React SPA frontend (`anime-site/`) + NestJS backend (`server/`) + React Native mobile app (`mobile/`). Anime catalog data comes from the external YummyAnime API (https://yani.tv); the backend only adds social/gamification layers (users, bookmarks, ratings, comments, progress, friends, notifications, watch rooms).
 
 Two API clients on the frontend: `api/client.js` → YummyAnime (catalog), `api/backend.js` → NestJS (user data). A single anime page merges both. See `ARCHITECTURE.md` for the data-flow diagrams.
 
@@ -21,6 +21,13 @@ cd anime-site && npm run sitemap  # Regenerate sitemap (scripts/generate-sitemap
 cd server && npm run dev          # nest start --watch on :3001
 cd server && npm run build        # TypeScript compile → server/dist
 cd server && npm run start:prod   # node dist/main.js (what PM2 runs in prod)
+
+# Mobile (from repo root)
+cd mobile && npm start            # Expo dev server
+cd mobile && npm run android      # Launch on connected Android device/emulator
+cd mobile && npm run ios          # Launch on iOS simulator (macOS only)
+cd mobile && npm run web          # Launch in browser
+cd mobile && npm run lint         # Expo lint
 ```
 
 There is **no test runner, linter, or formatter configured** in either `package.json`. Don't claim to "run tests" — there are none.
@@ -45,9 +52,13 @@ Dev env: `server/.env` (see `server/.env.example`) and `anime-site/.env` (see `a
 
 **Watch rooms**: Socket.IO namespace `/watch-rooms`, JWT-authenticated. Host play/pause → `PATCH /api/watch-rooms/:id/state` → WS broadcast `room:state` → viewers apply. HTTP polling `GET .../sync` is the fallback. State versioning (`stateVersion`, `membersVersion`, `lastMessageId`) detects desync.
 
+**Mobile** (`mobile/src/`): React Native 0.86 + Expo 57 + Expo Router (file-based routing). Screens in `app/`, reusable UI in `components/`. Theming via `useTheme` hook returning light/dark `Colors`. No global state management yet — each screen is a self-contained page. Icons from `lucide-react-native`. Animations via `react-native-reanimated`. The custom tab bar lives in `components/app-tabs.tsx`, backed by the `ExpandableTabs` UI component. Path aliases: `@/` → `src/`, `@/assets/*` → `assets/*`. Explicitly typed routes via `experiments.typedRoutes`. React Compiler enabled.
+
 ## Critical constraints
 
 - **No native dependencies.** Everything must build/run without Visual Studio Build Tools. Hence `sql.js` (not `better-sqlite3`), `bcryptjs` (not `bcrypt`), `socket.io` (pure JS). Don't add packages that need native compilation.
+- **Mobile is Expo SDK 57.** Always check exact-version docs at https://docs.expo.dev/versions/v57.0.0/ before writing mobile code — APIs change between SDK versions.
+- **Mobile is Android-first.** The app targets Android; iOS/web exist but are secondary. All mobile code must work on Android at minimum.
 - **SQLite via sql.js has limited transaction support** — avoid multi-statement atomicity; use the "write then clean up on error" pattern (see `CommentsService.toggleLike`).
 - **`static.yani.tv` is blocked in RF** — the frontend `fixUrl()` swaps poster hosts to `imgproxy.yani.tv`. Don't bypass this.
 - Entity changes that aren't backward-compatible will corrupt/require deleting the prod DB — be deliberate.
